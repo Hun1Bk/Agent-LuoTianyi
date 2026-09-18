@@ -19,14 +19,37 @@ function Resolve-Godot([string]$Path) {
 function Invoke-GodotChecked([string]$Executable, [string[]]$Arguments, [string]$LogName) {
     $logDirectory = Join-Path $ProjectRoot 'artifacts'
     New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
-    # PowerShell 5 treats native stderr as ErrorRecord, even for ordinary output.
-    $previousPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try {
-        $output = @(& $Executable @Arguments 2>&1)
-        $exitCode = $LASTEXITCODE
-    } finally { $ErrorActionPreference = $previousPreference }
-    $text = ($output | ForEach-Object { $_.ToString() }) -join "`n"
+    # A GUI-subsystem export does not expose stdout like the editor console.
+    # Wait for the actual child process and inspect Godot's own log as well.
+    $engineLog = Join-Path $logDirectory "$LogName.engine.log"
+    $stdoutLog = Join-Path $logDirectory "$LogName.stdout.log"
+    $stderrLog = Join-Path $logDirectory "$LogName.stderr.log"
+    '' | Set-Content -LiteralPath $engineLog -Encoding UTF8
+    $quoted = @($Arguments + @('--log-file', $engineLog) | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' })
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $Executable
+    $startInfo.Arguments = $quoted -join ' '
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.WindowStyle = 'Hidden'
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $process = New-Object System.Diagnostics.Process
+    $process.StartInfo = $startInfo
+    $process.Start() | Out-Null
+    $stdout = $process.StandardOutput.ReadToEndAsync()
+    $stderr = $process.StandardError.ReadToEndAsync()
+    if (-not $process.WaitForExit(120000)) {
+        $process.Kill()
+        throw "Godot $LogName timed out after 120 seconds."
+    }
+    $exitCode = $process.ExitCode
+    $stdout.Result | Set-Content -LiteralPath $stdoutLog -Encoding UTF8
+    $stderr.Result | Set-Content -LiteralPath $stderrLog -Encoding UTF8
+    $process.Dispose()
+    $text = @($engineLog, $stdoutLog, $stderrLog | ForEach-Object {
+        if (Test-Path -LiteralPath $_) { Get-Content -LiteralPath $_ -Raw -Encoding UTF8 }
+    }) -join "`n"
     $text | Set-Content -LiteralPath (Join-Path $logDirectory "$LogName.log") -Encoding UTF8
     if ($exitCode -ne 0 -or $text -match '(?m)(SCRIPT ERROR:|Parse Error:|^ERROR:|^USER ERROR:)') {
         throw "Godot $LogName failed (exit $exitCode).`n$text"
