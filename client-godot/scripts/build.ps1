@@ -11,4 +11,6 @@ if (-not (Test-Path -LiteralPath $executable) -or -not (Test-Path -LiteralPath (
     throw 'Export did not produce AgentLuo.exe and AgentLuo.pck.'
 }
 Invoke-GodotChecked $executable @('--headless', '--quit-after', '3') 'export-startup'
+Copy-Item -LiteralPath (Join-Path $ProjectRoot 'licenses') -Destination $destination -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $ProjectRoot 'PREVIEW.md') -Destination $destination -Force
 Write-Host "Build: $executable"
