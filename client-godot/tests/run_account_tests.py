@@ -12,7 +12,7 @@ from run_security_interop import server_crypto
 PROJECT = Path(__file__).resolve().parents[1]
 
 
-def run(godot):
+def run(godot, script="res://tests/test_account_api.gd"):
     crypto = server_crypto()
     crypto.generate_keys()
     protocol_errors = []
@@ -58,7 +58,10 @@ def run(godot):
                     encrypted = fields["new_password" if operation == "reset_account" else "password"]
                     assert crypto.decrypt_password(encrypted) == "synthetic-password", "encrypted password mismatch"
                 else:
-                    assert fields["token"] == "login-test", "wrong token type"
+                    if fields["token"] == "invalid":
+                        self.reply(401, {"detail":"expired login token"})
+                        return
+                    assert fields["token"] in {"login-test", "login-rotated"}, "wrong token type"
             except Exception as error:
                 protocol_errors.append(type(error).__name__)
                 self.reply(400, {"detail":"fixture protocol mismatch"})
@@ -67,7 +70,7 @@ def run(godot):
             if username in {"reject", "busy"}:
                 self.reply(401 if username == "reject" else 503, {"detail":"fixture rejection"})
             elif operation in {"login", "auto_login"}:
-                self.reply(200, {"user_id":username, "login_token":"login-test", "message_token":"" if username == "empty_token" else "message-test"})
+                self.reply(200, {"user_id":username, "login_token":"login-rotated" if operation == "auto_login" else "login-test", "message_token":"" if username == "empty_token" else "message-test"})
             elif operation == "register":
                 self.reply(200, {"message":"registered", "user_id":"test"})
             else:
@@ -78,7 +81,7 @@ def run(godot):
     thread.start()
     try:
         env = {**os.environ, "GODOT_TEST_SERVER": f"http://127.0.0.1:{server.server_port}"}
-        result = subprocess.run([godot, "--headless", "--path", str(PROJECT), "--script", "res://tests/test_account_api.gd"],
+        result = subprocess.run([godot, "--headless", "--path", str(PROJECT), "--script", script],
                                 env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=40)
         print(result.stdout)
         if result.returncode or "ERROR:" in result.stdout + result.stderr or protocol_errors:
@@ -93,4 +96,6 @@ def run(godot):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--godot", required=True)
-    run(parser.parse_args().godot)
+    parser.add_argument("--script", default="res://tests/test_account_api.gd")
+    args = parser.parse_args()
+    run(args.godot, args.script)
