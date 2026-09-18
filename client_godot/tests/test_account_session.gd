@@ -30,6 +30,7 @@ func run() -> void:
 	var outcome: Dictionary = await session.perform("login", server, {"username":"test", "password":"synthetic-password"}, true)
 	check(outcome.ok and not session.get_session().is_empty(), "successful login publishes session")
 	check(session.get_login_defaults().remember, "auto login enabled only after save")
+	check(not FileAccess.get_file_as_string(folder + "/account.cfg").contains("login-test"), "ordinary settings contain no login token")
 	var snapshot: Dictionary = session.get_session()
 	snapshot["message_token"] = "changed"
 	check(session.get_session().get("message_token") == "message-test", "session snapshot isolated")
@@ -57,7 +58,7 @@ func run() -> void:
 	var blocked := FileAccess.open(folder + "/blocked", FileAccess.WRITE)
 	blocked.store_string("file prevents directory creation")
 	blocked.close()
-	var unsaved = Session.new(Api.new(security), Store.new(security, folder + "/blocked/tokens"), folder + "/unsaved.cfg")
+	var unsaved = Session.new(Api.new(security), Store.new(security, folder + "/blocked"), folder + "/unsaved.cfg")
 	root.add_child(unsaved)
 	var failure: Dictionary = await unsaved.perform("login", server, {"username":"test", "password":"synthetic-password"}, true)
 	check(failure.ok and failure.storage_error, "storage failure keeps online login with explicit warning")
