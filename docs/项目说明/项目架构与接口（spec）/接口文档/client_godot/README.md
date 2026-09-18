@@ -81,3 +81,23 @@
 C++ 临时明文缓冲在释放前清零；Windows 句柄和 DPAPI 输出无论成功失败都释放。GDScript 调用者仍负责及时释放自己的密码/密钥引用。此接口只转换字节，原子落盘、自动登录策略和 API key 明文选择由后续存储/业务接口承担。
 
 验证：Godot headless 从 ClassDB 创建真实扩展，验证 DPAPI 往返、不同 scope/篡改拒绝、空值及上限；Python 临时测试进程生成密钥，用仓库 `account.py::decrypt_password` 解密 Godot 产生的 ASCII/中文/边界密码密文，并确认相同明文的密文不同。不使用生产密钥或真实凭据。扩展未加载属于环境失败，不计 Red。
+
+## AccountApi：异步账户请求
+
+位置 `src/network/account_api.gd`，继承 Node；组装根通过构造函数注入 WindowsSecurity 和超时（默认 15 秒）。UI/账户控制器通过 `request(operation, server, fields) -> Dictionary`（异步）调用；公开 `cancel()` 取消当前操作、`normalize_server(address) -> String` 规范化地址。单实例同时只执行一个操作，第二次调用返回 `BUSY`。
+
+返回统一 `{ok: bool, code: String, status: int, data: Dictionary}`；成功 code 为 `OK`、data 为校验后的账户结果。失败 code 为 `INVALID_INPUT/BUSY/CANCELLED/TIMEOUT/NETWORK_ERROR/INVALID_RESPONSE/PUBLIC_KEY_ERROR/ENCRYPTION_ERROR/HTTP_ERROR/AUTH_REJECTED`；status 为 HTTP 状态，无响应为 0。错误不回显请求字段或未经处理的响应正文；UI 根据 code/status 显示明确反馈。未登录成功前不发布会话。
+
+| operation | fields | 既有协议与成功字段 |
+| --- | --- | --- |
+| login | username,password,request_token(bool) | GET /auth/public_key 后 POST /auth/login；user_id/login_token/message_token 均为非空 String |
+| register | username,password,invite_code | GET 公钥后 POST /auth/register；非空 message/user_id |
+| reset | invite_code,new_username,new_password | GET 公钥后 POST /auth/reset_account；非空 message/username |
+| auto_login | username,token | POST /auth/auto_login；非空 user_id/login_token/message_token |
+
+- 每次密码请求重新获取公钥，避免服务端重启/切换服务器后缓存错钥；不裁剪用户名或密码。只发送当前操作需要的字段，不透传未知字段。密码由原生层加密，再 Base64 编码。
+- 地址首尾空白和尾部 `/` 去除；无协议补 https；scheme/host 小写、默认端口去除，保留可选路径前缀。仅接受 http/https、合法端口、域名/IPv4/方括号 IPv6；拒绝 userinfo、query、fragment、反斜杠及路径内空白。无效返回空串。TLS 始终校验证书，不跟随重定向。
+- HTTPRequest 异步执行，单响应最多 64 KiB；JSON 非对象、缺字段、字段类型错误或 token 为空均返回 INVALID_RESPONSE。鉴权 401 返回 AUTH_REJECTED，其他非 200 为 HTTP_ERROR；公钥响应非成功为 PUBLIC_KEY_ERROR（取消/超时保持原错误）。无自动重试，防止账户写操作重复。
+- cancel() 可重复；取消公共密钥获取或提交后都结束等待，并使迟到回调不再建立会话。退出树也取消。此模块不保存 token、不触发 WebSocket、不写日志或本地配置。
+
+验证 `tests/test_account_api.gd` 与本地 Python HTTP 测试服务：真实 CNG 加密可解密、四种字段转换、401/503、错误公钥/JSON、空 token、超时、取消、并发拒绝、地址规范化与服务器切换。测试绑定 127.0.0.1 随机端口，不接生产服务。
