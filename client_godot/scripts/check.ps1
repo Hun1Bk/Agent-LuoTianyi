@@ -5,3 +5,5 @@ Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--editor', 
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--quit-after', '3') 'startup'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_avatar_driver.gd') 'avatar-contract'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_avatar_framing.gd') 'framing-contract'
+Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_demo_session.gd') 'preview-contract'
+Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_preview_input.gd') 'preview-input'
