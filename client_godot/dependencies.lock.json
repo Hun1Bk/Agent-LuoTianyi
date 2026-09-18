@@ -26,6 +26,12 @@
     "url": "https://cubism.live2d.com/sdk-native/bin/CubismSdkForNative-5-r.1.zip",
     "sha256": "073f623fc3fb06c192e68bb5287fdb9dab1952164c2a956dec6d4b45fd342ffb"
   },
+  "windows_security": {
+    "binary_sha256": "abfac8dcca6ae3162300bc453a3b92559a043552c7983b39b0c40bca497d937a",
+    "source": "native/windows_security.cpp",
+    "system_libraries": ["bcrypt", "crypt32"],
+    "msvc_version": "14.44.35207"
+  },
   "native_build": {
     "python": "3.11.9",
     "python_url": "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip",

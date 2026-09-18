@@ -37,3 +37,16 @@ python client_godot/scripts/build_cubism.py --source '<gd_cubism源码目录>'
 `check.ps1` 覆盖角色、构图、离线消息控制器和主场景键盘输入回归。真实 Windows IME、剪贴板、多档 DPI、拖动手感和集显性能尚需人工验收。此导出目录是视觉检查产物，不是最终安装程序。
 
 截取实际导出画面：`AgentLuo.exe -- --capture=<绝对PNG路径>`；可增加 `--scenario=empty/disconnected/error/thinking`。正常运行不要传 capture 参数。
+
+## Windows 凭据扩展
+
+`WindowsSecurity` 使用 CNG RSA-OAEP/SHA256 和当前用户 DPAPI。源码位于 `native/`，不需要额外运行时 DLL；编译使用上述锁定 godot-cpp 和 VS2022 工具链。
+
+```powershell
+python client_godot/scripts/build_security.py --godot-cpp '<锁定的godot-cpp目录>'
+python client_godot/tests/run_security_interop.py --godot $env:GODOT_BIN
+```
+
+互操作测试 Python 需 `cryptography` 和 `fastapi`，仅测试时需要；测试隔离执行仓库 account.py 中原样的密钥生成/解密函数，避免其数据库及供应商导入副作用。它不验证整个 HTTP 服务。
+
+若 MSVC 响应文件不能解析源码目录中的中文，可以 `New-Item -ItemType Junction -Path client_godot/native/godot-cpp -Value '<真实目录>'` 建立本地目录联接，然后以该联接路径传入 `--godot-cpp`。构建仍检查源码 commit；联接和对象文件不进入 Git 或导出包。
