@@ -1,6 +1,6 @@
 # Godot 客户端 interface
 
-已交付：基线与构建。当前切片：**真实 Live2D 显示与控制**。网络、媒体接口在对应切片中补充，未列接口不视为已实现。
+已交付：基线与构建、真实 Live2D 显示与控制。当前切片：**角色构图调整**。网络、媒体接口在对应切片中补充，未列接口不视为已实现。
 
 ## 工程与构建入口
 
@@ -36,3 +36,16 @@
 ### 验证
 
 `godot --headless --path client_godot --script res://tests/test_avatar_driver.gd` 从真实驱动入口验证：完整资源可加载；缺失入口被拒绝且不丢旧模型；表情命令可切换、未知命令无副作用；动作合法/越界；口型范围及恢复。插件缺失属于环境失败，不计 Red。另用真实 GPU 导出包检查透明、遮罩、物理和表情，headless 不代替画面验收。
+
+## AvatarFraming：构图与本地保存
+
+`src/avatar/avatar_framing.gd` 是 `RefCounted`，调用者为角色区域。公开 `zoom_by(factor)`、`pan_by(pixel_delta, panel_size)`、`reset()`、`get_transform(panel_size, canvas_size) -> Transform2D`、`save_settings(path) -> Error`、`load_settings(path) -> Error`。
+
+- 默认缩放倍数 1.2，位置为区域中心。倍数限制 0.6～2.4；位移保存为区域宽高比例，分别限制 -0.4～0.4。零尺寸区域不移动、不产生除零。
+- 布局缩放基础值为区域对模型 canvas 的等比容纳；面板改变后仍保持保存的相对位置和比例，不保存像素绝对位置。
+- 正缩放因子生效；零、负数、NaN、无限值拒绝且不改变状态。无效拖动同理。
+- 重置恢复默认构图。保存用 ConfigFile 写当前缩放和归一位移；文件写入错误返回 Error。加载缺失文件返回 `ERR_FILE_NOT_FOUND`，损坏或字段非法返回 `ERR_INVALID_DATA` 并保留现有构图；超界有限值截断到范围。
+- 产品设置路径为 `user://avatar_framing.cfg`，它只包含本机窗口构图，不含账户数据。测试使用独立临时路径，不触碰用户配置。
+- 角色区域滚轮缩放、右键拖动；左键不调整构图。拖动释放和滚轮操作后保存；保存失败给出可识别状态，不影响当前画面。最小化关闭角色绘制/更新，不暂停整棵场景树。
+
+验证入口：`tests/test_avatar_framing.gd`，检查边界、跨尺寸恢复、重置、缺失/损坏配置与重新实例化后的恢复。本切片不实现触摸上报或账户设置。
