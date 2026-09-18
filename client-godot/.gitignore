@@ -2,3 +2,9 @@
 dist/
 artifacts/
 *.tmp
+native/*.obj
+native/*.os
+native/.sconsign*
+native/godot-cpp/
+addons/windows_security/bin/*.lib
+addons/windows_security/bin/*.exp
