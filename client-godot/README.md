@@ -50,3 +50,5 @@ python client_godot/tests/run_security_interop.py --godot $env:GODOT_BIN
 互操作测试 Python 需 `cryptography` 和 `fastapi`，仅测试时需要；测试隔离执行仓库 account.py 中原样的密钥生成/解密函数，避免其数据库及供应商导入副作用。它不验证整个 HTTP 服务。
 
 若 MSVC 响应文件不能解析源码目录中的中文，可以 `New-Item -ItemType Junction -Path client_godot/native/godot-cpp -Value '<真实目录>'` 建立本地目录联接，然后以该联接路径传入 `--godot-cpp`。构建仍检查源码 commit；联接和对象文件不进入 Git 或导出包。
+
+账户模块的本地 HTTP/凭据回归：在独立 Python 环境安装 `tests/requirements-auth.txt`，运行 `scripts/check_accounts.ps1 -Godot <exe> -Python <python.exe>`。测试只监听 127.0.0.1 随机端口，使用合成账户；客户端运行不依赖 Python。
