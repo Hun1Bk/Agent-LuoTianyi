@@ -50,3 +50,8 @@
 - 作者自审：检查场景重置后的旧回调隔离、读副本、失败保留输入、图片刷新、浮层焦点、无网络调用及许可分发；修正 RichTextLabel 默认文字颜色和 headless 不支持 IME 查询的问题。
 - 本地交付：`client_godot/dist/AgentLuo.exe`；完整目录压缩包 `client_godot/artifacts/AgentLuo-visual-preview-win64.zip`；截图 `artifacts/chat-preview.png`。未合并、未发布。
 - 未验证：用户视觉确认、真实 Windows IME/剪贴板/鼠标操作、多档 DPI、Windows 10、集显性能、真实服务与流式音频；本样板没有实际声音，不表示完整客户端或安装程序已经完成。
+
+### 2026-09-18 用户确认视觉样板
+
+- 用户反馈“暂且满意，完善其他功能”，确认当前样板可作为后续业务集成的视觉基线。
+- 确认对象：`6524fa2` 的真实模型与离线聊天样板；不视为业务、声音、性能或安装验收通过。

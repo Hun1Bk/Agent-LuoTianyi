@@ -67,3 +67,17 @@
 图片样例点击在内部浮层预览，支持缩放与关闭；样板可选择或粘贴单张图片，进入待发送预览，显式发送或取消。图片读取失败保留输入并提示，不写长期缓存。语音按钮只切换明确标注的模拟播放状态并驱动口型，无实际声音，不冒充流式音频验证。表情通过真实 AvatarDriver 切换。
 
 验证：`tests/test_demo_session.gd` 检查空白拒绝、唯一 ID、正文保持、状态转移幂等、坏场景无副作用、场景切换旧回调隔离、读副本不泄露内部状态。实际导出截图核对气泡、真实模型、字体、分隔和底部输入。中文输入法与系统剪贴板需人工操作验收。
+
+## WindowsSecurity：Windows 原生密码与秘密保护
+
+位置 `client_godot/native/windows_security.cpp`，GDExtension 类 `WindowsSecurity`，继承 RefCounted；由应用创建并注入账户/本地存储模块。只使用 Windows CNG/Crypt32，不启动外部进程，不访问磁盘或网络。
+
+所有调用返回 `{ok: bool, data: PackedByteArray, error: String}`；成功 error 为空，失败 data 为空，错误码不包含输入内容。
+
+- `encrypt_password(public_key_pem: String, password: String) -> Dictionary`：接收服务端 `/auth/public_key` 的 SubjectPublicKeyInfo PEM 和 UTF-8 密码，返回 RSA-OAEP 密文字节；OAEP 与 MGF1 均 SHA256，label 为空。调用方用 Base64 编码填入既有 password/new_password 字段。RSA 至少 2048 位，最大 8192 位；公钥字符串不超过 16 KiB；明文字节超出当前 OAEP 上限时返回 `INVALID_INPUT`。无效公钥 `INVALID_KEY`；CNG 失败 `ENCRYPTION_FAILED`。不使用 SHA1 降级。
+- `protect_secret(plain: PackedByteArray, scope: PackedByteArray) -> Dictionary`：当前 Windows 用户 DPAPI，禁止交互提示；scope 为规范化服务器/账户标识派生的额外熵，不能跨 scope 解密。plain 与 scope 各 1～65536 字节；失败 `INVALID_INPUT` 或 `PROTECT_FAILED`。
+- `unprotect_secret(cipher: PackedByteArray, scope: PackedByteArray) -> Dictionary`：相同用户及 scope 下恢复字节；篡改、不同 scope 或不同用户返回 `UNPROTECT_FAILED`，绝不降级为明文。cipher 最大 128 KiB，scope 同上。
+
+C++ 临时明文缓冲在释放前清零；Windows 句柄和 DPAPI 输出无论成功失败都释放。GDScript 调用者仍负责及时释放自己的密码/密钥引用。此接口只转换字节，原子落盘、自动登录策略和 API key 明文选择由后续存储/业务接口承担。
+
+验证：Godot headless 从 ClassDB 创建真实扩展，验证 DPAPI 往返、不同 scope/篡改拒绝、空值及上限；Python 临时测试进程生成密钥，用仓库 `account.py::decrypt_password` 解密 Godot 产生的 ASCII/中文/边界密码密文，并确认相同明文的密文不同。不使用生产密钥或真实凭据。扩展未加载属于环境失败，不计 Red。
