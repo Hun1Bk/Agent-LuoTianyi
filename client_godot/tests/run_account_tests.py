@@ -47,6 +47,8 @@ def run(godot):
 
         def do_POST(self):
             fields = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            if self.path.startswith("/slowpost/"):
+                time.sleep(0.5)
             operation = self.path.rsplit("/", 1)[-1]
             allowed = {"login":{"username", "password", "request_token"}, "register":{"username", "password", "invite_code"},
                        "reset_account":{"invite_code", "new_username", "new_password"}, "auto_login":{"username", "token"}}

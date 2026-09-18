@@ -14,6 +14,9 @@ func _initialize() -> void:
 func start_slow(api, server: String) -> void:
 	_pending = await api.request("login", server + "/slow", {"username":"test", "password":"synthetic-password"})
 
+func start_slow_post(api, server: String) -> void:
+	_pending = await api.request("auto_login", server + "/slowpost", {"username":"test", "token":"login-test"})
+
 func run() -> void:
 	var server := OS.get_environment("GODOT_TEST_SERVER")
 	if server.is_empty() or not ClassDB.class_exists("WindowsSecurity"):
@@ -51,6 +54,12 @@ func run() -> void:
 	check(_pending.get("code") == "CANCELLED", "cancel resolves pending operation")
 	var recovered: Dictionary = await api.request("login", server, {"username":"test", "password":"synthetic-password"})
 	check(recovered.ok, "new request after cancel uses current server")
+	_pending = {}
+	start_slow_post(api, server)
+	await create_timer(0.03).timeout
+	api.cancel()
+	await create_timer(0.6).timeout
+	check(_pending.get("code") == "CANCELLED", "late POST success cannot restore cancelled session")
 	api.queue_free()
 	await process_frame
 	print("Account API: ", "PASS" if failures.is_empty() else "FAIL")
