@@ -55,3 +55,14 @@
 
 - 用户反馈“暂且满意，完善其他功能”，确认当前样板可作为后续业务集成的视觉基线。
 - 确认对象：`6524fa2` 的真实模型与离线聊天样板；不视为业务、声音、性能或安装验收通过。
+
+### 2026-09-18 Windows 原生凭据保护
+
+- 交付行为：WindowsSecurity GDExtension 提供 CNG RSA-OAEP/SHA256（MGF1 SHA256）及当前 Windows 用户 DPAPI 字节保护，错误不包含秘密，无明文降级。
+- interface：`WindowsSecurity`；SPEC `773a2e0`、Red `32fddc6`，分支 `feat/godot-windows-security`。
+- Red：真实扩展加载成功，DPAPI 保护、无效公钥错误码和五组 RSA 加密断言因占位实现失败；退出 1，没有将编译/路径问题算作 Red。
+- 验证：`run_security_interop.py` 使用临时密钥，隔离执行仓库 account.py 中原样的密钥生成与解密函数；ASCII、中文/emoji、2048 位密钥的 190 字节边界和 OAEP 随机性通过。DPAPI 往返、不同 scope、密文篡改和上限检查通过。
+- 回归：`check.ps1` 全部通过；`build.ps1` release 导出和独立 EXE 启动通过。DLL SHA256 已写入依赖锁。
+- 作者自审：检查 Windows 句柄释放、UTF-8 临时明文清零、SPKI RSA 类型/位数校验、无网络/文件副作用。只读独立核验未发现具体实现缺陷，指出跨 Windows 用户测试未覆盖；同用户 scope 测试不等同跨用户验收。
+- 构建：MSVC 对中文绝对源码路径的响应文件存在编码问题，使用同一锁定源码的本地目录联接构建通过；目录联接与对象文件不导出。
+- 未验证：跨 Windows 用户 DPAPI、干净 Windows 10 机器和完整服务端 HTTP 登录；当前切片没有修改旧端或服务端实现。
