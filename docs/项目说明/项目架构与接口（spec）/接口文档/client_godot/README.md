@@ -101,3 +101,24 @@ C++ 临时明文缓冲在释放前清零；Windows 句柄和 DPAPI 输出无论�
 - cancel() 可重复；取消公共密钥获取或提交后都结束等待，并使迟到回调不再建立会话。退出树也取消。此模块不保存 token、不触发 WebSocket、不写日志或本地配置。
 
 验证 `tests/test_account_api.gd` 与本地 Python HTTP 测试服务：真实 CNG 加密可解密、四种字段转换、401/503、错误公钥/JSON、空 token、超时、取消、并发拒绝、地址规范化与服务器切换。测试绑定 127.0.0.1 随机端口，不接生产服务。
+
+## CredentialStore 与 AccountSession：账户生命周期
+
+`src/storage/credential_store.gd`（RefCounted）由 WindowsSecurity 和根目录（默认 `user://accounts`）构造；只接受已规范化的 server 和非空 username。作用域是 JSON `[server, username]` 的 SHA256，目录及 DPAPI entropy 均由此派生。
+
+- `save(server, username, token) -> Error`：仅保存 DPAPI 保护后的 login_token，先写临时文件再原子替换；失败返回错误，不保存明文、不读取旧端数据。
+- `read(server, username) -> Dictionary`：返回 `{ok, code, token}`，成功 token 为解密后的字符串；缺失 NOT_FOUND，损坏/无法解密 UNAVAILABLE，失败 token 为空。
+- `forget(server, username) -> Error`：删除指定作用域自动登录凭据；缺失视为成功。媒体缓存不受影响。
+
+`src/session/account_session.gd`（Node）由 AccountApi、CredentialStore、普通设置文件路径构造，拥有 API 节点；默认设置文件 `user://account.cfg` 只含上次服务器、用户名与 auto_login 布尔值。
+
+- `perform(operation, server, fields, remember=false) -> Dictionary`（异步）：通过 AccountApi 处理账户操作。登录/自动登录成功才进入 signed_in；注册/重置成功保持 signed_out，提示回到登录。重复提交 BUSY；错误保留 UI 草稿。成功记住登录时只保存 login_token，message_token 只在内存。
+- `resume() -> Dictionary`（异步）：配置启用自动登录且凭据可解密时尝试一次；成功旋转并保存新 token。明确 AUTH_REJECTED 后清除凭据并关闭自动登录，不自动循环。配置缺失返回 NO_SAVED_LOGIN；无法读取凭据返回 CREDENTIAL_UNAVAILABLE。网络暂时失败不会把 token 误认为鉴权失败。
+- `cancel()`：取消在途操作，结束 busy 状态；迟到结果不建立会话。
+- `logout() -> Error`：取消在途请求、清空内存会话、清除当前作用域自动登录凭据、禁用自动登录，发送 signed_out 状态；文件删除/保存失败返回实际错误，不伪装清除成功。
+- `get_login_defaults() -> Dictionary`：server/username/remember，用于登录表单，不含秘密。`get_session() -> Dictionary`：仅向应用/网络控制器返回当前会话深拷贝（server/username/user_id/login_token/message_token），退出后为空。
+- `changed(state: Dictionary)`：只包含 phase（signed_out/busy/signed_in）、code、storage_error，不含 token/密码。写凭据或配置失败不撤销已经成功的在线登录；返回 `storage_error=true`，并关闭自动登录，不自动明文降级。
+
+普通设置同样采用临时文件和原子替换。切换服务器/账户前取消旧操作并清空旧会话；后续网络组装监听 signed_out/busy 关闭连接。本切片尚不创建聊天连接。
+
+验证从以上公开入口使用真实 DPAPI、本地 HTTP fixture、隔离临时目录：跨服务器/账户不可读、重新实例化恢复、token 旋转、401 清理、退出后无会话/凭据、重复取消、保存失败仍可在线登录。测试不触碰真实 user://account.cfg。
