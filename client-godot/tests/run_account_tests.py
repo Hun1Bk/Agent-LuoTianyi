@@ -1,0 +1,94 @@
+"""Exercise Godot's real HTTPRequest + native encryption against a loopback fixture."""
+import argparse
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import json
+import os
+from pathlib import Path
+import subprocess
+import threading
+import time
+from run_security_interop import server_crypto
+
+PROJECT = Path(__file__).resolve().parents[1]
+
+
+def run(godot):
+    crypto = server_crypto()
+    crypto.generate_keys()
+    protocol_errors = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+        def reply(self, status, payload):
+            encoded = json.dumps(payload).encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            try:
+                self.wfile.write(encoded)
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                pass
+
+        def do_GET(self):
+            if self.path.startswith("/slow/"):
+                time.sleep(0.5)
+            if self.path.startswith("/redirect/"):
+                self.send_response(302)
+                self.send_header("Location", "/auth/public_key")
+                self.end_headers()
+                return
+            if self.path.startswith("/badjson/"):
+                self.reply(200, [])
+                return
+            self.reply(200, {"public_key": "bad-key" if self.path.startswith("/badkey/") else crypto.get_public_key_pem()})
+
+        def do_POST(self):
+            fields = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            operation = self.path.rsplit("/", 1)[-1]
+            allowed = {"login":{"username", "password", "request_token"}, "register":{"username", "password", "invite_code"},
+                       "reset_account":{"invite_code", "new_username", "new_password"}, "auto_login":{"username", "token"}}
+            try:
+                assert set(fields) == allowed[operation], "request field mismatch"
+                if operation != "auto_login":
+                    encrypted = fields["new_password" if operation == "reset_account" else "password"]
+                    assert crypto.decrypt_password(encrypted) == "synthetic-password", "encrypted password mismatch"
+                else:
+                    assert fields["token"] == "login-test", "wrong token type"
+            except Exception as error:
+                protocol_errors.append(type(error).__name__)
+                self.reply(400, {"detail":"fixture protocol mismatch"})
+                return
+            username = fields.get("username", "test")
+            if username in {"reject", "busy"}:
+                self.reply(401 if username == "reject" else 503, {"detail":"fixture rejection"})
+            elif operation in {"login", "auto_login"}:
+                self.reply(200, {"user_id":username, "login_token":"login-test", "message_token":"" if username == "empty_token" else "message-test"})
+            elif operation == "register":
+                self.reply(200, {"message":"registered", "user_id":"test"})
+            else:
+                self.reply(200, {"message":"reset", "username":"test"})
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        env = {**os.environ, "GODOT_TEST_SERVER": f"http://127.0.0.1:{server.server_port}"}
+        result = subprocess.run([godot, "--headless", "--path", str(PROJECT), "--script", "res://tests/test_account_api.gd"],
+                                env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=40)
+        print(result.stdout)
+        if result.returncode or "ERROR:" in result.stdout + result.stderr or protocol_errors:
+            raise RuntimeError("Account contract failed: " + result.stderr)
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+    print("Loopback account HTTP contract: PASS")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--godot", required=True)
+    run(parser.parse_args().godot)
