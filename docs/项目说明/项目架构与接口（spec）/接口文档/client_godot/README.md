@@ -49,3 +49,21 @@
 - 角色区域滚轮缩放、右键拖动；左键不调整构图。拖动释放和滚轮操作后保存；保存失败给出可识别状态，不影响当前画面。最小化关闭角色绘制/更新，不暂停整棵场景树。
 
 验证入口：`tests/test_avatar_framing.gd`，检查边界、跨尺寸恢复、重置、缺失/损坏配置与重新实例化后的恢复。本切片不实现触摸上报或账户设置。
+
+## OfflinePreview：可运行视觉样板
+
+独立入口 `scenes/chat_preview.tscn`，由当前开发启动场景装配，始终显示“离线样板 · 未连接服务器”；正式产品菜单不提供此入口。UI 只调用离线控制器和 AvatarDriver，完全不发 HTTP/WebSocket 请求。
+
+`src/preview/demo_session.gd` 是离线样板控制器，继承 RefCounted，供样板 UI 和 headless 测试调用：
+
+- `select_scenario(name: String) -> bool`：接受 `conversation/empty/disconnected/error/thinking`，替换模拟消息并重置模拟状态；未知名称返回 false 且保留数据。
+- `get_messages() -> Array[Dictionary]`：返回深拷贝。消息包含 `id/role/text/status`，role 为 assistant/user/system，status 为 received/sending/sent/failed；可选 `image` 为本地资源路径。样例包括长短文字、图片和三种发送状态。
+- `submit_text(text: String) -> String`：空白输入或断网/加载失败场景返回空 ID 且不修改消息；正常保留输入正文并追加 sending 消息，返回会话内唯一 ID。不假装得到服务端答复。
+- `settle(id: String, success: bool) -> bool`：只将已存在的 sending 消息变为 sent/failed；未知 ID 或重复结束返回 false。
+- `changed` 信号通知展示刷新；场景切换后旧 ID 的延迟回调不影响新消息。
+
+视觉布局：原生标题栏、左45%角色、右55%聊天，分隔条可调并单独保存 `user://preview_layout.cfg`。角色沿用 AvatarPanel；浅色实底、青蓝用户气泡、左右头像；消息正文可选择。底部输入支持 Enter/Shift+Enter，IME 合成期间不发送。输入失败保留文字。新消息只在原来位于底部时自动跟随，否则显示“回到最新”。样板消息数有限，不承诺历史分页或千条虚拟列表。
+
+图片样例点击在内部浮层预览，支持缩放与关闭；样板可选择或粘贴单张图片，进入待发送预览，显式发送或取消。图片读取失败保留输入并提示，不写长期缓存。语音按钮只切换明确标注的模拟播放状态并驱动口型，无实际声音，不冒充流式音频验证。表情通过真实 AvatarDriver 切换。
+
+验证：`tests/test_demo_session.gd` 检查空白拒绝、唯一 ID、正文保持、状态转移幂等、坏场景无副作用、场景切换旧回调隔离、读副本不泄露内部状态。实际导出截图核对气泡、真实模型、字体、分隔和底部输入。中文输入法与系统剪贴板需人工操作验收。
