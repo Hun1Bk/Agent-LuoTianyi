@@ -285,5 +285,5 @@
 
 ### 2026-09-19 损坏模型配置恢复
 
-- SPEC 71a980d；Red c928947（以实际 git 日志中的 reject malformed persisted model capabilities 提交为准）。损坏的 capabilities/kind 等配置加载后禁用并报告，不向服务端广告，也不把错误结构交给表单。用途类型更新后可重新编辑保存。
+- SPEC 71a980d；Red f63f89a。损坏的 capabilities/kind 等配置加载后禁用并报告，不向服务端广告，也不把错误结构交给表单。用途类型更新后可重新编辑保存。
 - test_model_settings.gd 真实存储损坏配置恢复及原 DPAPI/草稿回归通过；模型表单补统一边距，作者自审核对恢复不调用供应商且不写回损坏文件。
