@@ -1,5 +1,13 @@
 # Godot 客户端 interface
 
+## 相处偏好与设置窗口退出保护
+
+`JsonRequest(timeout=15,limit=8MiB)` Node 的 `send(url,method,data={},headers=[]) -> Dictionary` 异步返回 ok/code/status/data，单实例忙碌返回 BUSY；JSON 必须对象、禁止重定向、TLS 默认验证、无自动重试、错误不回显正文。`cancel()` 结束等待且迟到回调失效。它只承担 HTTP 外部边界，不读取会话或供应商配置。
+
+`PreferencesController(http,logger=null)` Node 拥有请求器。`start(session)` 加载现有 POST /preference/get；`reload()` 仅非忙碌且无草稿时重试；`edit(fields)` 接受 relationship/speaking_style/personality_text/custom_context 四个字符串；`save()` 在加载成功后重读服务器，比较加载后的表单，仅合并用户修改字段，再 POST /preference/overwrite `{username,token,preferences}`。关系 朋友 和风格 活泼可爱 保存空值；canonical personality_traits 数组优先读取，旧 #sym:personality_text 回退；关键词按中英文逗号/顿号/换行拆分，去空并保序，修改性格后同时写两个字段。未知字段和未修改字段保留服务器最新值。成功响应 status=success 才更新基线；加载失败不可保存、保存失败保留草稿。`get_state()` / changed 提供 phase/fields/can_save/dirty/code；`stop()` 取消并清空秘密/草稿，不落盘正文。
+
+`PreferencesWindow(controller)` 非模态，编辑预设和自定义四项，保存/重试及明确状态，不在加载失败时显示可保存默认值。`is_dirty()` 供统一退出保护；窗口关闭默认取消的放弃确认，确认才关闭。Application 维护独立窗口实例，重复打开聚焦；关闭窗口/退出账号/退出程序使用同一草稿检查原则。正常应用关闭先确认，再释放控制器和日志。测试使用真实 loopback HTTP 确认重读合并、默认空值、旧性格兼容、失败保留草稿和取消。
+
 ## HistoryImages：按可见 UUID 恢复图片
 
 `HistoryImages(root="user://images",logger=null)` Node，`start(session)` 规范化服务器/账户隔离本地文件并取消旧请求；`stop()` 清除内存及取消网络，完整文件保留。`ensure(id)` 在 UI 可见请求时读取缓存、缺失或损坏则 POST /get_image `{username,token,uuid}`；最多 3 个并发请求、15 秒超时、16 MiB 响应上限、禁止重定向，不使用历史 content 路径或 update_image_client_path。PNG/JPEG/WebP 解码成功才可用，限制 8192 边长、1600 万像素；缩略图最长边 480，本地缓存原图供预览。
