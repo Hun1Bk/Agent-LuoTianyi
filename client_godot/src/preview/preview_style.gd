@@ -16,10 +16,11 @@ static func make_theme() -> Theme:
 	font.font_names = PackedStringArray(["Microsoft YaHei UI", "Microsoft YaHei"])
 	result.default_font = font
 	result.default_font_size = 15
-	for type in ["Label", "Button", "OptionButton", "TextEdit", "RichTextLabel"]:
+	for type in ["Label", "Button", "OptionButton", "LineEdit", "TextEdit", "RichTextLabel"]:
 		result.set_color("font_color", type, Color("344c59"))
 	result.set_color("default_color", "RichTextLabel", Color("344c59"))
 	result.set_color("font_placeholder_color", "TextEdit", Color("9aaeb8"))
+	result.set_color("font_placeholder_color", "LineEdit", Color("8299a6"))
 	result.set_stylebox("normal", "Button", box(Color("edf4f5"), 8, 9))
 	result.set_stylebox("hover", "Button", box(Color("dfedf0"), 8, 9))
 	result.set_stylebox("pressed", "Button", box(Color("cce8ec"), 8, 9))

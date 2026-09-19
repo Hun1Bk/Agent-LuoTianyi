@@ -21,7 +21,7 @@ func key(shift: bool) -> void:
 	await process_frame
 
 func run() -> void:
-	var scene = load("res://scenes/main.tscn").instantiate()
+	var scene = load("res://scenes/chat_preview.tscn").instantiate()
 	root.add_child(scene)
 	await process_frame
 	await process_frame
