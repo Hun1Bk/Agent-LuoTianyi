@@ -1,10 +1,11 @@
 ﻿"""Offline authenticated settings API fixture; never contacts public/paid services."""
-import argparse, json, os, subprocess, threading, base64, hashlib, struct
+import argparse, json, os, subprocess, threading, base64, hashlib, struct, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 PROJECT=Path(__file__).resolve().parents[1]
 def run(godot,script):
     reads, writes, errors = {}, {}, []
+    provider_calls=[]
     from run_security_interop import server_crypto
     crypto=server_crypto(); crypto.generate_keys()
     class Handler(BaseHTTPRequestHandler):
@@ -15,6 +16,7 @@ def run(godot,script):
             try: self.wfile.write(body)
             except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError): pass
         def do_GET(self):
+            if self.path=='/provider-stats': self.reply(200,{'calls':provider_calls}); return
             if self.path=='/llm/client-model-types':
                 self.reply(200,{'types':[{'id':'text-purpose','name':'文本用途','description':'local fixture','model_kind':'llm','requires_json':True,'requires_thinking':False},{'id':'vision-purpose','name':'图像用途','description':'local fixture','model_kind':'vlm','requires_json':False,'requires_thinking':False}]}); return
             if self.path=='/chat_ws':
@@ -42,6 +44,13 @@ def run(godot,script):
             self.reply(200,{'public_key':crypto.get_public_key_pem()}) if self.path=='/auth/public_key' else self.reply(404,{})
         def do_POST(self):
             data=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+            if self.path.endswith('/chat/completions'):
+                provider_calls.append(data)
+                if self.headers.get('Authorization')!='Bearer SYNTHETIC_KEY': errors.append('supplier key mismatch')
+                if data.get('stream') is not False: errors.append('supplier must be nonstreaming')
+                if data.get('model')=='slow': time.sleep(.8)
+                if data.get('model')=='error': self.reply(503,{'error':'PRIVATE_PROVIDER_BODY'}); return
+                self.reply(200,{'choices':[{'message':{'content':'bad-json' if data.get('model')=='bad-json' else '{"answer":"ok"}'}}],'usage':{'total_tokens':3,'private':'DO_NOT_RETURN'}}); return
             if self.path=='/auth/login':
                 self.reply(200,{'user_id':'ui-uuid','login_token':'login-test','message_token':'message-test'}); return
             user=data.get('username')
