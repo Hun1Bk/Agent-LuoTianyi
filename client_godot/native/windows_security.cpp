@@ -8,6 +8,7 @@
 #include <wincrypt.h>
 #include <cstring>
 #include <vector>
+#include "pcm_stream_decoder.h"
 using namespace godot;
 
 namespace {
@@ -105,7 +106,10 @@ public:
 };
 
 void initialize_security(ModuleInitializationLevel level) {
-    if (level == MODULE_INITIALIZATION_LEVEL_SCENE) ClassDB::register_class<WindowsSecurity>();
+    if (level == MODULE_INITIALIZATION_LEVEL_SCENE) {
+        ClassDB::register_class<WindowsSecurity>();
+        ClassDB::register_class<PcmStreamDecoder>();
+    }
 }
 void terminate_security(ModuleInitializationLevel) {}
 extern "C" GDExtensionBool GDE_EXPORT windows_security_init(
