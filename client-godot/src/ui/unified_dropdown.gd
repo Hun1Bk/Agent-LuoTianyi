@@ -15,6 +15,7 @@ var _owner_geometry := Rect2i()
 func _init(actions: bool = false) -> void:
 	action_menu = actions
 	custom_minimum_size.y = 40
+	custom_minimum_size.x = 90 if actions else 140
 	alignment = HORIZONTAL_ALIGNMENT_LEFT
 	clip_text = true
 
@@ -137,7 +138,8 @@ func open_menu() -> void:
 	for index in _buttons.size():
 		var row := _buttons[index]
 		row.text = ("✓  " if not action_menu and row.get_meta("id") == _selected else "    ") + _label(row.get_meta("id"))
-		row.add_theme_color_override("font_color",Style.ACCENT if not action_menu and row.get_meta("id") == _selected else Color("353c43"))
+		for state in ["font_color","font_focus_color","font_hover_color","font_pressed_color"]:
+			row.add_theme_color_override(state,Style.ACCENT if not action_menu and row.get_meta("id") == _selected else Color("353c43"))
 		if row.get_meta("id") == _selected: _focus_index = index
 	if _focus_index >= 0: _buttons[_focus_index].grab_focus()
 
