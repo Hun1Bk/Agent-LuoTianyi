@@ -8,5 +8,6 @@ Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_demo_session.gd') 'preview-contract'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_preview_input.gd') 'preview-input'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_windows_security.gd') 'windows-security'
+Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_pcm_decoder.gd') 'pcm-decoder'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_reliable_outbox.gd') 'reliable-outbox'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_client_log.gd') 'client-log'
