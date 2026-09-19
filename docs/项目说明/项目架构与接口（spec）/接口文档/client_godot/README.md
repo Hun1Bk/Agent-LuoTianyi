@@ -345,3 +345,13 @@ ReplyAudio 由 Application 注入 AudioCache，缺少 cache 的既有调用保�
 ChatSession 公开同名 get_message_audio/replay/pause_replay/resume_replay/stop_replay/clear_cache 及 message_audio_changed；仅允许当前显示的 assistant 消息发起 replay，不接受任意路径。清理失败通过系统状态报告。UI 只调用 ChatSession。MessageBubble 提供 `set_audio_state(state)`、`audio_action(action)`（play/pause/resume/stop），只更新独立音频行，不重建气泡或设置正文。完整语音行显示重放、时长和非交互波形；播放/暂停时显示进度与停止。不可用时隐藏控件，保存失败显示“语音未能保存”。更多菜单清理须经 ConfirmationDialog 确认，取消不调用 clear_cache。
 
 验证 tests/test_voice_replay.gd 从 ReplyAudio 观察真实混音、暂停进度、恢复、停止/切换、自然结束、抢占、终止后缓存、临时/错误/写盘失败、清理抑制与跨实例恢复；loopback test_voice_chat.gd 从 ChatSession 与可见控件验证按钮、消息不重复、表情不重发、文字选择不被进度刷新破坏。默认只用合成声音，WASAPI、真实服务听感分别记录。
+
+## ModelExecutor：异步非流式模型委托
+
+`ModelExecutor(settings,logger=null,timeout=120)` Node，`start()` 开始当前账号执行代次，`stop()` 取消所有请求、清空请求 ID 去重和结果，不发迟到响应。`submit(payload)` 接收现有 llm_request，`completed(response)` 产生 request_id/content/usage 或 request_id/error；重复 ID 不再次调用供应商，完成后可重发同一结果。在当前登录保留 ID 集，最多 4096 个不同委托、8 个并发，容量满返回 MODEL_BUSY 而不遗忘旧 ID。`enabled_types()` 转交当前有效用途列表。
+
+执行先检查用途启用、kind、JSON/thinking 能力，校验 prompt/params/flags/image 字段；使用提交时配置深拷贝。OpenAI 兼容 POST Base URL/chat/completions，非流式、Bearer API Key、120 秒、不自动重试。默认 max_tokens=4096/temperature=0.7/top_p=0.9，再覆盖服务端 params、再本地 params，最后锁定 model/messages/stream=false；thinking 与 JSON 请求强制对应参数。stream=true/非 bool 或 stream_options 拒绝。文本为 system prompt，图像为 user text+image_url detail=auto；校验 choices[0].message.content 为字符串，JSON 请求必须是可解析 JSON；供应商错误正文不回显，只回传识别码，usage 只保留数字 token 统计。
+
+`test_config(type_id,config)` 异步返回 ok/code，纯配置校验后使用固定短输入调用同一执行路径，结果不含生成正文；不改变运行配置、不发送聊天历史。ModelWindow(settings,executor=null) 提供手动测试按钮，明确可能消耗额度且默认取消，确认才调用；退出账号取消测试。模型窗口关闭丢弃草稿，执行中的测试使用快照。ChatSession 构造增加可选 models 执行器（由 ChatSession 持有），登录 start、退出 stop；llm_request 分派，completed 以 llm_response 瞬时事件回传；user_text 的 llm_mode.types 来自执行器，历史屏障释放也遵守此规则。
+
+测试从真实 loopback HTTP 供应商和 WS 观察文本/VLM、参数保护、重复请求只调用一次、JSON 失败、安全错误、超时、取消与在途配置快照；日志只记阶段/耗时/安全代码及哈希用途 ID，不记录提示词/输出/密钥。
