@@ -15,9 +15,15 @@ var _requirements := Label.new()
 var _save_button := Button.new()
 var _plain := ConfirmationDialog.new()
 var _refreshing := false
+var _executor: Node
+var _test_button: Button
+var _test_dialog: ConfirmationDialog
+var _test_snapshot := {}
+var _test_type := ""
 
-func _init(settings: Node) -> void:
+func _init(settings: Node,executor: Node = null) -> void:
 	_settings = settings
+	_executor = executor
 	title = "LLM / VLM 模型设置"
 	size = Vector2i(660,780)
 	min_size = Vector2i(520,600)
@@ -67,6 +73,22 @@ func _ready() -> void:
 	_save_button.text = "保存当前用途"
 	Style.primary(_save_button)
 	column.add_child(_save_button)
+	if _executor != null:
+		_test_button = Button.new()
+		_test_button.text = "手动测试当前配置"
+		column.add_child(_test_button)
+		_test_dialog = ConfirmationDialog.new()
+		_test_dialog.title = "测试可能消耗供应商额度"
+		_test_dialog.dialog_text = "将使用当前草稿发送一次固定短输入，不发送聊天历史。成功仅表示本次请求可用。"
+		_test_dialog.cancel_button_text = "取消"
+		add_child(_test_dialog)
+		_test_button.pressed.connect(func():
+			_test_snapshot = _config()
+			_test_type = _current
+			if not _test_snapshot.is_empty():
+				_test_dialog.popup_centered()
+				_test_dialog.get_cancel_button().grab_focus())
+		_test_dialog.confirmed.connect(_test)
 	_save_button.pressed.connect(func(): _save(false))
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(_status)
@@ -161,3 +183,11 @@ func _copy_selected() -> void:
 	_drafts[_current] = copied
 	_select(_selector.selected)
 	_status.text = "已复制为草稿；保存时按目标用途重新校验。"
+
+func _test() -> void:
+	_test_button.disabled = true
+	_status.text = "正在测试…"
+	var result: Dictionary = await _executor.test_config(_test_type,_test_snapshot)
+	_test_snapshot.clear()
+	_test_button.disabled = false
+	_status.text = "本次请求成功；不代表已全面认证模型能力。" if result.ok else "测试失败（%s）。"%result.code

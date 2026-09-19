@@ -6,17 +6,19 @@ PROJECT=Path(__file__).resolve().parents[1]
 def run(godot,script):
     reads, writes, errors = {}, {}, []
     provider_calls=[]
+    delegated=[]
     from run_security_interop import server_crypto
     crypto=server_crypto(); crypto.generate_keys()
     class Handler(BaseHTTPRequestHandler):
         protocol_version='HTTP/1.1'
         def log_message(self,*args): pass
         def reply(self,status,data):
+            self.close_connection=True
             body=json.dumps(data).encode(); self.send_response(status); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); self.end_headers()
             try: self.wfile.write(body)
             except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError): pass
         def do_GET(self):
-            if self.path=='/provider-stats': self.reply(200,{'calls':provider_calls}); return
+            if self.path=='/provider-stats': self.reply(200,{'calls':provider_calls,'delegated':delegated}); return
             if self.path=='/llm/client-model-types':
                 self.reply(200,{'types':[{'id':'text-purpose','name':'文本用途','description':'local fixture','model_kind':'llm','requires_json':True,'requires_thinking':False},{'id':'vision-purpose','name':'图像用途','description':'local fixture','model_kind':'vlm','requires_json':False,'requires_thinking':False}]}); return
             if self.path=='/chat_ws':
@@ -33,6 +35,11 @@ def run(godot,script):
                         assert size<65536
                         mask=self.rfile.read(4); body=self.rfile.read(size)
                         packet=json.loads(bytes(value^mask[i%4] for i,value in enumerate(body)))
+                        if packet['type']=='llm_response': delegated.append(packet['payload']); continue
+                        if packet['type']=='user_text':
+                            if 'text-purpose' not in packet['payload'].get('llm_mode',{}).get('types',[]): errors.append('missing model advertisement')
+                            response={'type':'llm_request','payload':{'request_id':'ws-delegate','type':'text-purpose','model_kind':'llm','prompt':'offline ws','params':{},'use_json':True,'enable_thinking':False}}
+                            encoded=json.dumps(response).encode(); self.wfile.write(bytes([129,126])+struct.pack('!H',len(encoded))+encoded); self.wfile.flush(); continue
                         if packet['type'] not in ('user_auth','hb_ping'): continue
                         response={'type':'auth_ok' if packet['type']=='user_auth' else 'hb_pong','payload':{}}
                         encoded=json.dumps(response).encode(); self.wfile.write(bytes([129,len(encoded)])+encoded); self.wfile.flush()
