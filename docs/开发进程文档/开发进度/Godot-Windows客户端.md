@@ -312,3 +312,8 @@
 - 同版本标准引擎加载实际导出PCK，角色资源描述/Live2D、新业务脚本加载通过；完整重放 WASAPI 测试通过（双声道48000Hz、10ms缓冲），未把 release EXE 普通启动当外部脚本测试。
 - 验收矩阵、截图索引、实际SPEC/Red/Green、自审/未验证范围与回退说明：artifacts/agentluo-010-acceptance.md。后续真机验收本地Issue草稿另存 artifacts/agentluo-010-issue-draft.md；未将未来工作混入本条完成事实。
 - 旧两个Windows ZIP保留，未改服务端/旧端/App，未推送、合并或切换正式入口。project.godot 既有编辑器修改保留未提交。公共服务联调、人工听感/输入法、长期性能、Windows10/集显/系统DPI仍未验收，本包不是安装程序或完整旧端替换验收。
+
+### 2026-09-19 统一下拉组件
+- 交付行为：共享稳定 ID 选择器/操作菜单，白底圆角弹出层，禁用项、方向键/Enter/Esc、滚动及窗口变化收起。
+- interface：client_godot/README.md UnifiedDropdown；SPEC 9260ab1，Red c2802b4（共享组件缺失）。
+- 验证：Godot 4.7.1 headless test_dropdown.gd PASS；当前提交已自审。原生弹窗边界和缩放尚未真机验收。
