@@ -43,6 +43,7 @@ func _ready() -> void:
 	popup.set_item_disabled(0, _session.get_log_directory().is_empty())
 	popup.add_item("清理本账号语音缓存", 1)
 	popup.add_item("相处模式",3)
+	popup.add_item("LLM / VLM 模型设置",4)
 	_clear_dialog.title = "清理语音缓存"
 	_clear_dialog.dialog_text = "清理当前服务器、本账号保存的全部语音？\n聊天文字保留；已清理的语音将无法重放。"
 	_clear_dialog.ok_button_text = "清理"
@@ -60,7 +61,9 @@ func _ready() -> void:
 		elif id == 2:
 			logout_requested.emit()
 		elif id == 3:
-			settings_requested.emit("preferences"))
+			settings_requested.emit("preferences")
+		elif id == 4:
+			settings_requested.emit("models"))
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.add_theme_font_size_override("font_size", 13)
 	_status.add_theme_color_override("font_color", Color("607f8d"))
