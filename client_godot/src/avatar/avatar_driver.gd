@@ -9,11 +9,33 @@ var _expression := ""
 var _mouth_override := -1.0
 var _base_mouth := -1.0
 var _elapsed := 0.0
+var _character_id := ""
+var _resource_id := ""
 
 
-func load_avatar(model_path: String) -> Error:
+func load_character(descriptor_path: String) -> Error:
+	if not FileAccess.file_exists(descriptor_path):
+		return ERR_FILE_NOT_FOUND
+	var descriptor: Variant = JSON.parse_string(FileAccess.get_file_as_string(descriptor_path))
+	if not descriptor is Dictionary:
+		return ERR_INVALID_DATA
+	for key in ["character_id","resource_id","model_path","mapping_path"]:
+		if not descriptor.get(key) is String or descriptor[key].is_empty():
+			return ERR_INVALID_DATA
+	var result := load_avatar(descriptor.model_path,descriptor.mapping_path)
+	if result == OK:
+		_character_id = descriptor.character_id
+		_resource_id = descriptor.resource_id
+	return result
+
+func load_avatar(model_path: String,mapping_path: String = MAPPING_PATH) -> Error:
 	if not FileAccess.file_exists(model_path):
 		return ERR_FILE_NOT_FOUND
+	if not FileAccess.file_exists(mapping_path):
+		return ERR_FILE_NOT_FOUND
+	var mapping: Variant = JSON.parse_string(FileAccess.get_file_as_string(mapping_path))
+	if not mapping is Dictionary or not mapping.get("expression_projection") is Dictionary or not mapping.get("mouth_value_projection") is Dictionary:
+		return ERR_INVALID_DATA
 	if not ClassDB.class_exists("GDCubismUserModel"):
 		return ERR_UNAVAILABLE
 	var data = JSON.parse_string(FileAccess.get_file_as_string(model_path))
@@ -50,7 +72,9 @@ func load_avatar(model_path: String) -> Error:
 	if is_instance_valid(_model):
 		_model.free()
 	_model = candidate
-	_mapping = JSON.parse_string(FileAccess.get_file_as_string(MAPPING_PATH))
+	_mapping = mapping
+	_character_id = ""
+	_resource_id = ""
 	_parameters.clear()
 	for parameter in _model.call("get_parameters"):
 		_parameters[parameter.id] = parameter
@@ -89,12 +113,12 @@ func set_mouth_openness(value: float) -> void:
 
 func get_status() -> Dictionary:
 	if not is_instance_valid(_model):
-		return {"loaded": false, "canvas_size": Vector2.ZERO,
+		return {"loaded": false, "canvas_size": Vector2.ZERO,"character_id":"","resource_id":"",
 			"expression": "", "motion_groups": [], "mouth_openness": 0.0}
 	var mouth := _mouth_override if _mouth_override >= 0 else _base_mouth
 	if mouth < 0:
 		mouth = float(_parameters.ParamMouthOpenY.value) if _parameters.has("ParamMouthOpenY") else 0.0
-	return {"loaded": true, "canvas_size": _model.call("get_canvas_info").size_in_pixels,
+	return {"loaded": true, "canvas_size": _model.call("get_canvas_info").size_in_pixels,"character_id":_character_id,"resource_id":_resource_id,
 		"expression": _expression, "motion_groups": _model.call("get_motions").keys(),
 		"mouth_openness": mouth}
 
