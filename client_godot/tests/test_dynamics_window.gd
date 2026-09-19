@@ -42,7 +42,7 @@ func _run() -> void:
 		window.close_requested.emit()
 		await process_frame
 		check(is_instance_valid(window),"draft closure requires explicit confirmation")
-		var statuses := window.find_children("*","Label",true,false)
+		var statuses = window.find_children("*","Label",true,false)
 		var noted := false
 		for label in statuses:
 			noted = noted or label.text.contains("HTTP_ERROR")
