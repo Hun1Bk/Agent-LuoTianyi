@@ -55,7 +55,7 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 	for control in viewer.find_children("*","Button",true,false):
-		if control.has_method("get_selected_id"):
+		if control.has_method("get_selected_id") and control.is_visible_in_tree():
 			var caption_width: float = control.get_theme_font("font").get_string_size(control.text,HORIZONTAL_ALIGNMENT_LEFT,-1,control.get_theme_font_size("font_size")).x
 			check(control.size.x >= caption_width+12,"current log filter remains readable")
 	logger.record("audio_received",{"frames":42})
