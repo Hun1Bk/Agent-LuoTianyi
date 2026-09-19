@@ -4,7 +4,7 @@
 
 ## 工程与构建入口
 
-- `client_godot/project.godot`：Godot 4.7.1 标准版工程；Compatibility，原生标题栏，1200×800，最小 960×640。入口是明确标识尚未连接服务的本地启动场景。
+- `client_godot/project.godot`：Godot 4.7.1 标准版工程；Compatibility，原生标题栏。默认入口为紧凑账户窗口（660×800，最小 480×640），登录后展开为角色与聊天窗口（1200×800，最小 960×640）；离线演示通过 --preview 独立进入。
 - `client_godot/scripts/build.ps1 -Godot <exe> [-OutputDirectory <dir>]`：调用方为开发者/CI；默认输出到工程 `dist/`，要求匹配的 Windows x64 导出模板。正常依次导入和 release 导出，失败返回非零，不删除旧产物伪装成功；最终启动本次导出文件验证能正常退出。
 - 引擎参数优先于 `GODOT_BIN` 环境变量；两者均缺失报错。不扫描全盘，不静默下载引擎，不接受错误主/次/补丁版本。
 - `client_godot/scripts/check.ps1 -Godot <exe>`：执行引擎版本检查、headless 导入及启动检查；任何 GDScript parse/script 错误即失败，即使 Godot 进程本身退出码为 0。
@@ -177,5 +177,15 @@ ACK 超时 10 秒，图片选择/取消为 5 秒。持久消息首发后最多�
 `src/ui/chat_view.gd`（Control）注入 ChatSession，发送/状态/正文使用真实控制器；公开 `logout_requested` 交给应用调用 AccountSession.logout。沿用已确认的气泡、输入控件和主题，正式发送状态不带“演示”。Enter/Shift+Enter/IME 规则不变；只有接受发送后清输入，失败保留。已有气泡更新而不全部重建，保持文字选择；在底部跟随新消息，阅读旧内容保留滚动位置并提供回到最新。当前不提供尚未接入的图片/音频按钮。
 
 应用沿用左角色右聊天；账户成功显示 ChatView、隐藏账户表单；退出返回账户表单并取消连接。分隔比例保存到 user://window_layout.cfg，窗口缩放保持比例。离线 preview 保持独立。
+
+### 账户窗口展开与默认服务器
+
+- 未登录、登录失败、注册/重置、取消和自动登录等待期间，只显示右侧账户表单；窗口初始 660×800、最小 480×640，不显示角色、聊天及分隔条。
+- AccountSession 的 signed_in 才展开为角色/聊天窗口（首次 1200×800，最小 960×640），首次成功登录再创建角色节点；退出后收回账户窗口并暂停隐藏角色更新。重复 busy/signed_out 通知不反复调整窗口。登录后用户调整的普通窗口尺寸在本次运行内保留，重新登录恢复；展开/收起保持窗口中心并限制在当前屏幕可用区域内。
+- 源工程的原生启动窗口也使用账户尺寸，避免出现完整窗口后闪缩；独立 --preview 仍使用原 1200×800 样板尺寸。
+- AccountSession.get_login_defaults 的 server 在首次使用、配置缺失/损坏、空地址或无效地址时为 `https://www-api.u3493359.nyat.app:11664`（来源 client/config/config.json 的 release_config.base_url）。已保存的有效地址优先，仍可编辑；回退地址时关闭自动登录，不读取旧端配置或凭据、不主动探测默认服务器。
+- Application 可由构造参数注入真实 AccountSession 与普通布局文件路径，默认仍由组装根创建服务并使用 user://window_layout.cfg；测试用独立存储路径及 loopback HTTP 服务，不修改用户设置。
+
+验证 tests/test_application_window.gd：通过可见账户表单及真实 AccountSession/AccountApi 观察初始/失败/成功/退出窗口状态；检查自定义地址恢复与空配置回退，默认测试不连接预填地址。实际导出截图检查紧凑表单布局。
 
 验证：真实 ChatSession + WebSocketTransport + loopback 服务，观察发送状态、同 UUID 多包/隐藏/临时/音频错误文字、思考、表情顺序、断线和退出；通过 ChatView 可见控件触发发送，验证草稿与真实回复；默认自动化不访问真实账户。
