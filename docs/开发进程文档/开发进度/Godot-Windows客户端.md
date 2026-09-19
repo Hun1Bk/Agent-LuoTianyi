@@ -1,5 +1,12 @@
 # Godot Windows 客户端
 
+### 2026-09-19 agentluo 版本化构建
+
+- 交付行为：release.json 单一版本来源、运行窗口标题及版本目录 agentluo-0.1.0，程序 agentluo.exe；旧包和用户数据目录保留。
+- SPEC defa465，自审确认只更新已授权需求与当前构建契约；Red 不适用（构建配置与命名切片），未伪造运行失败。
+- 验证：build.ps1 使用锁定 4.7.1 引擎完成 import、release 导出及独立启动；输出 dist/agentluo-0.1.0/agentluo.exe。作者自审核对版本格式、提前拒绝覆盖 ZIP 与固定用户目录。
+- 未验证：最终 ZIP 及新版全部业务尚未作为本条验收；此次未打包为最终交付，不代表 0.1.0 已完成。分支 feat/agentluo-0.1.0。
+
 - 大目标：新建与现有桌面端功能对齐的 Godot Windows 客户端，完成用户确认的界面改造和安装交付。
 - PRD：[Godot-Windows客户端](../需求说明（PRD）/Godot-Windows客户端.md)
 - 总体设计：[Godot 客户端总体设计](../../项目说明/项目架构与接口（spec）/Godot客户端总体设计.md)

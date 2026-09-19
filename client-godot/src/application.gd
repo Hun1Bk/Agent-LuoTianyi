@@ -29,6 +29,7 @@ func _init(account_session: Node = null, layout_path: String = "user://window_la
 
 
 func _ready() -> void:
+	get_window().title = preload("res://src/release_info.gd").title()
 	theme = preload("res://src/preview/preview_style.gd").make_theme()
 	if "--preview" in OS.get_cmdline_user_args():
 		_resize_window(Vector2i(1200, 800), Vector2i(960, 640))
