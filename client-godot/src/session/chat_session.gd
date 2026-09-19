@@ -17,8 +17,9 @@ var _history: Node
 var _waiting_history := false
 var _pending_history: Dictionary = {}
 var _wire_ids: Dictionary = {}
+var _reading: RefCounted
 
-func _init(transport: Node, logger: RefCounted = null, media: Node = null, history: Node = null) -> void:
+func _init(transport: Node, logger: RefCounted = null, media: Node = null, history: Node = null, reading: RefCounted = null) -> void:
 	_transport = transport
 	_logger = logger
 	_media = media if media != null else Audio.new(logger)
@@ -41,10 +42,16 @@ func _init(transport: Node, logger: RefCounted = null, media: Node = null, histo
 		add_child(history)
 		history.page_received.connect(_history_page)
 		history.boundary_ready.connect(_release_history_sends)
-		history.state_changed.connect(func(_value): state_changed.emit(get_state()))
+		history.state_changed.connect(func(_value):
+			_update_reading()
+			state_changed.emit(get_state()))
+	_reading = reading
+	changed.connect(_update_reading)
 
 func start(session: Dictionary) -> Error:
 	stop()
+	if _reading != null:
+		_reading.start(session.get("server",""),session.get("username",""))
 	_media.set_scope(session.get("server",""),session.get("username",""))
 	var result: Error = _transport.start(session)
 	if result == OK and _history != null:
@@ -101,6 +108,8 @@ func stop() -> void:
 	_wire_ids.clear()
 	if _history != null:
 		_history.stop()
+	if _reading != null:
+		_reading.start("","")
 	_transport.stop()
 	_media.set_scope("", "")
 	_messages.clear()
@@ -160,8 +169,9 @@ func _receive_reply(payload: Dictionary) -> void:
 	if _finished.has(id):
 		return
 	if not _replies.has(id):
-		_replies[id] = {"text":"", "expression":"", "display":true, "final":false, "audio_error":false, "played":false}
+		_replies[id] = {"text":"", "expression":"", "display":true, "final":false, "audio_error":false, "played":false,"ephemeral":false}
 	var reply: Dictionary = _replies[id]
+	reply.ephemeral = reply.ephemeral or payload.get("is_ephemeral",false) == true
 	if reply.final:
 		return
 	if payload.get("text") is String and not payload.text.is_empty():
@@ -189,11 +199,12 @@ func _present_replies() -> void:
 		var reply: Dictionary = _replies[id]
 		if reply.display and not reply.text.is_empty():
 			if not _by_id.has(id):
-				var message := {"id":id, "role":"assistant", "text":reply.text, "status":"received", "code":""}
+				var message := {"id":id, "role":"assistant", "text":reply.text, "status":"received", "code":"","is_ephemeral":reply.ephemeral}
 				_by_id[id] = message
 				_messages.append(message)
 			else:
 				_by_id[id].text = reply.text
+				_by_id[id].is_ephemeral = reply.ephemeral
 			changed.emit()
 		if not reply.expression.is_empty():
 			expression_requested.emit(reply.expression)
@@ -270,3 +281,22 @@ func _history_page(messages: Array[Dictionary]) -> void:
 			prepend.append(message)
 	_messages = prepend + _messages
 	changed.emit()
+
+func get_reading_state() -> Dictionary:
+	return _reading.get_state() if _reading != null else {"pending":true,"manual":false,"located":false,"target_id":"","reason":""}
+
+func note_read_interaction() -> void:
+	if _reading != null:
+		_reading.interact()
+
+func reading_located() -> void:
+	if _reading != null:
+		_reading.located()
+
+func report_visible_messages(ids: Array[String], foreground: bool) -> void:
+	if _reading != null and _reading.report_visible(ids,foreground) != OK:
+		_system_error("SAVE_FAILED")
+
+func _update_reading() -> void:
+	if _reading != null:
+		_reading.update(_messages,get_history_state())

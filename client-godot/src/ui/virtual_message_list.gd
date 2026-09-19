@@ -70,6 +70,10 @@ func _user_input(event: InputEvent) -> void:
 	if (event is InputEventMouseButton and event.pressed) or event is InputEventPanGesture or (event is InputEventKey and event.pressed):
 		interacted.emit()
 
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN] and get_global_rect().has_point(get_global_mouse_position()):
+		interacted.emit()
+
 func _resized() -> void:
 	var anchor := get_reading_anchor()
 	var follow := is_at_latest()
