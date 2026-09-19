@@ -29,6 +29,9 @@ func _run() -> void:
 	if not dynamics.is_empty():
 		dynamics[0].pressed.emit()
 		await process_frame
+		for button in app.find_children("*","Button",true,false):
+			if button.text == "发布动态": button.pressed.emit()
+		await process_frame
 		var draft = app.find_child("PublishDraft",true,false)
 		check(draft != null,"dynamics opens from chat")
 		if draft != null:

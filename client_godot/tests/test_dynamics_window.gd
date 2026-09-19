@@ -32,6 +32,9 @@ func _run() -> void:
 	root.add_child(window)
 	window.open()
 	await process_frame
+	for button in window.find_children("*","Button",true,false):
+		if button.text == "发布动态": button.pressed.emit()
+	await process_frame
 	var draft = window.find_child("PublishDraft",true,false)
 	var send = window.find_child("PublishButton",true,false)
 	check(draft != null and send != null,"publish controls visible")
