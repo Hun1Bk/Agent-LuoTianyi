@@ -1,5 +1,13 @@
 # Godot 客户端 interface
 
+## HistoryImages：按可见 UUID 恢复图片
+
+`HistoryImages(root="user://images",logger=null)` Node，`start(session)` 规范化服务器/账户隔离本地文件并取消旧请求；`stop()` 清除内存及取消网络，完整文件保留。`ensure(id)` 在 UI 可见请求时读取缓存、缺失或损坏则 POST /get_image `{username,token,uuid}`；最多 3 个并发请求、15 秒超时、16 MiB 响应上限、禁止重定向，不使用历史 content 路径或 update_image_client_path。PNG/JPEG/WebP 解码成功才可用，限制 8192 边长、1600 万像素；缩略图最长边 480，本地缓存原图供预览。
+
+`get_state(id)` / `changed(id,state)` 返回 status（idle/loading/ready/error）、texture（缩略图或 null）、code；`retry(id)` 显式重试失败，网络无自动重试；`preview(id) -> Texture2D` 从本机已验证文件恢复原图，失败返回 null。文件提交失败仍显示本次图片、报告 CACHE_WRITE_FAILED。内存仅保留最近 24 张缩略图、活动请求/可见控件可持有引用；不淘汰完整图片磁盘文件。退出的迟到请求不产生新账号状态。
+
+ChatSession 构造第六参数 images 可选；提供 `request_message_image(id,retry=false)`、`get_message_image(id)`、`preview_message_image(id)` 及 message_image_changed，只对已显示 type=image 的消息生效。UI 不读图片文件。VirtualMessageList.set_image_state 定向更新气泡的缩略图/加载/重试，点击已有图片通过会话取得原图并打开现有 ImageOverlay。历史语音继续通过消息 UUID 查询已注入 AudioCache，不自动播放或下载。
+
 ## ReadingPosition：本机阅读位置
 
 `ReadingPosition(root="user://reading")` RefCounted：`start(server,username)` 规范化并隔离范围，只读本机 UUID，无聊天正文；`update(messages,history_state)` 接收内存快照与同步状态；`get_state()` 返回 saved_id/target_id/pending/manual/located/reason。无旧位置在首批确定后定位最新；有旧位置找到后定位其下一条，直到全量成功仍找不到则最新并 reason=NOT_FOUND。尚在定位期间不得以当前显示最近记录覆盖旧位置；历史失败保持待定位，跳过本次不覆盖旧位置。
