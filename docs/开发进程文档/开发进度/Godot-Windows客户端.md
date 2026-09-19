@@ -297,3 +297,10 @@
 
 - 既有 Application/演示入口 SPEC 已满足，无公开接口变化；Red 673a0c6，真实 --preview 退出出现未释放 Viewport/Canvas/Text RID。
 - 修复：演示提前返回前释放仅正式账户入口使用的未挂树控件；同命令重跑无 RID/ObjectDB 泄漏错误，check.ps1 已加入该入口。作者自审核对正式账户流程不变。
+
+### 2026-09-19 agentluo 整体离线回归与 GPU 界面核验
+
+- check.ps1（角色/构图/凭据/音频/缓存/日志/虚拟历史/阅读/回放）、check_network.ps1（真实 loopback 文字及流式声音）、check_accounts.ps1（含现有 Python 解密互操作）全部通过。新增 check_features.ps1 汇总历史/图片/偏好/模型/动态8个测试入口，全部通过；不连接公共或收费服务。
+- 真实 GPU 截图：artifacts/voice-ui-*.png（默认/最小窗口、暂停及125%/150%内容缩放），artifacts/agentluo-010-{login,logs,preferences,models,dynamics}.png 与动态125%/150%截图。RTX4070 Laptop/NVIDIA610.74；视觉检查确认新增按钮未越出主窗口、动态不再残留加载文案，设置可滚动。不是系统 DPI 切换验收。
+- WASAPI 的 test_voice_replay.gd 通过，实际混音输出、暂停/继续/抢占由合成音测试断言；日志 artifacts/agentluo-010-wasapi.log。不是人工听感结论。
+- 汇总脚本/截图入口/使用说明为既有行为回归与交付记录，Red 不适用；未伪造新功能失败。作者自审检查测试只用临时账号数据、旧包保留、project.godot 原有编辑器修改未纳入提交。未验证公共服务器、人工中文输入法/听感、30分钟性能、Windows10、普通集显、真实系统DPI和双屏。

@@ -12,7 +12,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File client_godot/scripts/check.p
 powershell -NoProfile -ExecutionPolicy Bypass -File client_godot/scripts/build.ps1
 ```
 
-也可以显式传入 `-Godot <exe>`。构建脚本不下载依赖、不连接服务端；失败返回非零并保留 `artifacts/` 中的日志。输出 `dist/` 整个目录（EXE、PCK、插件 DLL 和 licenses）必须一起分发。headless 启动检查不代表视觉、GPU 或真机验收。
+也可以显式传入 `-Godot <exe>`。构建脚本不下载依赖、不连接服务端；失败返回非零并保留 `artifacts/` 中的日志。输出 `dist/agentluo-<version>/` 整个目录（EXE、PCK、插件 DLL 和 licenses）必须一起分发。headless 启动检查不代表视觉、GPU 或真机验收。
 
 开发时在 Godot 中导入 `project.godot`。本地数据使用独立的 `%APPDATA%/AgentLuo-Godot`，不写入安装目录。
 
@@ -30,13 +30,13 @@ python client_godot/scripts/build_cubism.py --source '<gd_cubism源码目录>'
 
 ## 体验离线样板
 
-运行 `dist/AgentLuo.exe -- --preview`。角色区滚轮缩放、右键拖动，底部按钮重置；中间分隔条调整宽度，以上设置会保存。左上切换真实模型表情；右上切换日常聊天、空白、断网、加载失败和思考状态。
+运行 `dist/agentluo-<version>/agentluo.exe -- --preview`。角色区滚轮缩放、右键拖动，底部按钮重置；中间分隔条调整宽度，以上设置会保存。左上切换真实模型表情；右上切换日常聊天、空白、断网、加载失败和思考状态。
 
 聊天文本可选择复制；Enter 本地模拟发送，Shift+Enter 换行。图片按钮或 Ctrl+V 粘贴图片先打开预览，点击发送才追加演示消息；缩略图可再次打开。查看旧消息时发送不会强制滚到底部，使用“回到最新”。模拟口型按钮没有声音；样板不连接真实账户、消息或音频服务。
 
 `check.ps1` 覆盖角色、构图、离线消息控制器和主场景键盘输入回归。真实 Windows IME、剪贴板、多档 DPI、拖动手感和集显性能尚需人工验收。此导出目录是视觉检查产物，不是最终安装程序。
 
-截取账户页：`AgentLuo.exe -- --capture=<绝对PNG路径>`；截取样板增加 `--preview`，可再增加 `--scenario=empty/disconnected/error/thinking`。截图和 headless 检查不会自动登录真实账户。
+截取账户页：`agentluo.exe -- --capture=<绝对PNG路径>`；截取样板增加 `--preview`，可再增加 `--scenario=empty/disconnected/error/thinking`。截图和 headless 检查不会自动登录真实账户。
 
 ## Windows 凭据扩展
 
@@ -61,7 +61,7 @@ python client_godot/tests/run_security_interop.py --godot $env:GODOT_BIN
 
 正式聊天自动播放服务端 WAV/PCM 分片；同 UUID 聚合，后续回复等前一句实际播完再呈现。支持口型、音量保存、停止当前语音、错误及断线清理；完整语音以临时文件接收、成功终止及原生验证后提交，提供消息重放/暂停/继续/停止，波形来自原生 RMS，进度来自混音器消耗帧。在线语音抢占重放；停止在线声音不取消后续接收和缓存。原生 `PcmStreamDecoder` 与 `WindowsSecurity` 共用 DLL，按上面的 `build_security.py` 命令重建，需分发完整目录。
 
-“更多 → 打开日志”查看 `user://logs/client.jsonl`，默认实际目录 `%APPDATA%/AgentLuo-Godot/logs`；最多三份、每份 2 MiB。用哈希 reply_id 关联 `reply_received → audio_received → audio_format/audio_decoded → audio_receive_finished → audio_playback_started/finished`（接收/播放可交错）。`audio_error` 的 code 定位错误，`audio_underrun` 记录供给不足；不会写入正文、token、密钥或 Base64。
+登录前按钮或“更多 → 打开日志”打开独立终端窗口，默认实际目录 `%APPDATA%/AgentLuo-Godot/logs`；每次启动独立 JSONL/元数据，保留最近50次并保护仍运行实例，当前启动不截断。可搜索、筛选、复制与导出完整脱敏诊断 ZIP，不上传。用哈希 reply_id 关联 `reply_received → audio_received → audio_format/audio_decoded → audio_receive_finished → audio_playback_started/finished`（接收/播放可交错）。`audio_error` 的 code 定位错误，`audio_underrun` 记录供给不足；不会写入正文、token、密钥或 Base64。
 
 `check.ps1` 增量解码及真实混音测试默认使用合成音频；`check_network.ps1` 还验证 loopback WebSocket 到播放器链路、顺序、隐藏音频、停止及断线。Windows 输出驱动验证可运行：
 
@@ -73,6 +73,14 @@ python client_godot/tests/run_security_interop.py --godot $env:GODOT_BIN
 
 未登录时仅显示 660×800 账户窗口，登录成功后展开角色和聊天，退出再收起。默认服务器沿用旧端 release_config.base_url；已保存的自定义地址优先。账户回归含窗口切换测试，原生窗口验证可运行 `run_account_tests.py --godot <exe> --script res://tests/test_application_window.gd --gpu`，仍仅连接本地 HTTP fixture。
 
-语音缓存在 user://audio 按规范化服务器、账户与 UUID 隔离，退出及重启保留，只能手动清理，无自动容量/时间淘汰。“更多 → 清理本账号语音缓存”有确认窗口；清理同时取消在途流的缓存写入，保留正在输出的声音与聊天文字。当前没有历史加载，所以只为当前可见消息提供重放。日志记录 cache_committed/cache_error、replay_started/paused/resumed/stopped/finished/preempted，不写音频原文。
+语音缓存在 user://audio 按规范化服务器、账户与 UUID 隔离，退出及重启保留，只能手动清理，无自动容量/时间淘汰。“更多 → 清理本账号语音缓存”有确认窗口；清理同时取消在途流的缓存写入，保留正在输出的声音与聊天文字。登录后全量同步历史，按 UUID 恢复新端本账号完整缓存的重放入口；不导入旧端缓存。日志记录 cache_committed/cache_error、replay_started/paused/resumed/stopped/finished/preempted，不写音频原文。
 
 重放回归：`--headless --audio-driver WASAPI --path client_godot --script res://tests/test_voice_replay.gd`。真实 UI/角色截图：`tests/run_websocket_tests.py --godot <exe> --script res://tests/capture_voice_ui.gd --gpu`，只连接 loopback、使用合成语音，输出默认/最小/暂停/125%及150%内容缩放截图到 artifacts。内容缩放检查不能替代操作系统 DPI 切换与跨显示器验收。
+
+## agentluo 版本化交付与功能验证
+
+release.json 是版本单一来源，界面/诊断/目录/ZIP 使用同一版本。`scripts/build.ps1 -Package` 导出 `dist/agentluo-<version>/agentluo.exe` 并生成 `artifacts/agentluo-<version>.zip`；存在同名交付 ZIP 时拒绝覆盖。重建不自动升级版本。保留旧包作为回退，数据仍在 AgentLuo-Godot。
+
+历史、相处模式、模型配置/委托及动态回归：`scripts/check_features.ps1 -Godot <exe> -Python <python.exe>`。测试依赖另包括 aiohttp；所有默认 fixture 仅监听 loopback，无公共服务写入或收费供应商。新增界面 GPU 截图：`tests/run_feature_tests.py --godot <exe> --script res://tests/capture_release_ui.gd --gpu`。
+
+应用持有聊天/模型/动态控制器，Window 仅展示和编辑；未来页面切换不重连。角色入口 `assets/live2d/character.json` 分离身份与模型资源，加载失败保留原模型；实际平台能力仍是 Windows。详细使用说明见 PREVIEW.md，实际验收记录见开发进度，不将预留移动端/换装/箱庭视为已交付。
