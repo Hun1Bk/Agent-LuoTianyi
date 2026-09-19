@@ -46,6 +46,47 @@ func _run() -> void:
 	check(images.get_state("slow").status == "idle","old account late image ignored")
 	images.queue_free()
 	await process_frame
+	var cache = load("res://src/storage/audio_cache.gd").new(directory+"/audio")
+	cache.set_scope(scope.server,scope.username)
+	var bytes: PackedByteArray = load("res://tests/support/audio_samples.gd").tone(.2)
+	var decoder = ClassDB.instantiate("PcmStreamDecoder")
+	decoder.append(bytes)
+	decoder.finish()
+	cache.begin("history-119")
+	cache.append("history-119",bytes)
+	check(cache.commit("history-119",decoder.get_status(),decoder.get_waveform(24)) == OK,"seed actual complete voice cache")
+	var history = load("res://src/session/history_sync.gd").new(load("res://src/network/history_api.gd").new())
+	var chat = load("res://src/session/chat_session.gd").new(load("res://src/network/websocket_transport.gd").new(),null,load("res://src/media/reply_audio.gd").new(null,Callable(),cache),history,null,script.new(directory+"/chat_images"))
+	root.add_child(chat)
+	chat.start(scope)
+	check(await until(func(): return chat.get_history_state().phase == "complete"),"media messages restored from real history")
+	check(not JSON.stringify(chat.get_messages()).contains("old-device"),"old absolute image paths discarded")
+	check(chat.get_message_audio("history-119").available and not chat.get_message_audio("history-117").available,"history exposes only actual new-client voice cache")
+	check(not chat.get_audio_state().playing,"cached history never auto-plays")
+	root.size = Vector2i(1200,800)
+	var view = load("res://src/ui/chat_view.gd").new(chat)
+	root.add_child(view)
+	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	await process_frame
+	var list: Node = view.find_children("*","ScrollContainer",true,false).filter(func(n): return n.has_method("scroll_to_message"))[0]
+	list.scroll_to_message("history-116")
+	check(await until(func(): return chat.get_message_image("history-116").status == "ready"),"visible history image downloads through chat boundary")
+	var preview_buttons: Array = view.find_children("*","Button",true,false).filter(func(n): return n.text == "打开原图")
+	check(not preview_buttons.is_empty(),"real thumbnail offers preview")
+	if not preview_buttons.is_empty():
+		preview_buttons[0].pressed.emit()
+		check(view.find_children("*","Label",true,false).any(func(n): return n.text == "图片预览"),"image preview opens inside client")
+	view.queue_free()
+	chat.queue_free()
+	await process_frame
+	cache.set_scope(scope.server,scope.username)
+	cache.clear()
+	for category in ["audio","chat_images"]:
+		for child in DirAccess.get_directories_at(directory+"/"+category):
+			for file in DirAccess.get_files_at(directory+"/"+category+"/"+child):
+				DirAccess.remove_absolute(directory+"/"+category+"/"+child+"/"+file)
+			DirAccess.remove_absolute(directory+"/"+category+"/"+child)
+		DirAccess.remove_absolute(directory+"/"+category)
 	for folder in DirAccess.get_directories_at(directory):
 		for file in DirAccess.get_files_at(directory.path_join(folder)):
 			DirAccess.remove_absolute(directory.path_join(folder).path_join(file))
