@@ -401,3 +401,5 @@ DynamicsController.refresh_comments(id) 异步从第一页按20条读取到末�
 验证：真实loopback UI 首次无选中、选择切换、回复取消、读写失败保留、独立发布、关闭聚合确认；原生窗口所有者/任务栏资格/最小化独立和截图另行验证。
 
 DynamicDetail.refresh_comments() 由窗口调用，转交完整分页刷新并保留错误重试状态；同UI模块共享 avatar_path(item) 与 relative_time(raw) 展示助手，无网络或持久化副作用。Application 将动态布局路径与其他窗口配置放在同一注入数据目录，测试使用独立临时目录。
+
+构建打包契约：build.ps1 -Package 仅在ZIP已包含完整导出目录后发布最终版本名，存在正式包拒绝覆盖。临时归档失败返回失败，不打印交付成功或留下同名残缺正式包；验证测试检查CRC、版本、根目录及所有源文件逐字节一致。Windows短暂文件占用属于打包失败，不得误报可交付。
