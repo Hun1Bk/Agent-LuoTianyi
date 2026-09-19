@@ -2,6 +2,8 @@ extends SceneTree
 const Transport = preload("res://src/network/websocket_transport.gd")
 const Session = preload("res://src/session/chat_session.gd")
 const View = preload("res://src/ui/chat_view.gd")
+const Audio = preload("res://src/media/reply_audio.gd")
+const Cache = preload("res://src/storage/audio_cache.gd")
 const Log = preload("res://src/storage/client_log.gd")
 var failures: Array[String] = []
 var capture := AudioEffectCapture.new()
@@ -29,7 +31,8 @@ func _initialize() -> void:
 func _run() -> void:
 	AudioServer.add_bus_effect(0,capture)
 	var directory := "user://voice-chat-test-%s" % Time.get_ticks_usec()
-	var session = Session.new(Transport.new(),Log.new(directory))
+	var cache = Cache.new(directory + "/audio")
+	var session = Session.new(Transport.new(),Log.new(directory),Audio.new(Log.new(directory),Callable(),cache))
 	root.add_child(session)
 	session.expression_requested.connect(func(value): expressions.append(value))
 	session.mouth_changed.connect(func(value): mouth = value; mouth_max = maxf(mouth_max,value))
@@ -53,6 +56,26 @@ func _run() -> void:
 	var view := View.new(session)
 	root.add_child(view)
 	await process_frame
+	check(button(view,"重放") != null,"completed voice exposes visible replay control")
+	if button(view,"重放") != null:
+		var label: RichTextLabel
+		for item in view.find_children("*","RichTextLabel",true,false):
+			if item.text == "voice-first":
+				label = item
+		label.select_all()
+		var original := label.get_instance_id()
+		var snapshot: Array = session.get_messages()
+		var expression_count := expressions.size()
+		button(view,"重放").pressed.emit()
+		check(await until(func(): return button(view,"暂停") != null),"replay button begins playback")
+		if button(view,"暂停") != null:
+			button(view,"暂停").pressed.emit()
+			check(button(view,"继续") != null,"pause exposes resume")
+			button(view,"继续").pressed.emit()
+		await until(func(): return button(view,"暂停") == null)
+		check(label.get_instance_id() == original and label.get_selected_text() == "voice-first","progress preserves bubble and selected text")
+		check(session.get_messages() == snapshot and expressions.size() == expression_count,"local replay creates no messages or expression events")
+		check(session.replay("missing") != OK,"session rejects undisplayed voice")
 	var sliders := view.find_children("*", "HSlider",true,false)
 	check(sliders.size() == 1, "chat exposes volume control")
 	if sliders.size() == 1:
@@ -78,12 +101,36 @@ func _run() -> void:
 	check(session.get_messages().any(func(message): return message.text == "voice-disconnect"), "disconnect preserves displayed voice text")
 	var logs := FileAccess.get_file_as_string(directory + "/client.jsonl")
 	check(logs.contains("audio_playback_started") and logs.contains("audio_playback_finished") and logs.contains("audio_error"), "network to playback has diagnostic trail")
+	var menu: MenuButton = view.find_children("*","MenuButton",true,false)[0]
+	menu.get_popup().id_pressed.emit(1)
+	var dialogs := view.find_children("*","ConfirmationDialog",true,false)
+	check(dialogs.size() == 1 and dialogs[0].visible,"clear cache requires confirmation")
+	if not dialogs.is_empty():
+		check(cache.lookup("voice-first").has("path"),"opening clear dialog does not delete cache")
+		dialogs[0].get_cancel_button().pressed.emit()
+		check(cache.lookup("voice-first").has("path"),"cancel keeps cache")
+		menu.get_popup().id_pressed.emit(1)
+		dialogs[0].confirmed.emit()
+		await process_frame
+		check(button(view,"重放") == null and cache.lookup("voice-first").is_empty(),"confirmed clear removes replay buttons but keeps text")
+	check(session.get_messages().any(func(message): return message.text == "voice-first"),"clearing cache preserves chat text")
 	session.stop()
+	check(cache.lookup("voice-first").is_empty(),"logout closes cache scope")
 	view.queue_free()
 	session.queue_free()
 	await process_frame
 	AudioServer.remove_bus_effect(0,AudioServer.get_bus_effect_count(0)-1)
 	DirAccess.remove_absolute(directory + "/client.jsonl")
+	if DirAccess.dir_exists_absolute(directory + "/audio"):
+		for scope in DirAccess.get_directories_at(directory + "/audio"):
+			DirAccess.remove_absolute(directory + "/audio/" + scope)
+		DirAccess.remove_absolute(directory + "/audio")
 	DirAccess.remove_absolute(directory)
 	print("Voice chat: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+
+func button(view: Node, text: String) -> Button:
+	for item in view.find_children("*","Button",true,false):
+		if item.text == text and item.is_visible_in_tree():
+			return item
+	return null
