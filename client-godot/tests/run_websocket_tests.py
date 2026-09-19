@@ -1,5 +1,7 @@
 """Real sockets on loopback; fixture rejects incompatible authentication and retry IDs."""
 import argparse
+import base64
+import io
 import json
 import importlib.util
 import os
@@ -7,10 +9,22 @@ from pathlib import Path
 import subprocess
 import threading
 import sys
+import math
+import struct
+import wave
 from websockets.sync.server import serve
 from websockets.exceptions import ConnectionClosed
 
 PROJECT = Path(__file__).resolve().parents[1]
+
+
+def tone(seconds, rate=24000):
+    target = io.BytesIO()
+    with wave.open(target, "wb") as output:
+        output.setparams((1, 2, rate, 0, "NONE", "not compressed"))
+        output.writeframes(b"".join(struct.pack("<h", int(math.sin(i * math.tau * 440 / rate) * 8000))
+                                  for i in range(int(rate * seconds))))
+    return target.getvalue()
 
 
 def run(godot, script="res://tests/test_websocket_transport.gd"):
@@ -82,6 +96,27 @@ def run(godot, script="res://tests/test_websocket_transport.gd"):
                                 return
                             assert len(set(dropped_ids)) == 1, "retry changed client_msg_id"
                     send("server_ack", {"ok": True}, packet["client_msg_id"])
+                    if username == "audio":
+                        mode = packet["payload"]["message"]
+                        def audio_reply(uuid, data, final, **extra):
+                            send("agent_message", {"uuid": uuid, "text": uuid, "audio": base64.b64encode(data).decode(),
+                                                   "is_final_package": final, **extra})
+                        if mode == "stream":
+                            first = tone(.8)
+                            audio_reply("voice-first", first[:17], False, expression="微笑脸")
+                            audio_reply("voice-first", first[17:6401], False)
+                            audio_reply("voice-second", tone(.15, 48000), True, expression="normal")
+                            audio_reply("voice-first", first[6401:], True)
+                        elif mode == "hidden":
+                            audio_reply("voice-hidden", tone(.25), True, display_in_chat=False, is_ephemeral=True)
+                        elif mode == "bad":
+                            audio_reply("voice-bad", b"bad wav", True)
+                        elif mode == "disconnect":
+                            audio_reply("voice-disconnect", tone(.8), False)
+                            # Let Godot consume the audio frame before closing the connection.
+                            socket.recv(timeout=3)
+                            socket.close(1012)
+                        continue
                     if username == "conversation":
                         assert packet["payload"]["llm_mode"] == {"types": []}
                         for event in replies:
