@@ -185,3 +185,9 @@
 - 截图：真实 ChatView/ChatSession/WebSocket/Avatar 与合成语音，1200×800、960×640、暂停态、125%/150% 内容缩放通过控件边界检查；截图 artifacts/voice-ui-*.png。RTX 4070 Laptop GPU、NVIDIA 610.74；本次是内容缩放检查，不是操作系统 DPI 切换验收。
 - 作者自审：正文选择与播放进度分别更新，UI 不接触音频路径；退出关闭范围，完整缓存保留；手动清理默认聚焦取消。project.godot 原有编辑器改动保留未提交；未改服务端协议及旧客户端。
 - 未验证：真实服务器 TTS/唱歌听感、长期运行/内存、Windows 10、集显性能、系统 DPI 切换和双屏。未正式替换交付入口。
+
+### 2026-09-19 重放版 Windows ZIP 导出核验
+
+- 候选代码 869d3bd；build.ps1 导出/独立启动通过。同版本标准引擎加载实际 AgentLuo.pck 与随包 DLL，完整重放 WASAPI 测试通过（artifacts/export-replay-verified.log）。
+- ZIP：artifacts/AgentLuo-replay-869d3bd-win64.zip，43,061,194 字节，13 个文件；CRC、EXE/PCK/DLL/许可核验通过，DLL 哈希与依赖锁一致。SHA256 eeacb6bef3cc3a61dfad385cc308e5f36e7d714c56402e5d3c66bd888264ee29。
+- 旧 AgentLuo-voice-fix-win64.zip 保留；本地 PR 说明、提交/自审与实际测试记录见 artifacts/voice-replay-review.md。没有推送/合并或切换正式下载入口；未验证范围沿用上一条记录。
