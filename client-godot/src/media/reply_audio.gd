@@ -1,9 +1,15 @@
 extends Node
+signal message_audio_changed(id: String, state: Dictionary)
+signal replay_finished(id: String, code: String)
 signal receive_finished(id: String, code: String)
 signal playback_finished(id: String, code: String)
 signal mouth_changed(value: float)
 signal state_changed(state: Dictionary)
 
+var _cache: RefCounted
+var _metadata: Dictionary = {}
+var _cache_errors: Dictionary = {}
+var _replay = preload("res://src/media/cache_replay.gd").new()
 var _logger: RefCounted
 var _streams: Dictionary = {}
 var _completed: Dictionary = {}
@@ -18,14 +24,25 @@ var _volume := 1.0
 var _skips := 0
 var _invalid_base64 := RegEx.new()
 
-func _init(logger: RefCounted = null, clock: Callable = Callable()) -> void:
+func _init(logger: RefCounted = null, clock: Callable = Callable(), cache: RefCounted = null) -> void:
+	_cache = cache
+	add_child(_replay)
+	_replay.changed.connect(func(): _notify_audio(_replay.id))
+	_replay.mouth_changed.connect(func(value): mouth_changed.emit(value))
+	_replay.finished.connect(func(id,code):
+		if not code.is_empty():
+			_cache_errors[id] = code
+			_metadata[id] = {}
+			_notify_audio(id)
+		_log("replay_finished",id,{"code":code})
+		replay_finished.emit(id,code))
 	_logger = logger
 	_clock = clock if clock.is_valid() else Time.get_ticks_msec
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_invalid_base64.compile("^[A-Za-z0-9+/]*={0,2}$")
 	add_child(_player)
 
-func append_reply_audio(id: String, encoded: String, final: bool, audio_error: bool = false) -> void:
+func append_reply_audio(id: String, encoded: String, final: bool, audio_error: bool = false, ephemeral: bool = false) -> void:
 	if _completed.has(id):
 		return
 	if not _streams.has(id):
@@ -38,15 +55,19 @@ func append_reply_audio(id: String, encoded: String, final: bool, audio_error: b
 			playback_finished.emit(id, "BUFFER_LIMIT")
 			return
 		_streams[id] = {"decoder":null, "final":false, "code":"", "stopped":false,
-			"updated":_clock.call(), "format_logged":false}
+			"updated":_clock.call(), "format_logged":false, "cache_started":false, "cache_suppressed":false}
 	var item: Dictionary = _streams[id]
 	if item.final:
 		return
 	item.updated = _clock.call()
+	if ephemeral:
+		item.cache_suppressed = true
+		if _cache != null:
+			_cache.abort(id)
 	if audio_error:
 		_fail(id, "AUDIO_ERROR")
 		return
-	if not encoded.is_empty() and not item.stopped:
+	if not encoded.is_empty():
 		if encoded.length() > 12 * 1024 * 1024 or encoded.length() % 4 != 0 or _invalid_base64.search(encoded) == null:
 			_fail(id, "INVALID_BASE64")
 			return
@@ -55,6 +76,17 @@ func append_reply_audio(id: String, encoded: String, final: bool, audio_error: b
 			_fail(id, "INVALID_BASE64")
 			return
 		_log("audio_received", id, {"bytes":bytes.size()})
+		if _cache != null and not item.cache_suppressed:
+			if not item.cache_started:
+				var result: Error = _cache.begin(id)
+				if result == ERR_ALREADY_EXISTS:
+					item.cache_suppressed = true
+				elif result != OK:
+					_cache_failed(id)
+				else:
+					item.cache_started = true
+			if item.cache_started and not item.cache_suppressed and _cache.append(id,bytes) != OK:
+				_cache_failed(id)
 		if item.decoder == null:
 			if not ClassDB.class_exists("PcmStreamDecoder"):
 				_fail(id, "DECODER_UNAVAILABLE")
@@ -68,6 +100,8 @@ func append_reply_audio(id: String, encoded: String, final: bool, audio_error: b
 			_log("audio_format", id, status)
 			item.format_logged = true
 		_log("audio_decoded", id, {"frames":status.decoded_frames, "queued":status.queued_frames})
+		if item.stopped:
+			item.decoder.read_frames(status.queued_frames)
 		var queued_frames := 0
 		for other in _streams.values():
 			if other.decoder != null:
@@ -81,6 +115,12 @@ func append_reply_audio(id: String, encoded: String, final: bool, audio_error: b
 			if not status.ok:
 				_fail(id, status.code)
 				return
+			if _cache != null and item.cache_started and not item.cache_suppressed:
+				if _cache.commit(id,status,item.decoder.get_waveform()) != OK:
+					_cache_failed(id)
+				else:
+					_metadata.erase(id)
+					_notify_audio(id)
 		_end_receive(id)
 
 func play_reply(id: String) -> void:
@@ -96,6 +136,7 @@ func set_volume(value: float) -> void:
 		return
 	_volume = clampf(value, 0, 1)
 	_player.volume_linear = _volume
+	_replay.set_volume(_volume)
 	state_changed.emit(get_state())
 
 func stop_current() -> void:
@@ -104,10 +145,14 @@ func stop_current() -> void:
 		item.stopped = true
 		if item.code.is_empty():
 			item.code = "STOPPED"
-		item.decoder = null
+		if item.decoder != null:
+			item.decoder.read_frames(item.decoder.get_status().queued_frames)
 		_stop_player()
 
 func reset() -> void:
+	stop_replay()
+	if _cache != null:
+		_cache.abort_all()
 	for id in _streams:
 		_log("audio_playback_finished", id, {"code":"INTERRUPTED"})
 	_streams.clear()
@@ -130,6 +175,8 @@ func _end_receive(id: String) -> void:
 func _fail(id: String, code: String) -> void:
 	var item: Dictionary = _streams[id]
 	item.code = code
+	if _cache != null:
+		_cache.abort(id)
 	item.decoder = null
 	_log("audio_error", id, {"code":code})
 	_end_receive(id)
@@ -143,6 +190,7 @@ func _stop_player() -> void:
 	_drain_at = 0
 	mouth_changed.emit(-1.0)
 	state_changed.emit(get_state())
+	_notify_all_audio()
 
 func _complete() -> void:
 	var id := _active
@@ -162,7 +210,7 @@ func _process(_delta: float) -> void:
 	if not _streams.has(_active):
 		return
 	var item: Dictionary = _streams[_active]
-	if item.decoder == null:
+	if item.decoder == null or item.stopped:
 		if item.final:
 			_complete()
 		return
@@ -170,6 +218,9 @@ func _process(_delta: float) -> void:
 	if _playback == null:
 		if status.sample_rate == 0 or status.queued_frames == 0 or (not item.final and status.queued_frames < status.sample_rate * .08):
 			return
+		if not _replay.id.is_empty():
+			_log("replay_preempted",_replay.id)
+			stop_replay()
 		var generator := AudioStreamGenerator.new()
 		generator.mix_rate = status.sample_rate
 		generator.buffer_length = .25
@@ -182,6 +233,7 @@ func _process(_delta: float) -> void:
 		_log("audio_playback_started", _active, {"sample_rate":status.sample_rate, "volume":_volume,
 			"latency_ms":AudioServer.get_output_latency() * 1000})
 		state_changed.emit(get_state())
+		_notify_all_audio()
 	var available := _playback.get_frames_available()
 	var buffered := _capacity - available
 	var heard := _pushed - buffered - int(AudioServer.get_output_latency() * status.sample_rate)
@@ -206,3 +258,79 @@ func _process(_delta: float) -> void:
 
 func _exit_tree() -> void:
 	reset()
+
+func set_scope(server: String, username: String) -> Error:
+	reset()
+	_metadata.clear()
+	_cache_errors.clear()
+	return _cache.set_scope(server,username) if _cache != null else ERR_UNCONFIGURED
+
+func get_message_audio(id: String) -> Dictionary:
+	if not _metadata.has(id):
+		_metadata[id] = _cache.lookup(id) if _cache != null else {}
+	var data: Dictionary = _metadata[id]
+	return {"available":not data.is_empty(), "duration":data.get("duration",0.0),
+		"waveform":data.get("waveform",PackedFloat32Array()), "blocked":_player.playing,
+		"status":_replay.status if _replay.id == id else "idle",
+		"position":_replay.position if _replay.id == id else 0.0, "code":_cache_errors.get(id,"")}
+
+func replay(id: String) -> Error:
+	if _player.playing:
+		return ERR_BUSY
+	if _replay.id == id and _replay.status == "playing":
+		return OK
+	_metadata.erase(id)
+	if not get_message_audio(id).available:
+		_notify_audio(id)
+		return ERR_DOES_NOT_EXIST
+	stop_replay()
+	var result: Error = _replay.start(id,_metadata[id])
+	if result != OK:
+		_cache_errors[id] = "REPLAY_FAILED"
+		_metadata[id] = {}
+		_notify_audio(id)
+	else:
+		_log("replay_started",id)
+	return result
+
+func pause_replay() -> void:
+	if _replay.status == "playing":
+		_log("replay_paused",_replay.id)
+		_replay.pause()
+
+func resume_replay() -> void:
+	if not _player.playing and _replay.status == "paused":
+		_log("replay_resumed",_replay.id)
+		_replay.resume()
+
+func stop_replay() -> void:
+	if not _replay.id.is_empty():
+		_log("replay_stopped",_replay.id)
+		_replay.stop()
+
+func clear_cache() -> Error:
+	stop_replay()
+	for item in _streams.values():
+		item.cache_suppressed = true
+	var ids := _metadata.keys()
+	var result: Error = _cache.clear() if _cache != null else ERR_UNCONFIGURED
+	_metadata.clear()
+	_cache_errors.clear()
+	for id in ids:
+		_notify_audio(id)
+	return result
+
+func _cache_failed(id: String) -> void:
+	_streams[id].cache_suppressed = true
+	_cache.abort(id)
+	_cache_errors[id] = "CACHE_WRITE_FAILED"
+	_log("cache_error",id,{"code":"CACHE_WRITE_FAILED"})
+	_notify_audio(id)
+
+func _notify_audio(id: String) -> void:
+	if not id.is_empty():
+		message_audio_changed.emit(id,get_message_audio(id))
+
+func _notify_all_audio() -> void:
+	for id in _metadata.keys():
+		_notify_audio(id)
