@@ -1,5 +1,7 @@
 extends HBoxContainer
 const Style = preload("res://src/preview/preview_style.gd")
+signal audio_action(action: String)
+var _audio: Control
 signal image_opened(texture: Texture2D)
 var _body: VBoxContainer
 var _text: RichTextLabel
@@ -65,3 +67,13 @@ func update_message(message: Dictionary) -> void:
 		if message.get("demo", false):
 			_caption.text += " · 演示"
 		_caption.add_theme_color_override("font_color", Color("b57373") if message.status in ["failed", "uncertain"] else Color("93a6af"))
+
+func set_audio_state(state: Dictionary) -> void:
+	if _body == null:
+		return
+	if _audio == null and (state.available or not state.code.is_empty()):
+		_audio = preload("res://src/ui/message_audio.gd").new()
+		_body.add_child(_audio)
+		_audio.action.connect(func(value): audio_action.emit(value))
+	if _audio != null:
+		_audio.update_state(state)

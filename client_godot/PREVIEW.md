@@ -6,9 +6,13 @@ Godot 4.7.1 / Windows x64，无需安装 Godot 或 Python。默认只显示账�
 
 登录后可发送文字并接收回复，发送状态来自服务器确认。支持断线重连、原消息 ID 重试、思考状态和表情；无法确认送达时会明确提示。Enter 发送，Shift+Enter 换行；退出登录会关闭连接并清空当前会话。正式聊天尚未接入图片和历史。
 
-收到的语音自动播放，支持流式 WAV/PCM、音量调节、停止当前语音及播放口型。后续回复按顺序呈现；坏音频会提示并保留文字。停止只影响当前回复，后续回复仍自动播放。音量会保存；当前尚不保存语音缓存，也没有历史回放。
+收到的语音自动播放，支持流式 WAV/PCM、音量调节、停止当前语音及播放口型。后续回复按顺序呈现；坏音频会提示并保留文字。停止只影响当前回复，后续回复仍自动播放。音量会保存。完整语音保存成功后，消息下显示重放、时长和真实波形，可播放、暂停、继续、停止；不支持拖动进度。在线语音会抢占重放；停止在线声音仍会继续接收并保存完整语音。
 
-聊天区点击“打开日志”，可查看 `%APPDATA%/AgentLuo-Godot/logs/client.jsonl`。`reply_received` 的 has_audio 表示该包是否有音频，`audio_received` 表示解码后的字节已接收，`audio_format/audio_decoded` 表示 WAV 格式识别和解码成功，`audio_playback_started/finished` 表示播放开始/结束，`audio_error` 的 code 表示具体失败原因。日志最多三份自动轮换，不记录正文、凭据或音频原文。
+聊天区“更多”菜单中点击“打开日志”，可查看 `%APPDATA%/AgentLuo-Godot/logs/client.jsonl`。`reply_received` 的 has_audio 表示该包是否有音频，`audio_received` 表示解码后的字节已接收，`audio_format/audio_decoded` 表示 WAV 格式识别和解码成功，`audio_playback_started/finished` 表示播放开始/结束，`audio_error` 的 code 表示具体失败原因。日志最多三份自动轮换，不记录正文、凭据或音频原文。
+
+缓存存放在新端 user://audio，按服务器和账号隔离，退出登录及重启保留，不设置自动清理上限。“更多 → 清理本账号语音缓存”经确认后清理，保留聊天文字；正在接收的声音继续播放，但该流不再保存。保存失败显示“语音未能保存”。尚未接入历史加载，因此本版只提供当前已显示消息的重放，不读取旧端缓存。
+
+主题色为 #66CCFF，白色天依气泡、浅蓝用户气泡，音量在底部工具栏。日志同时记录 cache_committed/cache_error 和 replay_started/paused/resumed/stopped/finished/preempted。
 
 离线样板用 `AgentLuo.exe -- --preview` 进入，样板不连接服务器，演示消息在退出后清空。
 

@@ -14,6 +14,7 @@ var _empty := Label.new()
 var _refresh_pending := false
 var _refresh_again := false
 var _stop_voice: Button
+var _clear_dialog := ConfirmationDialog.new()
 var _menu := MenuButton.new()
 
 func _init(session: Node) -> void:
@@ -39,11 +40,21 @@ func _ready() -> void:
 	var popup := _menu.get_popup()
 	popup.add_item("打开日志", 0)
 	popup.set_item_disabled(0, _session.get_log_directory().is_empty())
+	popup.add_item("清理本账号语音缓存", 1)
+	_clear_dialog.title = "清理语音缓存"
+	_clear_dialog.dialog_text = "清理当前服务器、本账号保存的全部语音？\n聊天文字保留；已清理的语音将无法重放。"
+	_clear_dialog.ok_button_text = "清理"
+	_clear_dialog.cancel_button_text = "取消"
+	add_child(_clear_dialog)
+	_clear_dialog.confirmed.connect(func(): _session.clear_cache())
 	popup.add_separator()
 	popup.add_item("退出登录", 2)
 	popup.id_pressed.connect(func(id):
 		if id == 0:
 			OS.shell_open(_session.get_log_directory())
+		elif id == 1:
+			_clear_dialog.popup_centered()
+			_clear_dialog.get_cancel_button().grab_focus()
 		elif id == 2:
 			logout_requested.emit())
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -100,6 +111,7 @@ func _ready() -> void:
 	send.custom_minimum_size.x = 96
 	Style.primary(send)
 	footer.add_child(send)
+	_session.message_audio_changed.connect(_audio_changed)
 	_session.changed.connect(_refresh)
 	_session.state_changed.connect(_state_changed)
 	_state_changed(_session.get_state())
@@ -142,6 +154,9 @@ func _refresh_messages() -> void:
 			_messages.add_child(bubble)
 			bubble.configure(message)
 			_bubbles[message.id] = bubble
+			bubble.audio_action.connect(func(action): _audio_action(message.id,action))
+		if message.role == "assistant":
+			_bubbles[message.id].set_audio_state(_session.get_message_audio(message.id))
 	await get_tree().process_frame
 	if not is_inside_tree():
 		return
@@ -174,9 +189,22 @@ func _state_changed(state: Dictionary) -> void:
 	_stop_voice.disabled = not state.get("speaking", false)
 	if state.code == "AUDIO_ERROR":
 		_status.text += " · 本条语音暂时无法播放，文字已保留。"
+	elif state.code == "CACHE_CLEAR_FAILED":
+		_status.text += " · 部分语音未能清理，请关闭占用文件后重试。"
 	elif state.code == "SEND_REJECTED":
 		_status.text += " · 暂时无法发送，内容已保留。"
 	elif state.code == "INVALID_RESPONSE":
 		_status.text += " · 收到的数据不完整。"
 	elif state.phase == "ready" and not state.code.is_empty():
 		_status.text += " · 服务器暂时无法处理请求，请稍后重试。"
+
+func _audio_changed(id: String, state: Dictionary) -> void:
+	if _bubbles.has(id):
+		_bubbles[id].set_audio_state(state)
+
+func _audio_action(id: String, action: String) -> void:
+	match action:
+		"play": _session.replay(id)
+		"pause": _session.pause_replay()
+		"resume": _session.resume_replay()
+		"stop": _session.stop_replay()

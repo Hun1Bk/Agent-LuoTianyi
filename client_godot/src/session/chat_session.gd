@@ -1,4 +1,5 @@
 extends Node
+signal message_audio_changed(id: String, state: Dictionary)
 signal changed
 signal state_changed(state: Dictionary)
 signal expression_requested(command: String)
@@ -19,6 +20,9 @@ func _init(transport: Node, logger: RefCounted = null, media: Node = null) -> vo
 	_media = media if media != null else Audio.new(logger)
 	add_child(_media)
 	_media.playback_finished.connect(_audio_finished)
+	_media.message_audio_changed.connect(func(id,state):
+		if _by_id.has(id):
+			message_audio_changed.emit(id,state))
 	_media.mouth_changed.connect(func(value): mouth_changed.emit(value))
 	_media.state_changed.connect(func(state):
 		_state.speaking = state.playing
@@ -31,6 +35,7 @@ func _init(transport: Node, logger: RefCounted = null, media: Node = null) -> vo
 
 func start(session: Dictionary) -> Error:
 	stop()
+	_media.set_scope(session.get("server",""),session.get("username",""))
 	return _transport.start(session)
 
 func send_text(text: String) -> String:
@@ -66,7 +71,7 @@ func stop_voice() -> void:
 
 func stop() -> void:
 	_transport.stop()
-	_media.reset()
+	_media.set_scope("", "")
 	_messages.clear()
 	_by_id.clear()
 	_replies.clear()
@@ -133,7 +138,7 @@ func _receive_reply(payload: Dictionary) -> void:
 		reply.display = false
 	reply.audio_error = reply.audio_error or payload.get("audio_error", false) == true
 	reply.final = reply.final or payload.get("is_final_package", true) == true or reply.audio_error
-	_media.append_reply_audio(id, payload.audio if payload.get("audio") is String else "", reply.final, reply.audio_error)
+	_media.append_reply_audio(id, payload.audio if payload.get("audio") is String else "", reply.final, reply.audio_error, payload.get("is_ephemeral",false) == true)
 	_present_replies()
 
 func _audio_finished(id: String, code: String) -> void:
@@ -169,3 +174,26 @@ func _present_replies() -> void:
 
 func _exit_tree() -> void:
 	stop()
+
+func get_message_audio(id: String) -> Dictionary:
+	return _media.get_message_audio(id)
+
+func replay(id: String) -> Error:
+	if not _by_id.has(id) or _by_id[id].role != "assistant":
+		return ERR_DOES_NOT_EXIST
+	return _media.replay(id)
+
+func pause_replay() -> void:
+	_media.pause_replay()
+
+func resume_replay() -> void:
+	_media.resume_replay()
+
+func stop_replay() -> void:
+	_media.stop_replay()
+
+func clear_cache() -> Error:
+	var result: Error = _media.clear_cache()
+	if result != OK:
+		_system_error("CACHE_CLEAR_FAILED")
+	return result

@@ -9,6 +9,7 @@ const Chat = preload("res://src/session/chat_session.gd")
 const Transport = preload("res://src/network/websocket_transport.gd")
 const ChatView = preload("res://src/ui/chat_view.gd")
 const Log = preload("res://src/storage/client_log.gd")
+const Cache = preload("res://src/storage/audio_cache.gd")
 const Audio = preload("res://src/media/reply_audio.gd")
 var _session: Node
 var _chat: Node
@@ -47,7 +48,8 @@ func _ready() -> void:
 	var log = Log.new("user://logs" if _layout_path == "user://window_layout.cfg" else _layout_path.get_base_dir().path_join("logs"))
 	if log.record("client_started") != OK:
 		push_warning("Client diagnostic log is unavailable")
-	_chat = Chat.new(Transport.new(), log, Audio.new(log))
+	var cache = Cache.new(_layout_path.get_base_dir().path_join("audio"),log)
+	_chat = Chat.new(Transport.new(), log, Audio.new(log,Callable(),cache))
 	add_child(_chat)
 	_split = HSplitContainer.new()
 	_center = CenterContainer.new()

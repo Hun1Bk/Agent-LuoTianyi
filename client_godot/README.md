@@ -59,9 +59,9 @@ python client_godot/tests/run_security_interop.py --godot $env:GODOT_BIN
 
 ## 回复语音与诊断
 
-正式聊天自动播放服务端 WAV/PCM 分片；同 UUID 聚合，后续回复等前一句实际播完再呈现。支持口型、音量保存、停止当前语音、错误及断线清理；目前不保存语音缓存，也不提供回放。原生 `PcmStreamDecoder` 与 `WindowsSecurity` 共用 DLL，按上面的 `build_security.py` 命令重建，需分发完整目录。
+正式聊天自动播放服务端 WAV/PCM 分片；同 UUID 聚合，后续回复等前一句实际播完再呈现。支持口型、音量保存、停止当前语音、错误及断线清理；完整语音以临时文件接收、成功终止及原生验证后提交，提供消息重放/暂停/继续/停止，波形来自原生 RMS，进度来自混音器消耗帧。在线语音抢占重放；停止在线声音不取消后续接收和缓存。原生 `PcmStreamDecoder` 与 `WindowsSecurity` 共用 DLL，按上面的 `build_security.py` 命令重建，需分发完整目录。
 
-“打开日志”查看 `user://logs/client.jsonl`，默认实际目录 `%APPDATA%/AgentLuo-Godot/logs`；最多三份、每份 2 MiB。用哈希 reply_id 关联 `reply_received → audio_received → audio_format/audio_decoded → audio_receive_finished → audio_playback_started/finished`（接收/播放可交错）。`audio_error` 的 code 定位错误，`audio_underrun` 记录供给不足；不会写入正文、token、密钥或 Base64。
+“更多 → 打开日志”查看 `user://logs/client.jsonl`，默认实际目录 `%APPDATA%/AgentLuo-Godot/logs`；最多三份、每份 2 MiB。用哈希 reply_id 关联 `reply_received → audio_received → audio_format/audio_decoded → audio_receive_finished → audio_playback_started/finished`（接收/播放可交错）。`audio_error` 的 code 定位错误，`audio_underrun` 记录供给不足；不会写入正文、token、密钥或 Base64。
 
 `check.ps1` 增量解码及真实混音测试默认使用合成音频；`check_network.ps1` 还验证 loopback WebSocket 到播放器链路、顺序、隐藏音频、停止及断线。Windows 输出驱动验证可运行：
 
@@ -72,3 +72,7 @@ python client_godot/tests/run_security_interop.py --godot $env:GODOT_BIN
 该命令会向本机默认音频设备播放短合成音；AudioEffectCapture 检查非零混音输出及静音，不等同人工听感或真实服务验收。
 
 未登录时仅显示 660×800 账户窗口，登录成功后展开角色和聊天，退出再收起。默认服务器沿用旧端 release_config.base_url；已保存的自定义地址优先。账户回归含窗口切换测试，原生窗口验证可运行 `run_account_tests.py --godot <exe> --script res://tests/test_application_window.gd --gpu`，仍仅连接本地 HTTP fixture。
+
+语音缓存在 user://audio 按规范化服务器、账户与 UUID 隔离，退出及重启保留，只能手动清理，无自动容量/时间淘汰。“更多 → 清理本账号语音缓存”有确认窗口；清理同时取消在途流的缓存写入，保留正在输出的声音与聊天文字。当前没有历史加载，所以只为当前可见消息提供重放。日志记录 cache_committed/cache_error、replay_started/paused/resumed/stopped/finished/preempted，不写音频原文。
+
+重放回归：`--headless --audio-driver WASAPI --path client_godot --script res://tests/test_voice_replay.gd`。真实 UI/角色截图：`tests/run_websocket_tests.py --godot <exe> --script res://tests/capture_voice_ui.gd --gpu`，只连接 loopback、使用合成语音，输出默认/最小/暂停/125%及150%内容缩放截图到 artifacts。内容缩放检查不能替代操作系统 DPI 切换与跨显示器验收。
