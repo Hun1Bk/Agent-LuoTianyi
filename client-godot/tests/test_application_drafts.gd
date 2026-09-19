@@ -29,8 +29,12 @@ func _run() -> void:
 			menu.id_pressed.emit(3)
 			check(app.find_children("*","Window",true,false).filter(func(n): return n.title == "相处模式").size()==1,"repeated open focuses same window")
 			var input: TextEdit = windows[0].find_children("*","TextEdit",true,false)[0]
+			var deadline := Time.get_ticks_msec()+2500
+			while not input.editable and Time.get_ticks_msec()<deadline:
+				await process_frame
 			input.text = "new draft"
 			input.text_changed.emit()
+			check(windows[0].is_dirty(),"loaded form accepts draft edit")
 			root.close_requested.emit()
 			var dialogs: Array = app.find_children("*","ConfirmationDialog",true,false).filter(func(n): return n.visible)
 			check(not dialogs.is_empty(),"app exit asks before discarding settings")

@@ -26,6 +26,9 @@ var _log: RefCounted
 var _log_window: Window
 var _engine_log: Logger
 var _log_problem := Label.new()
+var _windows: Dictionary = {}
+var _exit_dialog := ConfirmationDialog.new()
+var _exit_action := ""
 
 func _init(account_session: Node = null, layout_path: String = "user://window_layout.cfg") -> void:
 	_session = account_session
@@ -47,6 +50,15 @@ func _ready() -> void:
 	OS.add_logger(_engine_log)
 	_log_window = preload("res://src/ui/log_window.gd").new(_log)
 	add_child(_log_window)
+	get_tree().auto_accept_quit = false
+	get_window().close_requested.connect(func(): _request_close("exit"))
+	_exit_dialog.title = "放弃未保存的内容？"
+	_exit_dialog.dialog_text = "设置窗口中有未保存的修改，确认放弃并继续？"
+	_exit_dialog.ok_button_text = "放弃并继续"
+	_exit_dialog.cancel_button_text = "取消"
+	add_child(_exit_dialog)
+	_exit_dialog.confirmed.connect(func(): _finish_close(_exit_action))
+	_exit_dialog.canceled.connect(func(): _exit_action = "")
 	if not ClassDB.class_exists("WindowsSecurity"):
 		var error := Label.new()
 		error.text = "凭据保护组件缺失，请重新解压完整程序。"
@@ -139,14 +151,16 @@ func _account_changed(state: Dictionary) -> void:
 			_chat_view.custom_minimum_size.x = 440
 			_chat_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_split.add_child(_chat_view)
-			_chat_view.logout_requested.connect(func(): _session.logout())
+			_chat_view.logout_requested.connect(func(): _request_close("logout"))
 			_chat_view.log_requested.connect(_log_window.open)
+			_chat_view.settings_requested.connect(_open_settings)
 		if not _expanded:
 			_expanded = true
 			_split.dragger_visibility = SplitContainer.DRAGGER_VISIBLE
 			_resize_window(_expanded_size, Vector2i(960, 640))
 		_chat.start(_session.get_session())
 	else:
+		_close_windows()
 		_chat.stop()
 		if _chat_view != null:
 			_chat_view.hide()
@@ -188,3 +202,45 @@ func _exit_tree() -> void:
 		_engine_log.stop()
 	if _log != null:
 		_log.finish()
+
+func _open_settings(kind: String) -> void:
+	if _windows.has(kind) and is_instance_valid(_windows[kind]):
+		_windows[kind].open()
+		return
+	if kind != "preferences":
+		return
+	var controller = preload("res://src/session/preferences_controller.gd").new(preload("res://src/network/json_request.gd").new(),_log)
+	var window = preload("res://src/ui/preferences_window.gd").new(controller)
+	_windows[kind] = window
+	add_child(window)
+	window.tree_exited.connect(func():
+		if _windows.get(kind) == window:
+			_windows.erase(kind))
+	window.open()
+	controller.start(_session.get_session())
+
+func _request_close(action: String) -> void:
+	for window in _windows.values():
+		if is_instance_valid(window) and window.is_dirty():
+			_exit_action = action
+			_exit_dialog.popup_centered()
+			_exit_dialog.get_cancel_button().grab_focus()
+			return
+	_finish_close(action)
+
+func _finish_close(action: String) -> void:
+	if action not in ["exit","logout"]:
+		return
+	_close_windows()
+	_exit_action = ""
+	if action == "exit":
+		get_tree().quit()
+	else:
+		_session.logout()
+
+func _close_windows() -> void:
+	for window in _windows.values():
+		if is_instance_valid(window):
+			window.hide()
+			window.queue_free()
+	_windows.clear()
