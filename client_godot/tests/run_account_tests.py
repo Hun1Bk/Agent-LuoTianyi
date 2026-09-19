@@ -12,7 +12,7 @@ from run_security_interop import server_crypto
 PROJECT = Path(__file__).resolve().parents[1]
 
 
-def run(godot, script="res://tests/test_account_api.gd"):
+def run(godot, script="res://tests/test_account_api.gd", gpu=False):
     crypto = server_crypto()
     crypto.generate_keys()
     protocol_errors = []
@@ -81,7 +81,7 @@ def run(godot, script="res://tests/test_account_api.gd"):
     thread.start()
     try:
         env = {**os.environ, "GODOT_TEST_SERVER": f"http://127.0.0.1:{server.server_port}"}
-        result = subprocess.run([godot, "--headless", "--path", str(PROJECT), "--script", script],
+        result = subprocess.run([godot, *([] if gpu else ["--headless"]), "--path", str(PROJECT), "--script", script],
                                 env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=40)
         print(result.stdout)
         if result.returncode or "ERROR:" in result.stdout + result.stderr or protocol_errors:
@@ -97,5 +97,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--godot", required=True)
     parser.add_argument("--script", default="res://tests/test_account_api.gd")
+    parser.add_argument("--gpu", action="store_true", help="Use a native window for layout/size validation")
     args = parser.parse_args()
-    run(args.godot, args.script)
+    run(args.godot, args.script, args.gpu)
