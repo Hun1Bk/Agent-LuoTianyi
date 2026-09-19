@@ -110,3 +110,12 @@
 - 验证：`check_network.ps1` 使用真实 socket 与 loopback websockets 16.0 fixture，鉴权字段、心跳、ACK、回复、同 ID 重连、同凭据拒绝和新 token 恢复、认证超时、无效 JSON 全通过；`check.ps1` 全通过。
 - 作者自审：核对 URL/TLS、队列资源、收包数量与字节限制、不输出原始秘密。发现 Godot 对立即关闭时最终帧的保留存在边界，认证关闭码 1008 单独终止，不依赖最后一帧错误文本。
 - 未验证：真实开发服务、TLS 部署、复杂代理网络；当前尚未接入正式聊天界面。
+### 2026-09-19 正式文字聊天与账户入口集成
+
+- 交付行为：登录后进入真实文字聊天；发送状态由 ACK 更新，重连期间可排队，无法确认送达明确提示；同 UUID 分片聚合、回复与表情顺序、思考状态、隐藏/临时回复、语音错误保留文字。退出清理连接、队列和会话，返回账户页。
+- interface：`ChatSession 与 ChatView`；SPEC `1659b9a`，Red `f7a95ee`，补充回归 Red `3e86dfc`、`745182d`；分支 `feat/godot-text-chat`。
+- Red：可运行占位控制器/视图的 8 项真实聊天行为失败；后续复现同帧重启残留旧气泡和重复分片撤销终止状态，修复后通过。
+- 验证：`check.ps1`、`check_network.ps1`、`check_accounts.ps1` 全部通过；真实输入事件经 ChatView/ChatSession/WebSocketPeer 到 loopback 服务后收到回复，验证发送确认、正文保留、隐藏消息、表情排序和退出清理。共享 `contracts/chat/reply_events.json` 同时由旧 Python 客户端实际解析器与 Godot 网络链路消费。
+- 导出：`build.ps1` Windows release 导出和独立 EXE headless 启动通过，产物 `client_godot/dist/AgentLuo.exe`，随包说明明确正式功能与离线演示差别；旧客户端和既有样板压缩包保留。
+- 作者自审：核对消息快照、重复终止、更新原气泡、延迟布局时的滚动、账户退出及分隔比例；未混入 project.godot 的原有编辑器修改。独立聊天核验代理因服务不可用而中止，没有独立审核结论；作者自审不能替代他人审核。
+- 未验证：真实开发服务器、完整登录到聊天的部署联调、Windows 10、集显性能、多档 DPI 和系统 IME；当前正式聊天没有图片、历史、流式声音或回放，本次不是全功能替换验收或安装程序交付。

@@ -53,4 +53,6 @@ python client_godot/tests/run_security_interop.py --godot $env:GODOT_BIN
 
 账户模块的本地 HTTP/凭据回归：在独立 Python 环境安装 `tests/requirements-auth.txt`，运行 `scripts/check_accounts.ps1 -Godot <exe> -Python <python.exe>`。测试只监听 127.0.0.1 随机端口，使用合成账户；客户端运行不依赖 Python。
 
-聊天传输回归：测试 Python 安装 `tests/requirements-websocket.txt`，运行 `scripts/check_network.ps1 -Godot <exe> -Python <python.exe>`。真实 Godot WebSocketPeer 连接随机端口的本地 fixture，覆盖认证、心跳、断线和稳定 ID 重试；不连接真实账户服务器。
+聊天传输与界面回归：测试 Python 安装 `tests/requirements-websocket.txt`，运行 `scripts/check_network.ps1 -Godot <exe> -Python <python.exe>`。真实 Godot WebSocketPeer 连接随机端口的本地 fixture，覆盖认证、心跳、断线和稳定 ID 重试、真实输入框收发和退出清理；不连接真实账户服务器。`contracts/chat/reply_events.json` 由 Godot 收包链路与旧 Python 客户端实际解析器共同消费。
+
+默认入口登录后进入真实文字聊天，图片、历史、语音等以进度文档中的实际完成范围为准；离线样板中的模拟能力不代表正式功能已经接入。

@@ -3,6 +3,7 @@ const Style = preload("res://src/preview/preview_style.gd")
 signal image_opened(texture: Texture2D)
 var _body: VBoxContainer
 var _text: RichTextLabel
+var _caption: Label
 
 func configure(message: Dictionary, image_texture: Texture2D = null) -> void:
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -50,13 +51,22 @@ func configure(message: Dictionary, image_texture: Texture2D = null) -> void:
 			if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 				image_opened.emit(image_texture))
 	if own:
-		var status: String = {"sent":"已发送 · 演示", "sending":"发送中… · 演示", "failed":"发送失败 · 演示"}.get(message.status, "")
-		var caption := Style.label(status, 11, Color("b57373") if message.status == "failed" else Color("93a6af"))
-		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		_body.add_child(caption)
+		_caption = Style.label("", 11)
+		_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_body.add_child(_caption)
 		add_child(avatar)
+	update_message(message)
 	resized.connect(_resize_bubble)
 	_resize_bubble()
 
 func _resize_bubble() -> void:
 	_body.custom_minimum_size.x = maxf(140, size.x * 0.76)
+
+func update_message(message: Dictionary) -> void:
+	if _text != null and _text.text != message.text:
+		_text.text = message.text
+	if _caption != null:
+		_caption.text = {"queued":"等待发送…", "sent":"已发送", "sending":"发送中…", "failed":"发送失败", "uncertain":"无法确认送达，请勿重复发送"}.get(message.status, "")
+		if message.get("demo", false):
+			_caption.text += " · 演示"
+		_caption.add_theme_color_override("font_color", Color("b57373") if message.status in ["failed", "uncertain"] else Color("93a6af"))

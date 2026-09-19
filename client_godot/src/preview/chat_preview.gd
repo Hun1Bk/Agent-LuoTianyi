@@ -169,6 +169,7 @@ func _refresh() -> void:
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_messages.add_child(empty)
 	for message in _session.get_messages():
+		message.demo = true
 		var bubble := Bubble.new()
 		_messages.add_child(bubble)
 		var texture: Texture2D = _images.get(message.id)
