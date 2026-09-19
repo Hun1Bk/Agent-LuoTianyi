@@ -74,6 +74,15 @@ func _run() -> void:
 		inputs[0].text = "保留草稿"
 		inputs[0].send_requested.emit()
 		check(inputs[0].text == "保留草稿", "rejected send preserves draft")
+	# Restart in the same frame: the view must reconcile the new snapshot even
+	# when the empty state from stop() was coalesced by a deferred refresh.
+	session.start({"server":OS.get_environment("GODOT_TEST_SERVER") + "/prefix", "username":"normal", "message_token":"message-test"})
+	session.send_text("新的会话")
+	await process_frame
+	await process_frame
+	labels = view.find_children("*", "RichTextLabel", true, false)
+	check(not labels.any(func(label): return label.text == "第一句"), "same-frame restart removes previous account bubbles")
+	session.stop()
 	view.queue_free()
 	session.queue_free()
 	await process_frame
