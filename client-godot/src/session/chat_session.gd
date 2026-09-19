@@ -2,17 +2,27 @@ extends Node
 signal changed
 signal state_changed(state: Dictionary)
 signal expression_requested(command: String)
+signal mouth_changed(value: float)
+const Audio = preload("res://src/media/reply_audio.gd")
 var _transport: Node
+var _media: Node
 var _logger: RefCounted
 var _messages: Array[Dictionary] = []
 var _by_id: Dictionary = {}
 var _replies: Dictionary = {}
 var _finished: Dictionary = {}
-var _state := {"phase":"idle", "code":"", "thinking":false}
+var _state := {"phase":"idle", "code":"", "thinking":false, "speaking":false}
 
-func _init(transport: Node, logger: RefCounted = null) -> void:
+func _init(transport: Node, logger: RefCounted = null, media: Node = null) -> void:
 	_transport = transport
 	_logger = logger
+	_media = media if media != null else Audio.new(logger)
+	add_child(_media)
+	_media.playback_finished.connect(_audio_finished)
+	_media.mouth_changed.connect(func(value): mouth_changed.emit(value))
+	_media.state_changed.connect(func(state):
+		_state.speaking = state.playing
+		state_changed.emit(get_state()))
 	add_child(transport)
 	transport.state_changed.connect(_connection_changed)
 	transport.delivery_changed.connect(_delivery_changed)
@@ -45,13 +55,23 @@ func get_state() -> Dictionary:
 func get_log_directory() -> String:
 	return _logger.get_directory() if _logger != null else ""
 
+func set_volume(value: float) -> void:
+	_media.set_volume(value)
+
+func get_audio_state() -> Dictionary:
+	return _media.get_state()
+
+func stop_voice() -> void:
+	_media.stop_current()
+
 func stop() -> void:
 	_transport.stop()
+	_media.reset()
 	_messages.clear()
 	_by_id.clear()
 	_replies.clear()
 	_finished.clear()
-	_state = {"phase":"idle", "code":"", "thinking":false}
+	_state = {"phase":"idle", "code":"", "thinking":false, "speaking":false}
 	changed.emit()
 	state_changed.emit(get_state())
 
@@ -65,6 +85,7 @@ func _connection_changed(connection: Dictionary) -> void:
 		for id in _replies:
 			_finished[id] = true
 		_replies.clear()
+		_media.reset()
 	state_changed.emit(get_state())
 
 func _delivery_changed(id: String, status: String, code: String) -> void:
@@ -100,8 +121,10 @@ func _receive_reply(payload: Dictionary) -> void:
 	if _finished.has(id):
 		return
 	if not _replies.has(id):
-		_replies[id] = {"text":"", "expression":"", "display":true, "final":false, "audio_error":false}
+		_replies[id] = {"text":"", "expression":"", "display":true, "final":false, "audio_error":false, "played":false}
 	var reply: Dictionary = _replies[id]
+	if reply.final:
+		return
 	if payload.get("text") is String and not payload.text.is_empty():
 		reply.text = payload.text
 	if payload.get("expression") is String and not payload.expression.is_empty():
@@ -110,7 +133,17 @@ func _receive_reply(payload: Dictionary) -> void:
 		reply.display = false
 	reply.audio_error = reply.audio_error or payload.get("audio_error", false) == true
 	reply.final = reply.final or payload.get("is_final_package", true) == true or reply.audio_error
+	_media.append_reply_audio(id, payload.audio if payload.get("audio") is String else "", reply.final, reply.audio_error)
 	_present_replies()
+
+func _audio_finished(id: String, code: String) -> void:
+	if not _replies.has(id):
+		return
+	_replies[id].played = true
+	if not code.is_empty() and code != "STOPPED":
+		_replies[id].audio_error = true
+		_system_error("AUDIO_ERROR")
+	_present_replies.call_deferred()
 
 func _present_replies() -> void:
 	for id in _replies.keys():
@@ -128,7 +161,8 @@ func _present_replies() -> void:
 			reply.expression = ""
 		if reply.audio_error:
 			_system_error("AUDIO_ERROR")
-		if not reply.final:
+		if not reply.played:
+			_media.play_reply(id)
 			break
 		_finished[id] = true
 		_replies.erase(id)

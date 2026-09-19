@@ -6,3 +6,5 @@ Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 
 if ($LASTEXITCODE -ne 0) { throw 'WebSocket tests failed.' }
 & $Python (Join-Path $ProjectRoot 'tests/run_websocket_tests.py') --godot $engine --script res://tests/test_live_chat.gd
 if ($LASTEXITCODE -ne 0) { throw 'Live chat tests failed.' }
+& $Python (Join-Path $ProjectRoot 'tests/run_websocket_tests.py') --godot $engine --script res://tests/test_voice_chat.gd
+if ($LASTEXITCODE -ne 0) { throw 'Voice chat tests failed.' }

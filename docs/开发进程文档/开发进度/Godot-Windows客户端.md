@@ -144,3 +144,14 @@
 - 验证：check.ps1 全通过；原有 Python RSA 解密互操作通过；8 MiB 输入、1 MiB 头、128 MiB 未读帧及 30 分钟时长边界有执行断言。独立只读核验发现 data 头漏计 8 字节，回归先失败，修正后通过。
 - 作者自审：核对完整 extensible GUID、半帧、非有限样本、辅助 chunk、已知长度尾部及错误粘性；DLL 已重建并更新锁定 SHA256。
 - 未验证：本切片只验证真实原生解码，不代表扬声器输出、真实服务或口型同步已验收。
+
+### 2026-09-19 回复语音实际播放与诊断闭环
+
+- 修复根因：ChatSession 原先只处理文字/表情，没有把 payload.audio 接入播放器。现通过 ReplyAudio 和原生解码驱动 AudioStreamGenerator，自动播放，按实际播放结束推进文本/表情/下一句；口型按消耗帧查询 RMS，结束恢复基础口型。
+- 交付行为：音量调节并保存、停止当前语音、隐藏回复声音、音频错误保留文字、断线/退出清理；接收/格式/解码/开始/结束/错误日志与打开日志入口。没有写入音频缓存或新增回放按钮。
+- interface：ReplyAudio、ChatSession；SPEC f3e6a51、4ffabce；Red 9b66997、87d4464，边界 Red 011c271；分支 feat/godot-streaming-playback。原生解码 Green d072d33，诊断日志 Green 368cec7。
+- 验证：check.ps1、check_network.ps1 通过；账户全套回归通过，更新后的应用窗口/音量测试又在本机原生 GPU 窗口通过。真实 loopback WebSocket 验证跨片 WAV、先缓存后播放、隐藏音频、停止后最终文字、错误及断线；AudioEffectCapture 测得非零输出和静音效果。
+- 原生输出验证：本机 WASAPI 激活双声道 192000 Hz 输出，Godot 报告 10ms 缓冲延迟，test_reply_audio.gd 通过；这不是人工听感结论。build.ps1 release 导出/独立 EXE 启动通过，随包 DLL SHA256 与 lock 一致。
+- 导出资源验证：官方 release EXE 忽略外部 --script，已识别且未将其普通启动冒充测试；用同版本标准引擎加载实际导出的 AgentLuo.pck，并在同目录放置本次随包 DLL，WASAPI 播放测试通过，记录 artifacts/export-pack-audio-verified.log。
+- 作者自审与独立核验：修正重复终止、容量拒绝后重复 UUID、停止覆盖错误码和越界音量配置；可控时钟验证 60 秒无续片超时，跨 UUID 累计缓冲及 16 个待处理回复上限有断言。中途停止导致提前丢弃最终文字的疑点经真实网络测试未复现，确认 STOPPED 完成信号等待终止包。未改动旧端或服务端，保留 project.godot 既有编辑器修改。
+- 未验证：真实部署的 TTS/唱歌联调、人工听感、口型实测偏差、30 分钟运行、Windows 10 与集显性能；未合并、未正式发布，也不是安装程序或全功能替换验收。
