@@ -2,7 +2,7 @@
 
 ## VirtualMessageList：可视消息列表
 
-`VirtualMessageList` 是 ScrollContainer。`set_messages(Array[Dictionary])` 使用 ChatSession 消息快照，按稳定 id 更新；只创建可见范围及有限前后缓冲的气泡节点，1000 条数据不创建 1000 个控件。`scroll_to_message(id) -> bool`、`scroll_to_latest()`、`get_visible_ids() -> Array[String]`、`get_anchor() -> Dictionary`（id/offset）与 `is_at_latest() -> bool` 提供阅读操作。插入历史保留首个可见 id 和相对偏移，原在底部则继续跟随；消息文字未改变不重设 RichTextLabel。改变宽度时重新测量，测量修正仍保持锚点。
+`VirtualMessageList` 是 ScrollContainer。`set_messages(Array[Dictionary])` 使用 ChatSession 消息快照，按稳定 id 更新；只创建可见范围及有限前后缓冲的气泡节点，1000 条数据不创建 1000 个控件。`scroll_to_message(id) -> bool`、`scroll_to_latest()`、`get_visible_ids() -> Array[String]`、`get_reading_anchor() -> Dictionary`（id/offset）与 `is_at_latest() -> bool` 提供阅读操作。插入历史保留首个可见 id 和相对偏移，原在底部则继续跟随；消息文字未改变不重设 RichTextLabel。改变宽度时重新测量，测量修正仍保持锚点。
 
 `visible_messages(ids)` 在可见集合变化时通知 UI，`interacted` 只表示用户滚动/导航而非程序跳转；`audio_action(id,action)`、`image_opened(texture)` 转发气泡操作；`set_audio_state(id,state)` 只刷新该已渲染消息。ChatView 通过这些入口展示及操作，不读播放器/缓存路径。测试以 1000 条、前插、跳转、宽度变化及可见节点数量/文字选择验证；虚拟高度测量属于内部实现。
 
