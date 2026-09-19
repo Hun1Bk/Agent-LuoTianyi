@@ -18,6 +18,11 @@ func field(view: Node, hint: String) -> LineEdit:
 	return null
 
 func button(view: Node, caption: String) -> void:
+	if caption == "退出登录":
+		for menu in view.find_children("*", "MenuButton", true, false):
+			if menu.is_visible_in_tree():
+				menu.get_popup().id_pressed.emit(2)
+				return
 	for node in view.find_children("*", "Button", true, false):
 		if node.text == caption and node.is_visible_in_tree():
 			node.pressed.emit()
