@@ -22,6 +22,14 @@ func _run() -> void:
 	check(controller.get_posts().size()==12 and not controller.get_state().has_more,"opaque cursor paging deduplicates posts")
 	await controller.load_comments("d0")
 	check(controller.get_comments("d0").items.size()==20,"comments first twenty")
+	if not controller.has_method("refresh_comments"):
+		check(false,"complete comment refresh available")
+		controller.queue_free()
+		await process_frame
+		quit(1)
+		return
+	await controller.refresh_comments("d0")
+	check(controller.get_comments("d0").items.size()==22 and not controller.get_comments("d0").has_more,"refresh reaches replies beyond first page")
 	await controller.load_comments("d0",true)
 	check(controller.get_comments("d0").items.size()==22,"comments page merge")
 	await controller.mark_read()
