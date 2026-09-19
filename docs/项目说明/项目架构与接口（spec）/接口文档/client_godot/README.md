@@ -371,3 +371,9 @@ DynamicsController 新增 `publish(content)`、`comment(id,content,parent_commen
 `DynamicsWindow(controller)` 继承 DraftWindow，应用共享控制器不由窗口拥有。顶部发布草稿/刷新/全部已读，单列头像、名字、时间、六行折叠正文卡片；卡片评论分页，点击已加载评论指定回复对象，可取消。每条动态独立评论草稿，刷新/分页和失败不清草稿；成功才清当前提交草稿，发送在途禁止编辑该输入，避免覆盖后续修改。`is_dirty()` 包含发布/评论草稿；关闭窗口/退出统一默认取消。重复打开聚焦已有窗口；窗口关闭销毁 UI 草稿。
 
 ChatView 增加 `set_dynamics_unread(count)` 更新顶部常驻按钮（大于99为99+），按钮 settings_requested("dynamics") 由 Application 打开。未读轮询只更新徽标/窗口状态，不重建卡片或打断编辑。Application 登录 start、退出 stop。测试从真实 HTTP 和可见 UI 验证发布/回复、不可评论、失败保留、关闭确认和顶部入口；不向公共服务器写入测试动态。
+
+## 角色资源描述与稳定身份
+
+AvatarDriver 增加 `load_character(descriptor_path) -> Error`；描述是当前随包 JSON，包含 character_id/resource_id/model_path/mapping_path 四个非空字符串。稳定身份 luotianyi 与具体 original 模型资源分离；模型自身 Cubism FileReferences.Motions/HitAreas 提供动作及命中区域资源映射，mapping_path 提供表情及基础口型映射。描述/映射/模型预检和插件候选加载全部成功后才替换当前角色；失败保持原模型/表达/身份。`get_status()` 增加 character_id/resource_id，原 load_avatar(model_path,mapping_path=默认映射) 兼容原测试与样板，不宣称换装 UI 或触摸业务已新增。
+
+AvatarPanel 读取当前角色描述，不写死模型入口。当前文件选择适配边界为 UI 的 Godot 原生 FileDialog（诊断包输出），业务只接收用户选定输出路径；生命周期由 Application 管理，子页面不重连。WindowsSecurity 只提供既有凭据能力，PcmStreamDecoder 是独立原生类与源文件；当前共同打包一个 DLL，不表示已有 Android/iOS 实现。
