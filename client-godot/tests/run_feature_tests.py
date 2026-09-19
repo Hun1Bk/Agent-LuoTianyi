@@ -5,14 +5,20 @@ from pathlib import Path
 PROJECT=Path(__file__).resolve().parents[1]
 def run(godot,script):
     reads, writes, errors = {}, {}, []
+    from run_security_interop import server_crypto
+    crypto=server_crypto(); crypto.generate_keys()
     class Handler(BaseHTTPRequestHandler):
         def log_message(self,*args): pass
         def reply(self,status,data):
             body=json.dumps(data).encode(); self.send_response(status); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); self.end_headers()
             try: self.wfile.write(body)
             except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError): pass
+        def do_GET(self):
+            self.reply(200,{'public_key':crypto.get_public_key_pem()}) if self.path=='/auth/public_key' else self.reply(404,{})
         def do_POST(self):
             data=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+            if self.path=='/auth/login':
+                self.reply(200,{'user_id':'ui-uuid','login_token':'login-test','message_token':'message-test'}); return
             user=data.get('username')
             if data.get('token')!='message-test': errors.append('wrong preference token'); self.reply(401,{}); return
             if self.path=='/preference/get':
@@ -36,7 +42,7 @@ def run(godot,script):
         result=subprocess.run([godot,'--headless','--path',str(PROJECT),'--script',script],env={**os.environ,'GODOT_TEST_SERVER':f'http://127.0.0.1:{server.server_port}'},capture_output=True,text=True,encoding='utf8',errors='replace',timeout=40)
         print(result.stdout); print(result.stderr)
         if result.returncode or 'ERROR:' in result.stdout+result.stderr or errors: raise RuntimeError(str(errors) or 'feature test failed')
-        assert 'merge' in writes
+        if script.endswith('test_preferences.gd'): assert 'merge' in writes
     finally: server.shutdown(); server.server_close(); thread.join(2)
     print('Offline feature API: PASS')
 if __name__=='__main__':

@@ -40,23 +40,20 @@ func _run() -> void:
 	check(controller.get_state().dirty and controller.get_state().fields.custom_context == "retain draft","write error preserves draft")
 	check(ResourceLoader.exists("res://src/ui/preferences_window.gd"),"preference window exposes draft protection")
 	if ResourceLoader.exists("res://src/ui/preferences_window.gd"):
-		root.remove_child(controller)
-		var window = load("res://src/ui/preferences_window.gd").new(controller)
+		var window_controller = load("res://src/session/preferences_controller.gd").new(load("res://src/network/json_request.gd").new())
+		var window = load("res://src/ui/preferences_window.gd").new(window_controller)
 		root.add_child(window)
+		await window_controller.start(scope("ui"))
+		window_controller.edit({"custom_context":"window draft"})
 		window.open()
 		window.close_requested.emit()
 		var dialogs: Array = window.find_children("*","ConfirmationDialog",true,false)
 		check(not dialogs.is_empty() and dialogs[0].visible,"dirty window asks before closing")
 		if not dialogs.is_empty():
 			dialogs[0].canceled.emit()
-			check(is_instance_valid(window) and controller.get_state().dirty,"cancel keeps window draft")
+			check(is_instance_valid(window) and window_controller.get_state().dirty,"cancel keeps window draft")
 		window.queue_free()
 		await process_frame
-		controller = null
-	if controller == null:
-		print("Preferences: ","PASS" if failures.is_empty() else "FAIL")
-		quit(0 if failures.is_empty() else 1)
-		return
 	controller.stop()
 	check(not controller.get_state().dirty and controller.get_state().phase == "idle","logout clears draft and state")
 	controller.queue_free()
