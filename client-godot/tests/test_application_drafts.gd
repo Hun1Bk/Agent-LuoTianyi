@@ -20,6 +20,24 @@ func _run() -> void:
 	var menus: Array = app.find_children("*","MenuButton",true,false)
 	var menu: PopupMenu = menus.filter(func(n): return n.text == "更多 ···")[0].get_popup()
 	check(menu.get_item_index(3)>=0,"chat menu exposes preferences")
+	var dynamics: Array = []
+	for tick in 200:
+		dynamics = app.find_children("*","Button",true,false).filter(func(n): return n.text == "动态 · 99+")
+		if not dynamics.is_empty():
+			break
+		await create_timer(.01).timeout
+	check(dynamics.size()==1,"permanent dynamics button displays capped unread")
+	if not dynamics.is_empty():
+		dynamics[0].pressed.emit()
+		await process_frame
+		var draft = app.find_child("PublishDraft",true,false)
+		check(draft != null,"dynamics opens from chat")
+		if draft != null:
+			draft.text = "unsaved dynamic"
+			draft.text_changed.emit()
+	menu.id_pressed.emit(4)
+	await process_frame
+	check(app.find_children("*","Window",true,false).filter(func(n): return n.title == "LLM / VLM 模型设置").size()==1,"model menu opens shared settings")
 	if menu.get_item_index(3)>=0:
 		menu.id_pressed.emit(3)
 		await create_timer(.15).timeout

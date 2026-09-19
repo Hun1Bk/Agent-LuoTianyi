@@ -18,6 +18,8 @@ def run(godot,script):
             try: self.wfile.write(body)
             except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError): pass
         def do_GET(self):
+            if self.path.startswith('/dynamics/unread?'): self.reply(200,{'unread_count':123}); return
+            if self.path.startswith('/dynamics?'): self.reply(200,{'items':[],'has_more':False,'next_cursor':None}); return
             if self.path=='/provider-stats': self.reply(200,{'calls':provider_calls,'delegated':delegated}); return
             if self.path=='/llm/client-model-types':
                 self.reply(200,{'types':[{'id':'text-purpose','name':'文本用途','description':'local fixture','model_kind':'llm','requires_json':True,'requires_thinking':False},{'id':'vision-purpose','name':'图像用途','description':'local fixture','model_kind':'vlm','requires_json':False,'requires_thinking':False}]}); return

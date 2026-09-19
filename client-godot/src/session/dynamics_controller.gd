@@ -13,6 +13,7 @@ var _posts: Array[Dictionary] = []
 var _comments := {}
 var _cursor := ""
 var _unread_busy := false
+var _writing := false
 var _state := {"phase":"idle","code":"","unread":0,"unread_code":"","has_more":false,"busy":false}
 
 func _init(logger: RefCounted = null,timeout: float = 15.0) -> void:
@@ -44,6 +45,7 @@ func stop() -> void:
 	_comments.clear()
 	_cursor = ""
 	_unread_busy = false
+	_writing = false
 	_state = {"phase":"idle","code":"","unread":0,"unread_code":"","has_more":false,"busy":false}
 	changed.emit()
 	unread_changed.emit(0)
@@ -168,6 +170,52 @@ func _request(path: String,method: int = HTTPClient.METHOD_GET,data: Dictionary 
 	_requests.erase(http)
 	http.queue_free()
 	return result
+
+func publish(content: String) -> Dictionary:
+	return await _write("",content,"")
+
+func comment(id: String,content: String,parent_comment_id: String = "") -> Dictionary:
+	var post := _find_post(id)
+	if post.is_empty() or not post.allow_comment:
+		return _failure("COMMENT_NOT_ALLOWED")
+	if not parent_comment_id.is_empty():
+		var found := false
+		for item in get_comments(id).items:
+			found = found or item.id == parent_comment_id
+		if not found:
+			return _failure("INVALID_REPLY_TARGET")
+	return await _write(id,content,parent_comment_id)
+
+func _write(id: String,content: String,parent: String) -> Dictionary:
+	if content.strip_edges().is_empty():
+		return _failure("INVALID_INPUT")
+	if _writing or _session.is_empty():
+		return _failure("BUSY")
+	_writing = true
+	var generation := _generation
+	var data := {"content":content}
+	var path := "/dynamics"
+	if not id.is_empty():
+		path += "/"+id.uri_encode()+"/comments"
+		data.parent_comment_id = null if parent.is_empty() else parent
+	var result := await _request(path,HTTPClient.METHOD_POST,data)
+	if generation != _generation:
+		return _failure("CANCELLED")
+	_writing = false
+	if result.ok and not _valid_item(result.data.get("item"),not id.is_empty(),id):
+		result = _failure("INVALID_RESPONSE")
+	if result.ok:
+		if id.is_empty():
+			_posts = _merge([result.data.item],_posts)
+		else:
+			if not _comments.has(id):
+				_comments[id] = _empty_comments()
+			_comments[id].items = _merge(_comments[id].items,[result.data.item])
+			var post := _find_post(id)
+			post.comment_count = int(post.get("comment_count",0))+1
+	_state.code = result.code
+	_notify()
+	return {"ok":result.ok,"code":result.code}
 
 func _page(data: Dictionary,cursor: String,comments: bool,id: String = "") -> Dictionary:
 	if not data.get("items") is Array or not data.get("has_more") is bool:
