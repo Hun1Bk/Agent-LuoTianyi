@@ -1,5 +1,15 @@
 # Godot 客户端 interface
 
+## ModelStore 与 ModelSettings：按用途的本地模型配置
+
+`ModelStore(security,root="user://models")` RefCounted：`set_scope(server,username)`、`read(type_id) -> Dictionary`、`save(type_id,config,allow_plain=false) -> Dictionary`。目录按规范化服务器/账户哈希，用途文件按 type_id 哈希；只保存 enabled/provider/base_url/model/model_kind/model_capabilities/params 与受保护 api_key。DPAPI entropy 包含服务器/账号/用途；保护失败返回 PLAINTEXT_CONFIRMATION_REQUIRED，只有调用方明确 allow_plain 才写 api_key_plain，不自动降级。原子文件写入；解密失败 config 禁用并返回 KEY_UNAVAILABLE，不冒充空密钥成功。
+
+`ModelSettings(http,store,logger=null)` Node：`start(session)` GET /llm/client-model-types，类型字段 id/name/description/model_kind/requires_json/requires_thinking 校验、ID 唯一。`get_types()`、`get_config(type_id)` 返回副本；`get_state()`/changed 只含 phase/code/count，无密钥；`validate(type_id,config) -> Dictionary` 做纯本地校验；`save(type_id,config,allow_plain=false)` 校验再持久化，成功才替换运行配置；`enabled_types() -> Array[String]` 只广告当前定义内启用且有效用途；`copy_config(source_config,target_id)` 保留目标 kind 与能力要求、返回草稿且重新校验后方可保存。未知用途拒绝。
+
+配置 enabled/provider/base_url/api_key/model/model_kind、model_capabilities.can_use_json/can_enable_thinking、params Dictionary；Base URL 只接受 HTTP(S) 规范化地址，不额外添加 v1。启用时要求 model/key/base_url 非空、kind 匹配和满足要求；params.stream 仅允许 false，拒绝 stream_options，model/messages 参数不能覆盖实际模型与委托正文。保存不发供应商请求。`stop()` 取消类型读取并清空本账号内存配置，不删除文件。
+
+模型设置窗口按动态用途生成表单，保留 JSON 高级参数，切用途保留草稿，可复制其他用途；API Key 遮蔽。保存失败不丢草稿，DPAPI 失败弹明确明文选择，默认取消。窗口继承 DraftWindow、参与统一退出保护；当前 ChatView.settings_requested 增加 kind=models。测试真实 DPAPI/跨实例隔离、保护失败默认不落盘、动态用途、能力/kind 校验和复制不覆盖目标要求；默认不调用收费供应商。
+
 ## 相处偏好与设置窗口退出保护
 
 `JsonRequest(timeout=15,limit=8MiB)` Node 的 `send(url,method,data={},headers=[]) -> Dictionary` 异步返回 ok/code/status/data，单实例忙碌返回 BUSY；JSON 必须对象、禁止重定向、TLS 默认验证、无自动重试、错误不回显正文。`cancel()` 结束等待且迟到回调失效。它只承担 HTTP 外部边界，不读取会话或供应商配置。
