@@ -1,10 +1,11 @@
 extends Node
 signal changed(state: Dictionary)
 const Api = preload("res://src/network/account_api.gd")
+const DEFAULT_SERVER := "https://www-api.u3493359.nyat.app:11664"
 var _api: Node
 var _store: RefCounted
 var _settings_path: String
-var _defaults := {"server":"", "username":"", "remember":false}
+var _defaults := {"server":DEFAULT_SERVER, "username":"", "remember":false}
 var _session: Dictionary = {}
 var _busy := false
 var _generation := 0
@@ -19,7 +20,9 @@ func _init(api: Node, store: RefCounted, settings_path: String = "user://account
 		if parser.parse(FileAccess.get_file_as_string(settings_path)) == OK and parser.data is Dictionary:
 			var data: Dictionary = parser.data
 			if data.get("server") is String and data.get("username") is String and data.get("remember") is bool:
-				_defaults = {"server":Api.normalize_server(data.server), "username":data.username, "remember":data.remember}
+				var server := Api.normalize_server(data.server)
+				_defaults = {"server":DEFAULT_SERVER if server.is_empty() else server,
+					"username":data.username, "remember":data.remember and not server.is_empty()}
 
 func perform(operation: String, server: String, fields: Dictionary, remember: bool = false) -> Dictionary:
 	if _busy:

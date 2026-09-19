@@ -56,3 +56,5 @@ python client_godot/tests/run_security_interop.py --godot $env:GODOT_BIN
 聊天传输与界面回归：测试 Python 安装 `tests/requirements-websocket.txt`，运行 `scripts/check_network.ps1 -Godot <exe> -Python <python.exe>`。真实 Godot WebSocketPeer 连接随机端口的本地 fixture，覆盖认证、心跳、断线和稳定 ID 重试、真实输入框收发和退出清理；不连接真实账户服务器。`contracts/chat/reply_events.json` 由 Godot 收包链路与旧 Python 客户端实际解析器共同消费。
 
 默认入口登录后进入真实文字聊天，图片、历史、语音等以进度文档中的实际完成范围为准；离线样板中的模拟能力不代表正式功能已经接入。
+
+未登录时仅显示 660×800 账户窗口，登录成功后展开角色和聊天，退出再收起。默认服务器沿用旧端 release_config.base_url；已保存的自定义地址优先。账户回归含窗口切换测试，原生窗口验证可运行 `run_account_tests.py --godot <exe> --script res://tests/test_application_window.gd --gpu`，仍仅连接本地 HTTP fixture。

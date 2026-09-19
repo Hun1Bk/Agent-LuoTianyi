@@ -17,6 +17,8 @@ var _avatar: Control
 var _ratio := 0.45
 var _layout_ready := false
 var _layout_path: String
+var _expanded := false
+var _expanded_size := Vector2i(1200, 800)
 
 func _init(account_session: Node = null, layout_path: String = "user://window_layout.cfg") -> void:
 	_session = account_session
@@ -24,11 +26,12 @@ func _init(account_session: Node = null, layout_path: String = "user://window_la
 
 
 func _ready() -> void:
-	get_window().min_size = Vector2i(960, 640)
 	theme = preload("res://src/preview/preview_style.gd").make_theme()
 	if "--preview" in OS.get_cmdline_user_args():
+		_resize_window(Vector2i(1200, 800), Vector2i(960, 640))
 		add_child(load("res://scenes/chat_preview.tscn").instantiate())
 		return
+	_resize_window(Vector2i(660, 800), Vector2i(480, 640))
 	if not ClassDB.class_exists("WindowsSecurity"):
 		var error := Label.new()
 		error.text = "凭据保护组件缺失，请重新解压完整程序。"
@@ -43,12 +46,12 @@ func _ready() -> void:
 	add_child(_chat)
 	_split = HSplitContainer.new()
 	_center = CenterContainer.new()
-	_avatar = Avatar.new()
-	_chat.expression_requested.connect(func(command): _avatar.avatar.apply_expression(command))
+	_chat.expression_requested.connect(func(command):
+		if _avatar != null:
+			_avatar.avatar.apply_expression(command))
 	add_child(_split)
 	_split.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_avatar.custom_minimum_size.x = 290
-	_split.add_child(_avatar)
+	_split.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
 	_center.custom_minimum_size.x = 440
 	_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_split.add_child(_center)
@@ -62,6 +65,8 @@ func _ready() -> void:
 		if (ratio is float or ratio is int) and is_finite(float(ratio)):
 			_ratio = clampf(float(ratio), 0.3, 0.6)
 	_split.dragged.connect(func(_offset):
+		if not _expanded:
+			return
 		_ratio = _avatar.size.x / maxf(size.x, 1)
 		settings.set_value("layout", "ratio", _ratio)
 		if settings.save(_layout_path) != OK:
@@ -85,12 +90,23 @@ func _ready() -> void:
 func _account_changed(state: Dictionary) -> void:
 	if state.phase == "signed_in":
 		_center.hide()
+		if _avatar == null:
+			_avatar = Avatar.new()
+			_avatar.custom_minimum_size.x = 290
+			_split.add_child(_avatar)
+			_split.move_child(_avatar, 0)
+		_avatar.show()
+		_avatar.process_mode = Node.PROCESS_MODE_INHERIT
 		if _chat_view == null:
 			_chat_view = ChatView.new(_chat)
 			_chat_view.custom_minimum_size.x = 440
 			_chat_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_split.add_child(_chat_view)
 			_chat_view.logout_requested.connect(func(): _session.logout())
+		if not _expanded:
+			_expanded = true
+			_split.dragger_visibility = SplitContainer.DRAGGER_VISIBLE
+			_resize_window(_expanded_size, Vector2i(960, 640))
 		_chat.start(_session.get_session())
 	else:
 		_chat.stop()
@@ -98,9 +114,32 @@ func _account_changed(state: Dictionary) -> void:
 			_chat_view.hide()
 			_chat_view.queue_free()
 			_chat_view = null
+		if _avatar != null:
+			_avatar.hide()
+			_avatar.queue_free()
+			_avatar = null
 		_center.show()
+		if _expanded:
+			if get_window().mode == Window.MODE_WINDOWED:
+				_expanded_size = get_window().size
+			_expanded = false
+			_split.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
+			_resize_window(Vector2i(660, 800), Vector2i(480, 640))
 	_resize_split()
 
 func _resize_split() -> void:
-	if _layout_ready:
+	if _layout_ready and _expanded:
 		_split.split_offset = roundi(size.x * _ratio)
+
+func _resize_window(target: Vector2i, minimum: Vector2i) -> void:
+	var window := get_window()
+	var center := window.position + window.size / 2
+	window.mode = Window.MODE_WINDOWED
+	window.min_size = minimum
+	window.size = target
+	if DisplayServer.get_name() != "headless":
+		var usable := DisplayServer.screen_get_usable_rect(window.current_screen)
+		var origin := center - window.size / 2
+		origin.x = clampi(origin.x, usable.position.x, maxi(usable.position.x, usable.end.x - window.size.x))
+		origin.y = clampi(origin.y, usable.position.y, maxi(usable.position.y, usable.end.y - window.size.y))
+		window.position = origin
