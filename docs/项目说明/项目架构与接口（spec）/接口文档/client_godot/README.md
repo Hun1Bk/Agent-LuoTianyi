@@ -1,5 +1,11 @@
 # Godot 客户端 interface
 
+## 版本化构建
+
+`release.json` 为唯一版本来源：`product=agentluo, version=0.1.0`。`src/release_info.gd` 的静态 `get_info() -> Dictionary` 返回副本，`title() -> String` 返回 agentluo + 版本。Application 原生窗口标题使用该值；不更改既有 user:// 目录。
+
+`scripts/build.ps1 -Godot <path> [-OutputDirectory <root>] [-Package]` 默认构建至 dist/agentluo-<version>/agentluo.exe 和同名 pck。输出版本资源与 licenses；可选 Package 在 artifacts 下创建同名 ZIP，包含唯一顶层目录。已有 ZIP 时构建前失败，不覆盖；版本不自动递增。包内 DLL 保持导出引擎收集结果，不手工省略。构建仍检查锁定引擎版本、导出与独立启动，版本格式拒绝非三段数字。脚本与元数据属于构建配置切片，Red 不适用；实际导出、ZIP 条目与重复打包拒绝验证其行为。
+
 ## 统一主题与正式聊天布局
 
 Style.make_theme() 统一账户与聊天控件的背景、文字、按钮、输入焦点、选中及滑块；主按钮/滑块为 #66CCFF，深色文字，悬停/按下/禁用与键盘焦点可辨。Style.primary(button) 应用主按钮变体，Style.avatar(texture_path, size=38) 返回带圆形浅底的头像控件。颜色集中定义，不用各页面覆盖旧青绿色。
