@@ -185,10 +185,25 @@ ACK 超时 10 秒，图片选择/取消为 5 秒。持久消息首发后最多�
 - `get_messages() -> Array[Dictionary]` 返回深拷贝；消息含 id/role/text/status/code（queued/sending/sent/failed/uncertain 或 received）。投递状态更新原消息，不增加气泡；DELIVERY_UNCERTAIN 明确显示“无法确认送达”，不提供换 ID 自动重发。
 - `get_state() -> Dictionary` 与 `state_changed(state)` 提供连接 phase/code、thinking 和系统提示；`changed` 表示消息内容/状态改变；`expression_requested(command)` 由应用连接 AvatarDriver。stop 关闭传输并清空消息、回复 UUID 和账户状态，不泄漏给下一账户。
 - 接收 agent_state_changed 的 thinking/waiting；agent_message 按 payload.uuid 合并。重复分片不增加气泡，非空 text 更新同 UUID 的正文，空尾包不清文字；display_in_chat=false 不出气泡，is_ephemeral 保留显示语义但本切片不写缓存。
-- 按 UUID 首次到达顺序展示文本/表情，前一回复终止前后续回复暂存；is_final_package 或 audio_error 结束该回复。断线释放未完成回复等待，保留已显示文字。保留音频相关字段语义，但此切片不播放或缓存声音，不能视为媒体验收。
+- 按 UUID 首次到达顺序展示文本/表情/声音，前一回复实际播放结束前后续回复暂存；is_final_package 表示接收结束，实际播放结束才推进下一句。audio_error 保留文字并结束声音。断线释放未完成回复等待及播放器，保留已显示文字。
 - 无效回复（缺 uuid/text 类型错误）只产生安全系统提示；网络 error/auth_error 不进入天依消息。重复终止包忽略，不重放表情。
 
-`src/ui/chat_view.gd`（Control）注入 ChatSession，发送/状态/正文使用真实控制器；公开 `logout_requested` 交给应用调用 AccountSession.logout。沿用已确认的气泡、输入控件和主题，正式发送状态不带“演示”。Enter/Shift+Enter/IME 规则不变；只有接受发送后清输入，失败保留。已有气泡更新而不全部重建，保持文字选择；在底部跟随新消息，阅读旧内容保留滚动位置并提供回到最新。当前不提供尚未接入的图片/音频按钮。
+`src/ui/chat_view.gd`（Control）注入 ChatSession，发送/状态/正文使用真实控制器；公开 `logout_requested` 交给应用调用 AccountSession.logout。沿用已确认的气泡、输入控件和主题，正式发送状态不带“演示”。Enter/Shift+Enter/IME 规则不变；只有接受发送后清输入，失败保留。已有气泡更新而不全部重建，保持文字选择；在底部跟随新消息，阅读旧内容保留滚动位置并提供回到最新。提供音量和停止当前语音按钮，不提供尚未接入的图片/回放按钮。
+
+## ReplyAudio：实际流式播放
+
+`src/media/reply_audio.gd` 为 Node，由组装根创建，构造可注入 ClientLog；ChatSession 构造可接收第三个参数 media，未传则创建真实 ReplyAudio（保留既有调用兼容）。媒体拥有 AudioStreamPlayer/Generator 与每 UUID 的 PcmStreamDecoder，不直接改变气泡或角色。
+
+- `append_reply_audio(id, encoded, final, audio_error=false)`：接收每包 Base64 字符串，先解码/缓存。空音频可用于文字回复及终止；坏 Base64、原生失败、服务端 audio_error 产生可识别错误，保留聊天文字，不落盘部分流。
+- `play_reply(id)`：允许一个活跃 UUID；可在首片到达后调用，约 80ms 预缓冲或 final 后自动开始实际播放。后续 UUID 先解码，等待会话按顺序调用；每 UUID 采样率来自 WAV，由 Godot 混音器重采样。
+- `receive_finished(id, code)` 表示接收结束；`playback_finished(id, code)` 表示播放器排空并等待输出延迟后结束或中断，两者各一次；`mouth_changed(value)` 为实际消耗帧对应 RMS（适当放大截断至 0～1），停止为 -1 恢复表情基础口型。
+- `get_state()` 返回 active_id/playing/queued/volume；`state_changed(state)` 通知变化。`set_volume(value)` 接受有限 0～1 并截断；默认 1。`stop_current()` 中止当前声音，后续同 UUID 音频丢弃但仍接收文字/终止直到推进下一句；`reset()` 释放全部流，无旧账户完成回调，重复安全。
+- 最多 16 个待处理 UUID，累计未读解码帧上限 128 MiB；60 秒未收到续片则 AUDIO_TIMEOUT，恢复队列。格式/容量错误、退出、断线均释放未完成资源。process_mode=ALWAYS，不随角色最小化停绘而暂停声音。
+- 记录 audio_received（字节数）、audio_format（格式）、audio_decoded（帧数）、audio_receive_finished、audio_playback_started、audio_playback_finished、audio_underrun 及 audio_error。日志只含安全元数据，不能声称实际扬声器听感已验证。
+
+ChatSession 公开 set_volume/get_audio_state/stop_voice，转发媒体 mouth_changed 信号给组装根；get_state 追加 speaking 布尔值。UI 显示播放/错误状态；停止只影响当前声音，后续回复默认仍自动播放。音量使用现有窗口配置保存，拒绝非法配置值。隐藏回复仍播放；临时回复不写缓存。本切片不提供磁盘缓存或语音回放。
+
+验证 tests/test_reply_audio.gd 用真实原生解码/AudioStreamGenerator，AudioEffectCapture 观察非零输出及静音/停止；loopback WebSocket 到 ChatSession 验证分片、顺序、隐藏、坏流和断线。默认只用合成音频，实际 Windows 音频驱动另跑并记录，不连接生产服务。
 
 应用沿用左角色右聊天；账户成功显示 ChatView、隐藏账户表单；退出返回账户表单并取消连接。分隔比例保存到 user://window_layout.cfg，窗口缩放保持比例。离线 preview 保持独立。
 
