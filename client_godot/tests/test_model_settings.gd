@@ -46,6 +46,24 @@ func _run() -> void:
 	check(broken.save("text-purpose",config).code == "PLAINTEXT_CONFIRMATION_REQUIRED","protection failure requires explicit plaintext choice")
 	check(not broken.read("text-purpose").ok,"default cancellation does not save key")
 	check(broken.save("text-purpose",config,true).ok,"explicit plaintext choice allowed")
+	check(ResourceLoader.exists("res://src/ui/model_window.gd"),"model settings window available")
+	if ResourceLoader.exists("res://src/ui/model_window.gd"):
+		var window = load("res://src/ui/model_window.gd").new(settings)
+		root.add_child(window)
+		window.open()
+		await process_frame
+		var model = window.find_child("ModelName",true,false)
+		check(model != null,"model form exposed")
+		if model != null:
+			model.text = "draft-model"
+			model.text_changed.emit(model.text)
+			check(window.is_dirty(),"model draft participates in close guard")
+			window.close_requested.emit()
+			await process_frame
+			check(is_instance_valid(window),"closing draft awaits confirmation")
+		window.queue_free()
+		await process_frame
+		check(settings.get_types().size()==2,"closing window preserves application settings")
 	settings.queue_free()
 	await process_frame
 	for folder in DirAccess.get_directories_at(directory):
