@@ -36,6 +36,19 @@ func _initialize() -> void:
 	data.encode_u32(4, 0xffffffff)
 	data.encode_u32(40, 0xffffffff)
 	var stream = decoder()
+	check(stream.has_method("get_waveform"), "native waveform API available")
+	if stream.has_method("get_waveform"):
+		var samples := PackedByteArray()
+		samples.resize(960)
+		for i in range(240,480):
+			samples.encode_s16(i*2,16384)
+		stream.append(wav(samples))
+		check(stream.get_waveform().is_empty(), "unfinished waveform unavailable")
+		stream.finish()
+		stream.read_frames(480)
+		check(stream.get_waveform(2) == PackedFloat32Array([0,.5]), "waveform represents real quiet and loud halves after consumption")
+		check(stream.get_waveform(0).is_empty() and stream.get_waveform(129).is_empty(), "waveform bucket bounds")
+	stream = decoder()
 	for part in [data.slice(0,3), data.slice(3,23), data.slice(23,45), data.slice(45)]:
 		check(stream.append(part).ok, "split header and partial sample accepted")
 	var status: Dictionary = stream.finish()
