@@ -34,7 +34,8 @@ func _initialize() -> void:
 func _run() -> void:
 	AudioServer.add_bus_effect(0, capture)
 	var directory := "user://audio-test-%s" % Time.get_ticks_usec()
-	var audio := Audio.new(Log.new(directory))
+	var logger = Log.new(directory)
+	var audio := Audio.new(logger)
 	root.add_child(audio)
 	audio.receive_finished.connect(func(id, _code): received.append(id))
 	audio.playback_finished.connect(func(id, code): played.append(id); codes[id] = code)
@@ -84,13 +85,15 @@ func _run() -> void:
 	audio.reset()
 	check(audio.get_state().queued == 0 and not audio.get_state().playing, "reset releases unfinished streams")
 	check(not played.has("reset"), "reset does not emit old account completion")
-	var log_text := FileAccess.get_file_as_string(directory + "/client.jsonl") if FileAccess.file_exists(directory + "/client.jsonl") else ""
+	var log_text := JSON.stringify(logger.read_entries())
 	for event in ["audio_received", "audio_format", "audio_decoded", "audio_receive_finished", "audio_playback_started", "audio_playback_finished", "INVALID_BASE64"]:
 		check(log_text.contains(event), "diagnostic stage " + event)
 	audio.queue_free()
 	await process_frame
 	AudioServer.remove_bus_effect(0,AudioServer.get_bus_effect_count(0)-1)
-	DirAccess.remove_absolute(directory + "/client.jsonl")
+	logger.finish()
+	for file in DirAccess.get_files_at(directory):
+		DirAccess.remove_absolute(directory.path_join(file))
 	DirAccess.remove_absolute(directory)
 	print("Reply audio mixer: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)

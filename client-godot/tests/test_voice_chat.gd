@@ -31,8 +31,9 @@ func _initialize() -> void:
 func _run() -> void:
 	AudioServer.add_bus_effect(0,capture)
 	var directory := "user://voice-chat-test-%s" % Time.get_ticks_usec()
+	var logger = Log.new(directory)
 	var cache = Cache.new(directory + "/audio")
-	var session = Session.new(Transport.new(),Log.new(directory),Audio.new(Log.new(directory),Callable(),cache))
+	var session = Session.new(Transport.new(),logger,Audio.new(logger,Callable(),cache))
 	root.add_child(session)
 	session.expression_requested.connect(func(value): expressions.append(value))
 	session.mouth_changed.connect(func(value): mouth = value; mouth_max = maxf(mouth_max,value))
@@ -99,7 +100,7 @@ func _run() -> void:
 	check(not session.get_state().get("speaking",false), "disconnect releases active voice")
 	check(mouth == -1.0 and session.get_audio_state().queued == 0, "disconnect releases streams and mouth")
 	check(session.get_messages().any(func(message): return message.text == "voice-disconnect"), "disconnect preserves displayed voice text")
-	var logs := FileAccess.get_file_as_string(directory + "/client.jsonl")
+	var logs := JSON.stringify(logger.read_entries())
 	check(logs.contains("audio_playback_started") and logs.contains("audio_playback_finished") and logs.contains("audio_error"), "network to playback has diagnostic trail")
 	var menu: MenuButton = view.find_children("*","MenuButton",true,false)[0]
 	menu.get_popup().id_pressed.emit(1)
@@ -120,7 +121,9 @@ func _run() -> void:
 	session.queue_free()
 	await process_frame
 	AudioServer.remove_bus_effect(0,AudioServer.get_bus_effect_count(0)-1)
-	DirAccess.remove_absolute(directory + "/client.jsonl")
+	logger.finish()
+	for file in DirAccess.get_files_at(directory):
+		DirAccess.remove_absolute(directory.path_join(file))
 	if DirAccess.dir_exists_absolute(directory + "/audio"):
 		for scope in DirAccess.get_directories_at(directory + "/audio"):
 			DirAccess.remove_absolute(directory + "/audio/" + scope)
