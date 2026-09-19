@@ -18,3 +18,4 @@ Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_virtual_history.gd') 'virtual-history'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_reading_position.gd') 'reading-position'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_voice_replay.gd') 'voice-replay'
+Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--quit-after', '3', '--', '--preview') 'offline-preview'
