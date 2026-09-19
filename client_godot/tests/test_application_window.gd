@@ -41,6 +41,9 @@ func _run() -> void:
 	var store = Store.new(security, folder + "/tokens")
 	var session = Session.new(Api.new(security), store, settings_path)
 	check(session.get_login_defaults().server == DEFAULT_SERVER, "fresh account uses legacy release server")
+	var layout := ConfigFile.new()
+	layout.set_value("audio", "volume", -1.0)
+	layout.save(folder + "/layout.cfg")
 	var app := App.new(session, folder + "/layout.cfg")
 	root.add_child(app)
 	app.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -65,6 +68,12 @@ func _run() -> void:
 	var composers := app.find_children("*", "TextEdit", true, false)
 	check(composers.size() == 1 and composers[0].is_visible_in_tree(), "expanded window shows chat")
 	check(not field(app, "服务器地址").is_visible_in_tree(), "expanded window hides account form")
+	var volumes := app.find_children("*", "HSlider", true, false)
+	check(volumes.size() == 1 and volumes[0].value == 1.0, "invalid saved volume uses automatic playback default")
+	if volumes.size() == 1:
+		volumes[0].value = .35
+		layout.load(folder + "/layout.cfg")
+		check(is_equal_approx(float(layout.get_value("audio","volume",0)),.35), "volume change persists in application settings")
 	root.size = Vector2i(1280, 820)
 	var windowed := root.mode == Window.MODE_WINDOWED
 	button(app, "退出登录")
@@ -83,7 +92,17 @@ func _run() -> void:
 	await process_frame
 	var restored = Session.new(Api.new(security), store, settings_path)
 	check(restored.get_login_defaults().server == endpoint, "saved custom server takes precedence")
-	restored.free()
+	var restored_app := App.new(restored, folder + "/layout.cfg")
+	root.add_child(restored_app)
+	await process_frame
+	field(restored_app, "密码").text = "synthetic-password"
+	button(restored_app, "登录")
+	check(await until(func(): return not restored.get_session().is_empty()), "restarted application login succeeds")
+	volumes = restored_app.find_children("*", "HSlider", true, false)
+	check(volumes.size() == 1 and is_equal_approx(volumes[0].value,.35), "restarted application restores saved volume")
+	button(restored_app, "退出登录")
+	restored_app.queue_free()
+	await process_frame
 	var file := FileAccess.open(settings_path, FileAccess.WRITE)
 	file.store_string(JSON.stringify({"server":"", "username":"test", "remember":true}))
 	file.close()
@@ -91,6 +110,7 @@ func _run() -> void:
 	check(empty_config.get_login_defaults().server == DEFAULT_SERVER and not empty_config.get_login_defaults().remember, "empty saved server falls back without auto login")
 	empty_config.free()
 	DirAccess.remove_absolute(settings_path)
+	DirAccess.remove_absolute(folder + "/layout.cfg")
 	DirAccess.remove_absolute(folder + "/logs/client.jsonl")
 	DirAccess.remove_absolute(folder + "/logs")
 	DirAccess.remove_absolute(folder)

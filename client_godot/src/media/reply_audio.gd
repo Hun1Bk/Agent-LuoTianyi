@@ -4,7 +4,7 @@ signal playback_finished(id: String, code: String)
 signal mouth_changed(value: float)
 signal state_changed(state: Dictionary)
 
-func _init(_logger: RefCounted = null) -> void:
+func _init(_logger: RefCounted = null, _clock: Callable = Callable()) -> void:
 	pass
 
 func append_reply_audio(_id: String, _encoded: String, _final: bool, _audio_error: bool = false) -> void:
