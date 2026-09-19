@@ -134,3 +134,17 @@ C++ 临时明文缓冲在释放前清零；Windows 句柄和 DPAPI 输出无论�
 - 组装根创建真实 WindowsSecurity、CredentialStore、AccountApi、AccountSession。正常 GUI 启动尝试一次 resume；headless 构建检查和 `--capture` 截图模式不自动访问配置中的服务器。自动化账户测试注入独立配置路径及本地 HTTP 服务。
 
 验证：`test_account_view.gd` 通过可见表单、按钮和状态文本观察错误密码后保留输入、确认密码拒绝、成功后清空敏感字段与退出状态；使用真实账户控制器和本地 HTTP fixture。导出截图检查默认/最小窗口及中文字段布局。系统 IME 仍由实际 Windows 人工验收。
+
+## ReliableOutbox：消息投递队列
+
+位置 `src/network/reliable_outbox.gd`（RefCounted），调用方为 WebSocketTransport。时钟以调用参数的单调毫秒值注入，测试不用真实等待。
+
+- `enqueue(type, payload, durable, now_ms) -> String`：分配稳定 client_msg_id 并复制 payload；上限 128 个在途事件，单包 UTF-8 JSON 不超过 8 MiB，拒绝返回空串。packet 顶层含 type/payload/client_msg_id/ts/reply_to。durable 用于 user_text（含 proactive）、user_image；typing/touch/image selecting/cancel 为瞬时事件。
+- `take_ready(now_ms, connected) -> Array[Dictionary]`：先处理到期，再返回可以发送的包；持久消息按入队顺序最多一条等待 ACK，瞬时事件独立发送，不阻塞持久队列。未连接时瞬时事件丢弃；持久事件保留到重连或到达龄期。
+- `acknowledge(reply_to, payload, now_ms)`：旧格式无 ok:false 视为成功；负 ACK 仅 retryable 严格 true 时重试。成功或终止后忽略重复 ACK、未知 ID。收到 ACK 前已经发送过的消息，即使正在退避也可接受确认。
+- `disconnected(now_ms)`：将已发未确认的持久事件安排重试，瞬时事件丢弃。`stop(code="TRANSPORT_STOPPED")`：结束全部在途事件并释放 payload；不可在重新登录后继续发送旧账户的事件。
+- `delivery_changed(id, state, code)`：queued/sending/sent/failed/uncertain；失败未知送达使用 uncertain + DELIVERY_UNCERTAIN，不自动生成新 ID。
+
+ACK 超时 10 秒，图片选择/取消为 5 秒。持久消息首发后最多重试 8 次，退避 1/2/4/8/16/30/30/30 秒；若排队龄期达到 240 秒或下一次重试将达到龄期上限，即结束为 DELIVERY_UNCERTAIN。正常 NACK 的 code 只保留字符串错误码，不传原始 message 给日志。瞬时事件不重试。依据 client/src/delivery_policy.py 及 ws_transport.py。
+
+验证 `tests/test_reliable_outbox.gd`：成功/旧格式/重复 ACK，非重试 NACK，ACK 丢失和可重试 NACK 保留 ID，重试与龄期边界，瞬时事件不挡文本，断线和显式停止。
