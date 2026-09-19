@@ -42,6 +42,13 @@ func _run() -> void:
 		check(is_equal_approx(driver.get_status().mouth_openness, 1.0), "release restores like base mouth")
 		check(driver.load_avatar("res://missing.model3.json") == ERR_FILE_NOT_FOUND, "missing model rejected")
 		check(driver.get_status().loaded, "failed preload preserves existing model")
+	check(driver.has_method("load_character"),"resource descriptor loader available")
+	if driver.has_method("load_character"):
+		check(driver.load_character("res://assets/live2d/character.json")==OK,"descriptor loads real character")
+		check(driver.get_status().character_id=="luotianyi" and driver.get_status().resource_id=="original","identity separated from model resource")
+		driver.apply_expression("喜欢脸")
+		check(driver.load_character("res://missing-character.json")!=OK,"invalid descriptor refused")
+		check(driver.get_status().expression=="like" and driver.get_status().character_id=="luotianyi","failed replacement retains character and expression")
 	driver.free()
 	print("Avatar driver: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
