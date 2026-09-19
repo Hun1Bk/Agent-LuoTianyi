@@ -355,3 +355,11 @@ ChatSession 公开同名 get_message_audio/replay/pause_replay/resume_replay/sto
 `test_config(type_id,config)` 异步返回 ok/code，纯配置校验后使用固定短输入调用同一执行路径，结果不含生成正文；不改变运行配置、不发送聊天历史。ModelWindow(settings,executor=null) 提供手动测试按钮，明确可能消耗额度且默认取消，确认才调用；退出账号取消测试。模型窗口关闭丢弃草稿，执行中的测试使用快照。ChatSession 构造增加可选 models 执行器（由 ChatSession 持有），登录 start、退出 stop；llm_request 分派，completed 以 llm_response 瞬时事件回传；user_text 的 llm_mode.types 来自执行器，历史屏障释放也遵守此规则。
 
 测试从真实 loopback HTTP 供应商和 WS 观察文本/VLM、参数保护、重复请求只调用一次、JSON 失败、安全错误、超时、取消与在途配置快照；日志只记阶段/耗时/安全代码及哈希用途 ID，不记录提示词/输出/密钥。
+
+## DynamicsController：动态读取、分页及手动已读
+
+`DynamicsController(logger=null,timeout=15)` Node，由 Application 持有，`start(session)` 查询未读并每30秒重查；`stop()` 取消请求、清空账号数据并隔离旧代回调。`get_state()` 返回 phase/code/unread/unread_code/has_more/busy；`get_posts()` 返回副本，`get_comments(id)` 返回 items/has_more/busy/code/loaded。`changed` 用于列表/评论，`unread_changed(count)` 单独通知徽标；未读轮询不自动刷新列表、不清草稿、不标已读。
+
+`refresh()` 加载首批10条，`load_more()` 使用服务端不透明 next_cursor；`load_comments(id,more=false)` 每页20条。GET /dynamics、/{id}/comments、/unread 使用 username query + Bearer message_token；对 cursor URI 编码。校验分页字段及显示字段、ID 去重，拒绝不前进/空的有后续页；失败保留已显示内容及原 cursor，可重试。刷新不自动标已读。`refresh_unread()` 失败保留原数量；`mark_read()` 只有 POST /dynamics/read 返回 ok=true 后清零，忙碌轮询期间不提交，避免旧响应覆盖结果。
+
+只保存内存列表/评论，不新增正文数据库。服务端负责私有动态/评论隔离；客户端只展示当前账号返回数据。日志只记录安全阶段/错误/数量。测试使用本地 HTTP 的10/20条边界、分页去重/异常、未读失败保留、显式标读、取消与重新登录。
