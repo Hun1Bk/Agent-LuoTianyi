@@ -91,6 +91,8 @@ func _run() -> void:
 	check(empty_config.get_login_defaults().server == DEFAULT_SERVER and not empty_config.get_login_defaults().remember, "empty saved server falls back without auto login")
 	empty_config.free()
 	DirAccess.remove_absolute(settings_path)
+	DirAccess.remove_absolute(folder + "/logs/client.jsonl")
+	DirAccess.remove_absolute(folder + "/logs")
 	DirAccess.remove_absolute(folder)
 	print("Application window: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)

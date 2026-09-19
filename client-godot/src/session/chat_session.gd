@@ -3,14 +3,16 @@ signal changed
 signal state_changed(state: Dictionary)
 signal expression_requested(command: String)
 var _transport: Node
+var _logger: RefCounted
 var _messages: Array[Dictionary] = []
 var _by_id: Dictionary = {}
 var _replies: Dictionary = {}
 var _finished: Dictionary = {}
 var _state := {"phase":"idle", "code":"", "thinking":false}
 
-func _init(transport: Node) -> void:
+func _init(transport: Node, logger: RefCounted = null) -> void:
 	_transport = transport
+	_logger = logger
 	add_child(transport)
 	transport.state_changed.connect(_connection_changed)
 	transport.delivery_changed.connect(_delivery_changed)
@@ -40,6 +42,9 @@ func get_messages() -> Array[Dictionary]:
 func get_state() -> Dictionary:
 	return _state.duplicate(true)
 
+func get_log_directory() -> String:
+	return _logger.get_directory() if _logger != null else ""
+
 func stop() -> void:
 	_transport.stop()
 	_messages.clear()
@@ -51,6 +56,8 @@ func stop() -> void:
 	state_changed.emit(get_state())
 
 func _connection_changed(connection: Dictionary) -> void:
+	if _logger != null:
+		_logger.record("connection_state", connection)
 	_state.phase = connection.phase
 	_state.code = connection.code
 	if connection.phase != "ready":
@@ -67,6 +74,8 @@ func _delivery_changed(id: String, status: String, code: String) -> void:
 		changed.emit()
 
 func _system_error(code: String) -> void:
+	if _logger != null:
+		_logger.record("system_error", {"code":code})
 	_state.code = code
 	state_changed.emit(get_state())
 
@@ -84,6 +93,10 @@ func _receive_reply(payload: Dictionary) -> void:
 	if not id is String or id.is_empty() or (payload.get("text") != null and not payload.text is String):
 		_system_error("INVALID_RESPONSE")
 		return
+	if _logger != null:
+		_logger.record("reply_received", {"reply_id":id, "has_audio":payload.get("audio") is String and not payload.audio.is_empty(),
+			"audio_chars":payload.audio.length() if payload.get("audio") is String else 0,
+			"final":payload.get("is_final_package", true), "audio_error":payload.get("audio_error", false)})
 	if _finished.has(id):
 		return
 	if not _replies.has(id):
