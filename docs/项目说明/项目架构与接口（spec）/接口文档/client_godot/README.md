@@ -1,5 +1,15 @@
 # Godot 客户端 interface
 
+## ClientLog 启动归档契约（替代旧三文件轮换）
+
+构造 `ClientLog(directory="user://logs", legacy_max_bytes=2097152)`，第二参数仅保留调用兼容、无截断效果。`record(event, fields={}) -> Error` 保留原有白名单与 UUID 哈希；新增安全 level/module 枚举及数字 count/status/index/duration_ms。事件与错误码限字母数字下划线，不能传正文。每条包含时间、相对启动毫秒、级别、模块、事件及固定中文说明；持续 flush。首次记录创建唯一 run ID（时间/PID/随机），当前内存记录不会因写盘失败丢失；`write_failed(error)` 明确报告失败，`entry_added(entry)` 供实时视图。
+
+`get_run_id() -> String`、`list_runs() -> Array[Dictionary]`（id/started/pid/closed/active/complete）和 `read_entries(run_id="") -> Array[Dictionary]` 供日志窗口；空 ID 表示当前启动、返回副本。历史 ID 仅从归档目录枚举、安全校验，不接受路径。未知/损坏行跳过且 complete=false，不将损坏文件当完整。`finish()` 幂等写 client_stopped 并更新关闭标记；关闭后 record 拒绝。无结束标記的退出被标识未正常结束。
+
+每次启动独立 jsonl 与 json 元数据，保留最近 50 次，清理仅删除该格式的完整启动文件；使用 PID 活跃检测保护其他仍在运行的实例，旧 client*.jsonl 不删除。`get_directory()` 保持可用。每条读写结果返回错误，记录存储是否完整；只记录允许的环境信息，不含路径、用户名或凭据。
+
+`export_run(run_id, destination_zip) -> Error` 导出全部选定记录，固定条目 events.jsonl、readable.txt、environment.json，版本来自 release.json；不接受筛选参数、不覆盖已有文件、不上传。写盘失败或损坏记录在摘要 complete=false，禁止宣称完整。测试通过独立目录、重建实例、50 次边界、活跃保护、错误路径和 ZIP 读取验证公开结果。
+
 ## 版本化构建
 
 `release.json` 为唯一版本来源：`product=agentluo, version=0.1.0`。`src/release_info.gd` 的静态 `get_info() -> Dictionary` 返回副本，`title() -> String` 返回 agentluo + 版本。Application 原生窗口标题使用该值；不更改既有 user:// 目录。
@@ -246,14 +256,14 @@ ChatSession 公开 set_volume/get_audio_state/stop_voice，转发媒体 mouth_ch
 
 ## ClientLog：客户端诊断日志
 
-`src/storage/client_log.gd` 为 RefCounted，由应用创建并注入聊天/媒体；构造参数 directory 默认 user://logs、max_bytes 默认 2 MiB（测试可缩小），公开 `record(event, fields={}) -> Error` 与 `get_directory() -> String`。
+`src/storage/client_log.gd` 为 RefCounted，由应用创建并注入聊天/媒体；构造参数及归档规则见本文开头 ClientLog 启动归档契约，公开 `record(event, fields={}) -> Error` 与 `get_directory() -> String`。
 
-- 按 JSON Lines 写 client.jsonl，逐条 flush；达到大小上限轮换为 client.1.jsonl、client.2.jsonl，最多三份。单条不超过 4 KiB；目录/写入失败返回 Error，不阻塞聊天或谎报日志成功。只在主线程记录。
+- 按启动写独立 JSON Lines，逐条 flush；旧三文件不再写入或清理。单条不超过 4 KiB；目录/写入失败返回 Error，不阻塞聊天或谎报日志成功。只在主线程记录。
 - 每条含 UTC time、单调 elapsed_ms 与固定格式 event。字段采用白名单：连接 phase/code，回复 reply_id 的 SHA256 前 12 位，has_audio/audio_chars/bytes/frames/sample_rate/channels/bits/final/audio_error/queued/volume/latency_ms 等布尔/数字；phase/code 只允许短 ASCII 字母数字下划线。忽略未知字段，不写用户名、密码、token、API key、正文、完整委托提示词或 Base64 音频。
 - ChatSession 构造可注入 logger；记录 connection_state、reply_received（是否带音频、编码长度、终止/错误标志）及 system_error，不输出 payload 原文。应用启动记录 client_started。
 - `ChatSession.get_log_directory() -> String` 供 ChatView 的“打开日志”按钮使用；无 logger 返回空串、按钮禁用。打开目录只经用户点击，不自动上传日志。
 
-验证 tests/test_client_log.gd 的白名单、回复标识哈希、轮换和失败返回；现有 loopback 聊天测试检查接收日志并确保合成秘密不出现。日志证明实际收包，不把接收结束等同播放结束。
+验证 tests/test_client_log.gd 的白名单、回复标识哈希、启动归档和失败返回；现有 loopback 聊天测试检查接收日志并确保合成秘密不出现。日志证明实际收包，不把接收结束等同播放结束。
 
 验证：真实 ChatSession + WebSocketTransport + loopback 服务，观察发送状态、同 UUID 多包/隐藏/临时/音频错误文字、思考、表情顺序、断线和退出；通过 ChatView 可见控件触发发送，验证草稿与真实回复；默认自动化不访问真实账户。
 
