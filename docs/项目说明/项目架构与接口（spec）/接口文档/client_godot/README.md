@@ -2,7 +2,7 @@
 
 ## 历史首批边界与全量同步
 
-`HistoryApi(timeout=15)` 为 Node，`fetch_page(session,end_index=-1) -> Dictionary` 异步 POST /history，字段 username/token/count=50/end_index；真实 username 与 message_token，复用规范化服务器。返回 `{ok,code,status,data}`，无重试/重定向，8 MiB 响应上限；`cancel()` 结束请求并隔离迟到结果。只接受 history 数组和非负整型 start_index；未知字段不传 UI。历史本身不操作播放器。
+`HistoryApi(timeout=15)` 为 Node，`fetch_page(session,end_index=-1) -> Dictionary` 异步 GET /history，查询字段 username/count=50/end_index、Authorization: Bearer message_token；真实 username 与 message_token，复用规范化服务器。返回 `{ok,code,status,data}`，无重试/重定向，8 MiB 响应上限；`cancel()` 结束请求并隔离迟到结果。只接受 history 数组和非负整型 start_index；未知字段不传 UI。历史本身不操作播放器。
 
 `HistorySync(api,logger=null)` 为 Node，拥有 api；`start(session)` 重置范围并异步取最新首批，`stop()` 取消并清空范围；`retry()` 重试失败页，`skip()` 仅首批失败有效、释放发送且该登录不再导入历史。`get_state()`/`state_changed(state)` 提供 phase（idle/first_loading/first_failed/loading/failed/complete/skipped）、code、count、start_index、incomplete。`page_received(messages)` 向 ChatSession 提交经校验的 id/role/text/type/timestamp/history=true；`boundary_ready` 仅首批成功或明确跳过发出一次。成功页按 start_index 向前取，首批后的请求不再使用 -1；断线重连不重置此控制器。
 
