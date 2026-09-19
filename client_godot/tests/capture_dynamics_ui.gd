@@ -47,6 +47,11 @@ func _run() -> void:
 		await capture(window,"scale-%s"%int(factor*100))
 	window.content_scale_factor = 1
 	window.size = Vector2i(1000,780)
+	window.mode = Window.MODE_MINIMIZED
+	await create_timer(.15).timeout
+	check(root.mode != Window.MODE_MINIMIZED,"minimizing dynamics leaves main window open")
+	window.mode = Window.MODE_WINDOWED
+	await create_timer(.15).timeout
 	root.mode = Window.MODE_MINIMIZED
 	await create_timer(.3).timeout
 	var output: Array = []

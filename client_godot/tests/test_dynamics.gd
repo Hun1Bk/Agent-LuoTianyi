@@ -34,6 +34,28 @@ func _run() -> void:
 	check(controller.get_comments("d0").items.size()==22,"comments page merge")
 	await controller.mark_read()
 	check(controller.get_state().unread==0,"explicit mark read clears unread")
+	scope.username = "fail-refresh"
+	await controller.start(scope)
+	await controller.refresh()
+	await controller.load_comments("d0")
+	var before: Array = controller.get_comments("d0").items
+	await controller.refresh_comments("d0")
+	check(controller.get_comments("d0").items==before and controller.get_comments("d0").code=="HTTP_ERROR","failed later refresh page preserves all displayed comments")
+	for user in ["private-a","private-b"]:
+		scope.username = user
+		await controller.start(scope)
+		await controller.refresh()
+		await controller.load_comments("d0")
+		var expected := 2 if user == "private-a" else 1
+		check(controller.get_posts()[0].comment_count==expected and controller.get_comments("d0").items.size()==expected,"same public post has account-scoped count")
+		check(controller.get_comments("d0").items.all(func(item): return item.owner_user_id==user),"relogin retains no prior private comments")
+	scope.username = "slow-comments"
+	await controller.start(scope)
+	await controller.refresh()
+	controller.refresh_comments("d0")
+	controller.stop()
+	await create_timer(.4).timeout
+	check(controller.get_comments("d0").items.is_empty(),"logout isolates late complete refresh")
 	scope.username = "fail-unread"
 	await controller.start(scope)
 	await controller.refresh_unread()

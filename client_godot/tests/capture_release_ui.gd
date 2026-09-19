@@ -14,7 +14,7 @@ func _run() -> void:
 	root.add_child(app)
 	app.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	await create_timer(.4).timeout
-	await capture(root,"agentluo-010-login")
+	await capture(root,"agentluo-011-login")
 	await account.perform("login",OS.get_environment("GODOT_TEST_SERVER"),{"username":"visual","password":"synthetic","request_token":false},false)
 	await create_timer(.5).timeout
 	var menu = app.find_child("ChatMore",true,false)
@@ -25,22 +25,20 @@ func _run() -> void:
 		if windows.is_empty():
 			failures.append("window missing: "+item[1])
 			continue
-		await capture(windows[0],"agentluo-010-"+item[2])
+		await capture(windows[0],"agentluo-011-"+item[2])
 		windows[0].hide()
 	var dynamics: Array = app.find_children("*","Button",true,false).filter(func(n): return n.text.begins_with("动态 ·"))
 	dynamics[0].pressed.emit()
 	await create_timer(.4).timeout
 	var window: Window = app.find_children("*","Window",true,false).filter(func(n): return n.title == "天依的动态")[0]
-	for button in window.find_children("*","Button",true,false):
-		if button.text == "查看评论":
-			button.pressed.emit()
+	window.select_post("visual-post")
 	await create_timer(.3).timeout
-	await capture(window,"agentluo-010-dynamics")
+	await capture(window,"agentluo-011-dynamics")
 	for factor in [1.25,1.5]:
 		window.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 		window.content_scale_factor = factor
-		window.size = Vector2i(Vector2(620,800)*factor)
-		await capture(window,"agentluo-010-dynamics-scale-%s"%int(factor*100))
+		window.size = Vector2i(Vector2(1000,780)*factor)
+		await capture(window,"agentluo-011-dynamics-scale-%s"%int(factor*100))
 	app.queue_free()
 	await process_frame
 	for folder in ["logs","reading"]:

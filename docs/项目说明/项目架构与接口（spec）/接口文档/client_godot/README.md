@@ -368,7 +368,7 @@ ChatSession 公开同名 get_message_audio/replay/pause_replay/resume_replay/sto
 
 DynamicsController 新增 `publish(content)`、`comment(id,content,parent_comment_id="")`，异步返回 ok/code；空文本拒绝；评论必须属于已加载且允许评论动态，回复目标必须属于已加载的该动态评论。POST 使用既有 content/parent_comment_id 字段；无幂等键、不自动重试，单个写请求在途返回 BUSY。超时显示可能已发送，保留草稿由用户核实后自行重试。成功响应 item 校验后插入内存列表/评论，不自动标已读；其他分页边界保留。退出返回 CANCELLED、不能影响新账号。
 
-`DynamicsWindow(controller)` 继承 DraftWindow，应用共享控制器不由窗口拥有。顶部发布草稿/刷新/全部已读，单列头像、名字、时间、六行折叠正文卡片；卡片评论分页，点击已加载评论指定回复对象，可取消。每条动态独立评论草稿，刷新/分页和失败不清草稿；成功才清当前提交草稿，发送在途禁止编辑该输入，避免覆盖后续修改。`is_dirty()` 包含发布/评论草稿；关闭窗口/退出统一默认取消。重复打开聚焦已有窗口；窗口关闭销毁 UI 草稿。
+动态窗口的现行呈现与草稿契约见下文“0.1.1 双栏动态窗口”；0.1.0 单列折叠卡片已被替换。
 
 ChatView 增加 `set_dynamics_unread(count)` 更新顶部常驻按钮（大于99为99+），按钮 settings_requested("dynamics") 由 Application 打开。未读轮询只更新徽标/窗口状态，不重建卡片或打断编辑。Application 登录 start、退出 stop。测试从真实 HTTP 和可见 UI 验证发布/回复、不可评论、失败保留、关闭确认和顶部入口；不向公共服务器写入测试动态。
 
@@ -399,3 +399,5 @@ DynamicsController.refresh_comments(id) 异步从第一页按20条读取到末�
 列表/评论滚到底自动加载，错误停止自动请求并显示重试；手动刷新保留选择、草稿和阅读位置，评论调用 refresh_comments 全量重新校验。未读独立提示有新的动态或评论，不推断目标。
 发布通过 PublishWindow(controller) 非模态原生子窗，published(id) 只在成功时通知父窗选择新动态。父窗 is_dirty 合并所有详情与发布窗草稿/在途写入；确认放弃后一起销毁，应用退出/登出沿用相同检查。草稿不持久保存。
 验证：真实loopback UI 首次无选中、选择切换、回复取消、读写失败保留、独立发布、关闭聚合确认；原生窗口所有者/任务栏资格/最小化独立和截图另行验证。
+
+DynamicDetail.refresh_comments() 由窗口调用，转交完整分页刷新并保留错误重试状态；同UI模块共享 avatar_path(item) 与 relative_time(raw) 展示助手，无网络或持久化副作用。Application 将动态布局路径与其他窗口配置放在同一注入数据目录，测试使用独立临时目录。

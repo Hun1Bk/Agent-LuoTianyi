@@ -28,7 +28,8 @@ func _run() -> void:
 	scope.username = "fail-write"
 	await controller.start(scope)
 	await controller.refresh()
-	var window = load("res://src/ui/dynamics_window.gd").new(controller)
+	var layout_path := "user://dynamics-window-test-%s.cfg"%Time.get_ticks_usec()
+	var window = load("res://src/ui/dynamics_window.gd").new(controller,layout_path)
 	root.add_child(window)
 	window.open()
 	await process_frame
@@ -55,6 +56,7 @@ func _run() -> void:
 	window.queue_free()
 	await process_frame
 	check(controller.get_posts().size()==10,"window does not own application controller")
+	DirAccess.remove_absolute(layout_path)
 	controller.queue_free()
 	await process_frame
 	print("Dynamics window: ","PASS" if failures.is_empty() else "FAIL")

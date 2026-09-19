@@ -4,7 +4,7 @@ $engine = Resolve-Godot $Godot
 $groups = @{
     'run_history_tests.py' = @('test_history_sync.gd', 'test_history_media.gd')
     'run_feature_tests.py' = @('test_preferences.gd', 'test_application_drafts.gd', 'test_model_settings.gd', 'test_model_execution.gd')
-    'run_dynamics_tests.py' = @('test_dynamics.gd', 'test_dynamics_window.gd')
+    'run_dynamics_tests.py' = @('test_dynamics.gd', 'test_dynamics_window.gd', 'test_dynamics_detail.gd')
 }
 foreach ($runner in $groups.Keys) {
     foreach ($test in $groups[$runner]) {
