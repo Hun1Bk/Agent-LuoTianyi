@@ -17,6 +17,19 @@ Style.make_theme() 统一账户与聊天控件的背景、文字、按钮、输�
 - `read_frames(max_count: int) -> PackedVector2Array`：取走至多指定数量立体声帧，供 AudioStreamGeneratorPlayback.push_buffer；GDScript 不逐样本解码。
 - `get_status() -> Dictionary`：ok/code/sample_rate/channels/bits/queued_frames/decoded_frames/input_bytes/finished。错误码 INVALID_WAV、UNSUPPORTED_FORMAT、TRUNCATED_AUDIO、EMPTY_AUDIO、BUFFER_LIMIT 为粘性错误并释放音频缓冲。
 - `get_amplitude(frame_index: int) -> float`：返回指定绝对帧所在约 10ms 窗口的 RMS（0～1）；越界返回 0。调用方使用实际播放进度，不能以收包进度驱动口型。
+- `get_waveform(buckets: int = 24) -> PackedFloat32Array`：成功 finish 后，按时间均分为 1～128 桶，各桶取原生 RMS 窗口峰值；不受 read_frames 消耗影响。未结束、失败、空音频或桶数非法返回空数组；极短声音覆盖的窗口可重复用于多个桶。
+
+## AudioCache：按账户保存完整语音
+
+`src/storage/audio_cache.gd` 是 RefCounted，构造 `(root="user://audio", logger=null)`；主线程通过 begin/append/commit 分块写文件，不解码样本。
+
+- `set_scope(server, username) -> Error`：用 AccountApi.normalize_server 规范化地址，与账户一起 SHA256 隔离目录；切换前 abort_all，完整缓存保留。非法账户范围返回 ERR_INVALID_PARAMETER 并禁用缓存；目录不可写返回对应 Error。
+- `begin(id) / append(id, bytes) -> Error`：非空 UUID 的 SHA256 为文件名；临时 .part 只写入当前流的原始 WAV/PCM 字节，不攒整段音频。最多 16 个在途文件；已有可用完整缓存 begin 返回 ERR_ALREADY_EXISTS 且不覆盖。append 单次上限 8 MiB，失败取消该临时文件。
+- `commit(id, decoder_status, waveform) -> Error`：仅接受成功且 finished、正帧数及合法格式、24 个有限幅值的原生结果；校验字节数与已写数据一致。先关闭/重命名音频，再原子提交元数据作为完整标记。任何失败不公开部分流。原始流保留未知长度 WAV 头，后续必须交给 PcmStreamDecoder 重放，不假定普通 WAV 文件播放器可读。
+- `lookup(id) -> Dictionary`：无可用缓存返回空字典；成功返回 path/sample_rate/channels/bits/frames/duration/waveform/bytes。元数据版本、范围、文件存在性和长度经验证，path 由本地命名构造，不信任文件中的路径。不开启或修改聊天正文存储。
+- `abort(id)` / `abort_all()`：关闭并移除在途临时文件，幂等；`clear() -> Error` 删除当前范围内自有缓存文件，部分失败返回 Error，不跨账户、不递归删除任意文件。会话层负责先停止重放与阻止当前流再次缓存。
+
+完整缓存仅 clear 手动删除，无容量/时间淘汰。set_scope 清理本目录未完成 .part/.json.tmp，不清理完整文件。记录 cache_committed/cache_error/cache_cleared，不记录账户或原始 UUID。验证独立临时目录中的跨实例恢复、隔离、未完成不可见、非法提交、文件损坏/不可写、清理及波形。
 
 每次 append 上限 8 MiB，WAV 前置头累计上限 1 MiB，未读解码队列上限 128 MiB，单流时长上限 30 分钟。无效数值拒绝；未知辅助 chunk 按声明长度及偶数字节填充跳过。已知 data 结束后的尾部元数据不作为 PCM。每个 UUID 一个解码器，不猜测无头 PCM 中的采样率变化。
 
