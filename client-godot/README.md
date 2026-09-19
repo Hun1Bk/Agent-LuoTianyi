@@ -26,17 +26,17 @@ python client_godot/scripts/build_cubism.py --source '<gd_cubism源码目录>'
 
 脚本检查源码版本，在当前进程处理 Windows OEM 编码兼容问题，输出二进制 SHA-256；重建工具链变化时应复验并更新 lock，不能无声替换。许可和素材来源见 `licenses/`。
 
-独立模型场景：`res://scenes/avatar_preview.tscn`。当前开发主入口加载独立离线样板 `res://scenes/chat_preview.tscn`。Godot 4.7.1 官方 release 模板禁止命令行覆盖主场景，验证不得依赖该能力。
+独立模型场景：`res://scenes/avatar_preview.tscn`。当前主入口显示真实账户表单；传入 `-- --preview` 才加载独立离线样板 `res://scenes/chat_preview.tscn`。Godot 4.7.1 官方 release 模板禁止命令行覆盖主场景，验证不得依赖该能力。
 
 ## 体验离线样板
 
-打开 `dist/AgentLuo.exe`。角色区滚轮缩放、右键拖动，底部按钮重置；中间分隔条调整宽度，以上设置会保存。左上切换真实模型表情；右上切换日常聊天、空白、断网、加载失败和思考状态。
+运行 `dist/AgentLuo.exe -- --preview`。角色区滚轮缩放、右键拖动，底部按钮重置；中间分隔条调整宽度，以上设置会保存。左上切换真实模型表情；右上切换日常聊天、空白、断网、加载失败和思考状态。
 
 聊天文本可选择复制；Enter 本地模拟发送，Shift+Enter 换行。图片按钮或 Ctrl+V 粘贴图片先打开预览，点击发送才追加演示消息；缩略图可再次打开。查看旧消息时发送不会强制滚到底部，使用“回到最新”。模拟口型按钮没有声音；样板不连接真实账户、消息或音频服务。
 
 `check.ps1` 覆盖角色、构图、离线消息控制器和主场景键盘输入回归。真实 Windows IME、剪贴板、多档 DPI、拖动手感和集显性能尚需人工验收。此导出目录是视觉检查产物，不是最终安装程序。
 
-截取实际导出画面：`AgentLuo.exe -- --capture=<绝对PNG路径>`；可增加 `--scenario=empty/disconnected/error/thinking`。正常运行不要传 capture 参数。
+截取账户页：`AgentLuo.exe -- --capture=<绝对PNG路径>`；截取样板增加 `--preview`，可再增加 `--scenario=empty/disconnected/error/thinking`。截图和 headless 检查不会自动登录真实账户。
 
 ## Windows 凭据扩展
 
