@@ -46,6 +46,11 @@ func _run() -> void:
 	check(broken.save("text-purpose",config).code == "PLAINTEXT_CONFIRMATION_REQUIRED","protection failure requires explicit plaintext choice")
 	check(not broken.read("text-purpose").ok,"default cancellation does not save key")
 	check(broken.save("text-purpose",config,true).ok,"explicit plaintext choice allowed")
+	var malformed := config.duplicate(true)
+	malformed.model_capabilities = "broken-local-file"
+	check(store.save("vision-purpose",malformed).ok,"fixture writes malformed stored configuration")
+	await settings.start(scope)
+	check(settings.get_config("vision-purpose").model_capabilities is Dictionary and not settings.get_config("vision-purpose").enabled,"bad persisted configuration safely disabled")
 	check(ResourceLoader.exists("res://src/ui/model_window.gd"),"model settings window available")
 	if ResourceLoader.exists("res://src/ui/model_window.gd"):
 		var window = load("res://src/ui/model_window.gd").new(settings)
