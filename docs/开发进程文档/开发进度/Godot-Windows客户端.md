@@ -321,3 +321,7 @@
 ### 2026-09-20 正式页面下拉迁移
 - 账户、聊天更多、相处预设、模型用途/复制、日志筛选及启动选择使用 UnifiedDropdown；业务通过稳定 ID 操作。机械迁移 Red 不适用，保留既有业务断言。
 - check_accounts.ps1、check_network.ps1、check_features.ps1 全部 PASS；覆盖原账户、聊天/语音、历史、设置及动态流程。作者自审核对无直接 PopupMenu 业务依赖。
+
+### 2026-09-20 评论全分页刷新
+- SPEC ccdddc7，Red 5dcce8d：缺少完整刷新调用。实现读取至末页后原子合并、循环游标拒绝、失败保留和账号代次隔离；发布返回 item_id。
+- test_dynamics.gd 真实本地 HTTP 全页刷新及既有分页/已读/取消 PASS；作者自审核对服务端协议无变化。
