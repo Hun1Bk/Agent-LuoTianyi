@@ -14,6 +14,7 @@ var _signature := ""
 var _expanded := false
 var _writing := false
 var _expand := Button.new()
+var _cancel := Button.new()
 var _collapsed_height := 144.0
 
 func _init(controller: Node,post: Dictionary) -> void:
@@ -59,12 +60,13 @@ func _ready() -> void:
 		_controller.load_comments(_post.id,state.loaded and state.has_more))
 	column.add_child(_load)
 	column.add_child(_reply)
-	var cancel := Button.new()
-	cancel.text = "取消回复对象"
-	cancel.pressed.connect(func():
+	_cancel.text = "取消回复对象"
+	_cancel.visible = false
+	_cancel.pressed.connect(func():
 		_parent = ""
+		_cancel.hide()
 		_reply.text = "")
-	column.add_child(cancel)
+	column.add_child(_cancel)
 	_draft.placeholder_text = "写评论…" if _post.allow_comment else "此动态不可评论"
 	_draft.custom_minimum_size.y = 70
 	_draft.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
@@ -124,6 +126,7 @@ func update_comments() -> void:
 			text.gui_input.connect(func(event):
 				if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 					_parent = item.id
+					_cancel.show()
 					_reply.text = "回复 "+item.author_name
 					_draft.grab_focus())
 
@@ -140,6 +143,7 @@ func _submit() -> void:
 	if result.ok:
 		_draft.text = ""
 		_parent = ""
+		_cancel.hide()
 		_reply.text = ""
 		_status.text = "评论已发送。"
 	else:

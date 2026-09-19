@@ -67,7 +67,7 @@ func load_more() -> void:
 		await _load_posts(true)
 
 func _load_posts(more: bool) -> void:
-	if _session.is_empty() or _state.busy:
+	if _session.is_empty() or _state.busy or _writing:
 		return
 	_state.busy = true
 	changed.emit()
@@ -87,7 +87,7 @@ func _load_posts(more: bool) -> void:
 	_notify()
 
 func load_comments(id: String,more: bool = false) -> void:
-	if _session.is_empty() or not _find_post(id).size():
+	if _session.is_empty() or _writing or not _find_post(id).size():
 		return
 	if not _comments.has(id):
 		_comments[id] = _empty_comments()
@@ -106,6 +106,7 @@ func load_comments(id: String,more: bool = false) -> void:
 		result = _page(result.data,cursor,true,id)
 	if result.ok:
 		state.items = _merge(state.items if more else [],result.items)
+		_sort_comments(state.items)
 		state.cursor = result.cursor
 		state.has_more = result.has_more
 		state.loaded = true
@@ -189,7 +190,7 @@ func comment(id: String,content: String,parent_comment_id: String = "") -> Dicti
 func _write(id: String,content: String,parent: String) -> Dictionary:
 	if content.strip_edges().is_empty():
 		return _failure("INVALID_INPUT")
-	if _writing or _session.is_empty():
+	if _writing or _session.is_empty() or _state.busy or (not id.is_empty() and get_comments(id).busy):
 		return _failure("BUSY")
 	_writing = true
 	var generation := _generation
@@ -211,6 +212,7 @@ func _write(id: String,content: String,parent: String) -> Dictionary:
 			if not _comments.has(id):
 				_comments[id] = _empty_comments()
 			_comments[id].items = _merge(_comments[id].items,[result.data.item])
+			_sort_comments(_comments[id].items)
 			var post := _find_post(id)
 			post.comment_count = int(post.get("comment_count",0))+1
 	_state.code = result.code
@@ -259,6 +261,9 @@ func _find_post(id: String) -> Dictionary:
 
 func _empty_comments() -> Dictionary:
 	return {"items":[],"has_more":false,"cursor":"","busy":false,"code":"","loaded":false}
+
+func _sort_comments(items: Array) -> void:
+	items.sort_custom(func(a,b): return a.created_at < b.created_at or (a.created_at == b.created_at and a.id < b.id))
 
 func _failure(code: String) -> Dictionary:
 	return {"ok":false,"code":code}
