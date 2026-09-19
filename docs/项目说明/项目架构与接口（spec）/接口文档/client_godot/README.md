@@ -1,5 +1,13 @@
 # Godot 客户端 interface
 
+## 日志窗口与应用生命周期
+
+Application 在正常入口最早创建 ClientLog 并记录 client_started，退出树 finish；账户状态与发送/投递记录固定事件、数字和代码。`LogWindow(logger)` 是独立非模态 Window，`open()` 显示并聚焦已有实例；关闭仅隐藏，登录前按钮和 ChatView.log_requested 信号由 Application 打开同一实例。深色等宽终端按级别配色，默认完整当前启动记录，追加记录只追加一行，不反复重建。搜索、模块/级别筛选、历史启动选择、复制可见记录、暂停/恢复跟随；筛选或切换才重新读取。导出选定启动通过原生 FileDialog 选择 ZIP 路径，调用 ClientLog.export_run，失败显示错误，不导出筛选子集。
+
+`EngineLogSink(logger)` 为 Godot Logger 实现，由 Application 注册/移除；仅记录错误类别与引擎错误次数，不保存原始错误消息、堆栈、源码路径或引擎输出，防止错误中夹带正文与凭据。引擎回调可能来自工作线程，经 call_deferred 在主线程写日志，退出后失效。账户和聊天的公开操作不得依赖日志成功。日志写盘失败在账户页/聊天页及日志窗口明确可见，不能只写回失败日志。
+
+验证从实际 Application 登录前按钮打开日志窗口、重复聚焦、关闭后再开及当前启动可读；存储查询测试与窗口筛选/跟随测试不访问公共服务器。引擎错误日志不把人工制造错误计为 Green 命令失败。
+
 ## ClientLog 启动归档契约（替代旧三文件轮换）
 
 构造 `ClientLog(directory="user://logs", legacy_max_bytes=2097152)`，第二参数仅保留调用兼容、无截断效果。`record(event, fields={}) -> Error` 保留原有白名单与 UUID 哈希；新增安全 level/module 枚举及数字 count/status/index/duration_ms。事件限字母数字下划线，不能传正文；phase/code 只保留已知状态与错误码，未知值改为 UNKNOWN，不把任意服务器字符串当安全错误码。每条包含时间、相对启动毫秒、级别、模块、事件及固定中文说明；持续 flush。首次记录创建唯一 run ID（时间/PID/随机），当前内存记录不会因写盘失败丢失；`write_failed(error)` 明确报告失败，`entry_added(entry)` 供实时视图。
