@@ -304,3 +304,11 @@
 - 真实 GPU 截图：artifacts/voice-ui-*.png（默认/最小窗口、暂停及125%/150%内容缩放），artifacts/agentluo-010-{login,logs,preferences,models,dynamics}.png 与动态125%/150%截图。RTX4070 Laptop/NVIDIA610.74；视觉检查确认新增按钮未越出主窗口、动态不再残留加载文案，设置可滚动。不是系统 DPI 切换验收。
 - WASAPI 的 test_voice_replay.gd 通过，实际混音输出、暂停/继续/抢占由合成音测试断言；日志 artifacts/agentluo-010-wasapi.log。不是人工听感结论。
 - 汇总脚本/截图入口/使用说明为既有行为回归与交付记录，Red 不适用；未伪造新功能失败。作者自审检查测试只用临时账号数据、旧包保留、project.godot 原有编辑器修改未纳入提交。未验证公共服务器、人工中文输入法/听感、30分钟性能、Windows10、普通集显、真实系统DPI和双屏。
+
+### 2026-09-19 agentluo 0.1.0 Windows ZIP 交付核验
+
+- 代码候选 4058b3f；build.ps1 -Package 完成 import、release 导出和独立 EXE 启动。产物 artifacts/agentluo-0.1.0.zip，43,154,698 字节、14条目，根目录 agentluo-0.1.0/、程序 agentluo.exe。
+- SHA256：e9d4b35f71bdd70836efc43b3bbb3da059c926313f6852d47971fefe874af815。ZIP CRC通过；EXE/PCK/版本/许可与已验证目录一致，两份DLL哈希与dependencies.lock.json一致。
+- 同版本标准引擎加载实际导出PCK，角色资源描述/Live2D、新业务脚本加载通过；完整重放 WASAPI 测试通过（双声道48000Hz、10ms缓冲），未把 release EXE 普通启动当外部脚本测试。
+- 验收矩阵、截图索引、实际SPEC/Red/Green、自审/未验证范围与回退说明：artifacts/agentluo-010-acceptance.md。后续真机验收本地Issue草稿另存 artifacts/agentluo-010-issue-draft.md；未将未来工作混入本条完成事实。
+- 旧两个Windows ZIP保留，未改服务端/旧端/App，未推送、合并或切换正式入口。project.godot 既有编辑器修改保留未提交。公共服务联调、人工听感/输入法、长期性能、Windows10/集显/系统DPI仍未验收，本包不是安装程序或完整旧端替换验收。
