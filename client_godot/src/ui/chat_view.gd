@@ -14,6 +14,7 @@ var _empty := Label.new()
 var _refresh_pending := false
 var _refresh_again := false
 var _stop_voice: Button
+var _menu := MenuButton.new()
 
 func _init(session: Node) -> void:
 	_session = session
@@ -26,20 +27,31 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 12)
 	add_child(column)
 	var heading := HBoxContainer.new()
+	heading.add_theme_constant_override("separation", 12)
 	column.add_child(heading)
-	var title := Style.label("和天依聊聊", 23)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.add_child(title)
-	var logs := Style.button("打开日志", func(): OS.shell_open(_session.get_log_directory()))
-	logs.disabled = _session.get_log_directory().is_empty()
-	heading.add_child(logs)
-	heading.add_child(Style.button("退出登录", func(): logout_requested.emit()))
+	heading.add_child(Style.avatar("res://assets/ui/tianyi_icon.png",42))
+	var identity := VBoxContainer.new()
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(identity)
+	identity.add_child(Style.label("和天依聊聊", 22))
+	_menu.text = "更多 ···"
+	heading.add_child(_menu)
+	var popup := _menu.get_popup()
+	popup.add_item("打开日志", 0)
+	popup.set_item_disabled(0, _session.get_log_directory().is_empty())
+	popup.add_separator()
+	popup.add_item("退出登录", 2)
+	popup.id_pressed.connect(func(id):
+		if id == 0:
+			OS.shell_open(_session.get_log_directory())
+		elif id == 2:
+			logout_requested.emit())
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.add_theme_font_size_override("font_size", 13)
 	_status.add_theme_color_override("font_color", Color("607f8d"))
-	column.add_child(_status)
+	identity.add_child(_status)
+	column.add_child(HSeparator.new())
 	var audio_controls := HBoxContainer.new()
-	column.add_child(audio_controls)
 	audio_controls.add_child(Style.label("语音音量", 12))
 	var volume := HSlider.new()
 	volume.min_value = 0
@@ -67,6 +79,8 @@ func _ready() -> void:
 	_latest.hide()
 	_latest.pressed.connect(_to_latest)
 	column.add_child(_latest)
+	column.add_child(HSeparator.new())
+	column.add_child(audio_controls)
 	_input.placeholder_text = "想说些什么？"
 	_input.custom_minimum_size.y = 92
 	_input.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
@@ -84,12 +98,15 @@ func _ready() -> void:
 	footer.add_child(hint)
 	var send := Style.button("发送  ↑", _send)
 	send.custom_minimum_size.x = 96
-	send.add_theme_stylebox_override("normal", Style.box(Color("bde5ed"), 9, 10))
+	Style.primary(send)
 	footer.add_child(send)
 	_session.changed.connect(_refresh)
 	_session.state_changed.connect(_state_changed)
 	_state_changed(_session.get_state())
 	_refresh()
+
+func _draw() -> void:
+	draw_rect(Rect2(Vector2.ZERO,size), Style.SURFACE)
 
 func _send() -> void:
 	if not _session.send_text(_input.text).is_empty():

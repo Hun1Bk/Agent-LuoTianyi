@@ -41,7 +41,7 @@ func _ready() -> void:
 	_remember.text = "下次自动登录"
 	_form.add_child(_remember)
 	_submit.custom_minimum_size.y = 42
-	_submit.add_theme_stylebox_override("normal", Style.box(Color("bde5ed"), 9, 10))
+	Style.primary(_submit)
 	_submit.pressed.connect(_send)
 	_form.add_child(_submit)
 	_cancel.text = "取消请求"

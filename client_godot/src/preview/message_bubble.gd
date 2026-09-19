@@ -16,19 +16,14 @@ func configure(message: Dictionary, image_texture: Texture2D = null) -> void:
 		return
 	var own: bool = message.role == "user"
 	alignment = BoxContainer.ALIGNMENT_END if own else BoxContainer.ALIGNMENT_BEGIN
-	var avatar := TextureRect.new()
-	avatar.texture = load("res://assets/ui/user_icon.png" if own else "res://assets/ui/tianyi_icon.png")
-	avatar.custom_minimum_size = Vector2(36, 36)
-	avatar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	avatar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	avatar.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var avatar := Style.avatar("res://assets/ui/user_icon.png" if own else "res://assets/ui/tianyi_icon.png")
 	_body = VBoxContainer.new()
 	_body.add_theme_constant_override("separation", 5)
 	if not own:
 		add_child(avatar)
 	add_child(_body)
 	var bubble := PanelContainer.new()
-	bubble.add_theme_stylebox_override("panel", Style.box(Color("dff1f5") if own else Color.WHITE, 12, 13))
+	bubble.add_theme_stylebox_override("panel", Style.box(Style.USER_BUBBLE if own else Color.WHITE, 12, 13))
 	_body.add_child(bubble)
 	var content := VBoxContainer.new()
 	bubble.add_child(content)
