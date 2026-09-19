@@ -8,6 +8,8 @@
 
 `PreferencesWindow(controller)` 非模态，编辑预设和自定义四项，保存/重试及明确状态，不在加载失败时显示可保存默认值。`is_dirty()` 供统一退出保护；窗口关闭默认取消的放弃确认，确认才关闭。Application 维护独立窗口实例，重复打开聚焦；关闭窗口/退出账号/退出程序使用同一草稿检查原则。正常应用关闭先确认，再释放控制器和日志。测试使用真实 loopback HTTP 确认重读合并、默认空值、旧性格兼容、失败保留草稿和取消。
 
+窗口共享 `DraftWindow` 基类：`is_dirty() -> bool` 由具体窗口实现，`open()` 显示聚焦；关闭有草稿时显示默认取消的 ConfirmationDialog，确认后释放窗口（从而释放其草稿）。ChatView.settings_requested(kind) 交给 Application 打开页面；当前 kind=preferences。应用统一退出确认同样默认取消，确认后关闭所有独立设置窗口，再执行退出账号/程序。
+
 ## HistoryImages：按可见 UUID 恢复图片
 
 `HistoryImages(root="user://images",logger=null)` Node，`start(session)` 规范化服务器/账户隔离本地文件并取消旧请求；`stop()` 清除内存及取消网络，完整文件保留。`ensure(id)` 在 UI 可见请求时读取缓存、缺失或损坏则 POST /get_image `{username,token,uuid}`；最多 3 个并发请求、15 秒超时、16 MiB 响应上限、禁止重定向，不使用历史 content 路径或 update_image_client_path。PNG/JPEG/WebP 解码成功才可用，限制 8192 边长、1600 万像素；缩略图最长边 480，本地缓存原图供预览。
