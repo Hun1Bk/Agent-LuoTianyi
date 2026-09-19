@@ -2,18 +2,13 @@ extends MarginContainer
 signal logout_requested
 signal log_requested
 const Style = preload("res://src/preview/preview_style.gd")
-const Bubble = preload("res://src/preview/message_bubble.gd")
 const Composer = preload("res://src/preview/composer_input.gd")
 var _session: Node
-var _scroll := ScrollContainer.new()
-var _messages := VBoxContainer.new()
+var _scroll = preload("res://src/ui/virtual_message_list.gd").new()
 var _input = Composer.new()
 var _status := Label.new()
 var _latest := Button.new()
-var _bubbles: Dictionary = {}
 var _empty := Label.new()
-var _refresh_pending := false
-var _refresh_again := false
 var _stop_voice: Button
 var _clear_dialog := ConfirmationDialog.new()
 var _menu := MenuButton.new()
@@ -95,13 +90,11 @@ func _ready() -> void:
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	column.add_child(_scroll)
-	_messages.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_messages.add_theme_constant_override("separation", 17)
-	_scroll.add_child(_messages)
 	_empty.text = "从一句问候开始"
 	_empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_empty.custom_minimum_size.y = 180
-	_messages.add_child(_empty)
+	column.add_child(_empty)
+	_scroll.audio_action.connect(_audio_action)
+	_scroll.visible_messages.connect(_visible_audio)
 	_latest.text = "回到最新 ↓"
 	_latest.hide()
 	_latest.pressed.connect(_to_latest)
@@ -141,64 +134,18 @@ func _send() -> void:
 		_input.clear()
 
 func _refresh() -> void:
-	if _refresh_pending:
-		_refresh_again = true
-		return
-	_refresh_pending = true
-	_refresh_messages.call_deferred()
-
-func _refresh_messages() -> void:
-	var bar := _scroll.get_v_scroll_bar()
-	var follow := bar.value >= bar.max_value - bar.page - 24
-	var previous := bar.value
-	var previous_max := bar.max_value
-	var old_first: String = _messages.get_child(1).get_meta("message_id", "") if _messages.get_child_count() > 1 else ""
 	var messages: Array[Dictionary] = _session.get_messages()
 	_empty.visible = messages.is_empty()
-	var current_ids: Dictionary = {}
-	for message in messages:
-		current_ids[message.id] = true
-	for id in _bubbles.keys():
-		if not current_ids.has(id):
-			var bubble: Node = _bubbles[id]
-			_messages.remove_child(bubble)
-			bubble.queue_free()
-			_bubbles.erase(id)
-	for message in messages:
-		if _bubbles.has(message.id):
-			_bubbles[message.id].update_message(message)
-		else:
-			var bubble := Bubble.new()
-			_messages.add_child(bubble)
-			bubble.configure(message)
-			_bubbles[message.id] = bubble
-			bubble.set_meta("message_id", message.id)
-			bubble.audio_action.connect(func(action): _audio_action(message.id,action))
-		if message.role == "assistant":
-			_bubbles[message.id].set_audio_state(_session.get_message_audio(message.id))
-	for index in messages.size():
-		_messages.move_child(_bubbles[messages[index].id],index+1)
-	await get_tree().process_frame
-	if not is_inside_tree():
-		return
-	await get_tree().process_frame
-	if not is_inside_tree():
-		return
-	# Do not override a scroll gesture made while the containers were laying out.
-	if is_equal_approx(bar.value, previous):
-		if follow:
-			_to_latest()
-		else:
-			var prepended: bool = not old_first.is_empty() and not messages.is_empty() and messages[0].id != old_first
-			_scroll.scroll_vertical = roundi(previous + (bar.max_value - previous_max if prepended else 0))
-			_latest.visible = true
-	_refresh_pending = false
-	if _refresh_again:
-		_refresh_again = false
-		_refresh()
+	_scroll.set_messages(messages)
+	_visible_audio(_scroll.get_visible_ids())
+
+func _visible_audio(ids: Array[String]) -> void:
+	for id in ids:
+		_scroll.set_audio_state(id,_session.get_message_audio(id))
+	_latest.visible = not _scroll.is_at_latest()
 
 func _to_latest() -> void:
-	_scroll.scroll_vertical = int(_scroll.get_v_scroll_bar().max_value)
+	_scroll.scroll_to_latest()
 	_latest.hide()
 
 func _state_changed(state: Dictionary) -> void:
@@ -227,8 +174,7 @@ func _state_changed(state: Dictionary) -> void:
 		_status.text += " · 服务器暂时无法处理请求，请稍后重试。"
 
 func _audio_changed(id: String, state: Dictionary) -> void:
-	if _bubbles.has(id):
-		_bubbles[id].set_audio_state(state)
+	_scroll.set_audio_state(id,state)
 
 func _audio_action(id: String, action: String) -> void:
 	match action:
