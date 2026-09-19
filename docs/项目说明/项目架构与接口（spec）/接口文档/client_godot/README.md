@@ -377,3 +377,7 @@ ChatView 增加 `set_dynamics_unread(count)` 更新顶部常驻按钮（大于99
 AvatarDriver 增加 `load_character(descriptor_path) -> Error`；描述是当前随包 JSON，包含 character_id/resource_id/model_path/mapping_path 四个非空字符串。稳定身份 luotianyi 与具体 original 模型资源分离；模型自身 Cubism FileReferences.Motions/HitAreas 提供动作及命中区域资源映射，mapping_path 提供表情及基础口型映射。描述/映射/模型预检和插件候选加载全部成功后才替换当前角色；失败保持原模型/表达/身份。`get_status()` 增加 character_id/resource_id，原 load_avatar(model_path,mapping_path=默认映射) 兼容原测试与样板，不宣称换装 UI 或触摸业务已新增。
 
 AvatarPanel 读取当前角色描述，不写死模型入口。当前文件选择适配边界为 UI 的 Godot 原生 FileDialog（诊断包输出），业务只接收用户选定输出路径；生命周期由 Application 管理，子页面不重连。WindowsSecurity 只提供既有凭据能力，PcmStreamDecoder 是独立原生类与源文件；当前共同打包一个 DLL，不表示已有 Android/iOS 实现。
+
+### 0.1.0 验收边界补充
+
+模型用途定义更新导致本地配置结构/kind/能力不满足时，加载仍显示用途，禁用该用途并给出 INVALID_CONFIG；格式损坏的字段使用安全默认配置，不能在表单或广告阶段引发脚本错误。模型未启用时不向服务端广告。动态评论按服务端 created_at/id 升序合并，发评论后继续分页不能把更早评论排到新评论之后；列表读取与同窗口写入互斥避免旧加载响应覆盖刚写入结果。动态加载成功清除加载提示、失败保留草稿；这是当前界面行为修正。
