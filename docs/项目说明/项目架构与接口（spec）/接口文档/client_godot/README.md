@@ -161,3 +161,5 @@ ACK 超时 10 秒，图片选择/取消为 5 秒。持久消息首发后最多�
 - `server_ack` 按顶层 reply_to 交给 outbox；包大小上限 8 MiB，二进制帧、非对象 JSON 或缺少 type/payload 对象视为 INVALID_RESPONSE 并断线重连。TLS 使用 Godot 默认验证；每帧最多处理 64 包，防止网络洪峰独占界面。
 
 验证：本地 Python websockets fixture + 真实 Godot WebSocketPeer；检查 URL、user_auth/message_token/capabilities、auth_ok、立即心跳、ACK/业务事件、连接断开后同 ID 重试、拒绝凭据不重连、更新凭据恢复、认证超时、退出清理；单调时钟注入用于加速退避和心跳，不访问生产服务。
+
+认证阶段收到 WebSocket 关闭码 1008 同样视为 AUTH_REJECTED，禁止同凭据重连；这是服务端认证期限/尝试次数耗尽的实际关闭语义。Godot peer 在同次 poll 收到最终数据帧与关闭帧时可能已清空入站队列，因此不能仅依赖最后一帧 auth_error；普通关闭与 1013 仍按网络退避处理。
