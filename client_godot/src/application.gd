@@ -9,6 +9,7 @@ const Chat = preload("res://src/session/chat_session.gd")
 const Transport = preload("res://src/network/websocket_transport.gd")
 const ChatView = preload("res://src/ui/chat_view.gd")
 const Log = preload("res://src/storage/client_log.gd")
+const Audio = preload("res://src/media/reply_audio.gd")
 var _session: Node
 var _chat: Node
 var _chat_view: Control
@@ -46,13 +47,16 @@ func _ready() -> void:
 	var log = Log.new("user://logs" if _layout_path == "user://window_layout.cfg" else _layout_path.get_base_dir().path_join("logs"))
 	if log.record("client_started") != OK:
 		push_warning("Client diagnostic log is unavailable")
-	_chat = Chat.new(Transport.new(), log)
+	_chat = Chat.new(Transport.new(), log, Audio.new(log))
 	add_child(_chat)
 	_split = HSplitContainer.new()
 	_center = CenterContainer.new()
 	_chat.expression_requested.connect(func(command):
 		if _avatar != null:
 			_avatar.avatar.apply_expression(command))
+	_chat.mouth_changed.connect(func(value):
+		if _avatar != null:
+			_avatar.avatar.set_mouth_openness(value))
 	add_child(_split)
 	_split.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_split.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
@@ -68,6 +72,15 @@ func _ready() -> void:
 		var ratio: Variant = settings.get_value("layout", "ratio", 0.45)
 		if (ratio is float or ratio is int) and is_finite(float(ratio)):
 			_ratio = clampf(float(ratio), 0.3, 0.6)
+		var volume: Variant = settings.get_value("audio", "volume", 1.0)
+		if (volume is float or volume is int) and is_finite(float(volume)) and volume >= 0 and volume <= 1:
+			_chat.set_volume(float(volume))
+	_chat.state_changed.connect(func(_state):
+		var volume: float = _chat.get_audio_state().volume
+		if settings.get_value("audio", "volume", 1.0) != volume:
+			settings.set_value("audio", "volume", volume)
+			if settings.save(_layout_path) != OK:
+				push_warning("Audio volume save failed"))
 	_split.dragged.connect(func(_offset):
 		if not _expanded:
 			return

@@ -57,4 +57,18 @@ python client_godot/tests/run_security_interop.py --godot $env:GODOT_BIN
 
 默认入口登录后进入真实文字聊天，图片、历史、语音等以进度文档中的实际完成范围为准；离线样板中的模拟能力不代表正式功能已经接入。
 
+## 回复语音与诊断
+
+正式聊天自动播放服务端 WAV/PCM 分片；同 UUID 聚合，后续回复等前一句实际播完再呈现。支持口型、音量保存、停止当前语音、错误及断线清理；目前不保存语音缓存，也不提供回放。原生 `PcmStreamDecoder` 与 `WindowsSecurity` 共用 DLL，按上面的 `build_security.py` 命令重建，需分发完整目录。
+
+“打开日志”查看 `user://logs/client.jsonl`，默认实际目录 `%APPDATA%/AgentLuo-Godot/logs`；最多三份、每份 2 MiB。用哈希 reply_id 关联 `reply_received → audio_received → audio_format/audio_decoded → audio_receive_finished → audio_playback_started/finished`（接收/播放可交错）。`audio_error` 的 code 定位错误，`audio_underrun` 记录供给不足；不会写入正文、token、密钥或 Base64。
+
+`check.ps1` 增量解码及真实混音测试默认使用合成音频；`check_network.ps1` 还验证 loopback WebSocket 到播放器链路、顺序、隐藏音频、停止及断线。Windows 输出驱动验证可运行：
+
+```powershell
+& $env:GODOT_BIN --headless --audio-driver WASAPI --verbose --path client_godot --script res://tests/test_reply_audio.gd
+```
+
+该命令会向本机默认音频设备播放短合成音；AudioEffectCapture 检查非零混音输出及静音，不等同人工听感或真实服务验收。
+
 未登录时仅显示 660×800 账户窗口，登录成功后展开角色和聊天，退出再收起。默认服务器沿用旧端 release_config.base_url；已保存的自定义地址优先。账户回归含窗口切换测试，原生窗口验证可运行 `run_account_tests.py --godot <exe> --script res://tests/test_application_window.gd --gpu`，仍仅连接本地 HTTP fixture。

@@ -111,6 +111,13 @@ def run(godot, script="res://tests/test_websocket_transport.gd"):
                             audio_reply("voice-hidden", tone(.25), True, display_in_chat=False, is_ephemeral=True)
                         elif mode == "bad":
                             audio_reply("voice-bad", b"bad wav", True)
+                        elif mode == "stop":
+                            audio_reply("stop-initial", tone(.5), False)
+                            audio_reply("stop-next", tone(.15), True)
+                            continuation = json.loads(socket.recv(timeout=3))
+                            assert continuation["type"] == "user_text" and continuation["payload"]["message"] == "continue"
+                            send("server_ack", {"ok": True}, continuation["client_msg_id"])
+                            send("agent_message", {"uuid": "stop-initial", "text": "stop-final", "audio": "", "is_final_package": True})
                         elif mode == "disconnect":
                             audio_reply("voice-disconnect", tone(.8), False)
                             # Let Godot consume the audio frame before closing the connection.

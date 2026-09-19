@@ -13,6 +13,7 @@ var _bubbles: Dictionary = {}
 var _empty := Label.new()
 var _refresh_pending := false
 var _refresh_again := false
+var _stop_voice: Button
 
 func _init(session: Node) -> void:
 	_session = session
@@ -37,6 +38,21 @@ func _ready() -> void:
 	_status.add_theme_font_size_override("font_size", 13)
 	_status.add_theme_color_override("font_color", Color("607f8d"))
 	column.add_child(_status)
+	var audio_controls := HBoxContainer.new()
+	column.add_child(audio_controls)
+	audio_controls.add_child(Style.label("语音音量", 12))
+	var volume := HSlider.new()
+	volume.min_value = 0
+	volume.max_value = 1
+	volume.step = .01
+	volume.value = _session.get_audio_state().volume
+	volume.custom_minimum_size.x = 110
+	volume.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	volume.tooltip_text = "回复语音自动播放；拖到最左侧静音"
+	volume.value_changed.connect(func(value): _session.set_volume(value))
+	audio_controls.add_child(volume)
+	_stop_voice = Style.button("停止语音", func(): _session.stop_voice())
+	audio_controls.add_child(_stop_voice)
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	column.add_child(_scroll)
@@ -136,6 +152,9 @@ func _state_changed(state: Dictionary) -> void:
 		"ready":"已连接", "reconnecting":"正在重新连接 · 可以继续输入", "auth_rejected":"聊天凭据已失效，请退出后重新登录。"}.get(state.phase, "")
 	if state.thinking:
 		_status.text = "天依正在想一想…"
+	if state.get("speaking", false):
+		_status.text += " · 正在播放语音"
+	_stop_voice.disabled = not state.get("speaking", false)
 	if state.code == "AUDIO_ERROR":
 		_status.text += " · 本条语音暂时无法播放，文字已保留。"
 	elif state.code == "SEND_REJECTED":
