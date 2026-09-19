@@ -40,6 +40,11 @@ func _initialize() -> void:
 	var broken := status.duplicate()
 	broken.finished = false
 	check(cache.commit("invalid",broken,waveform) != OK and cache.lookup("invalid").is_empty(), "unfinished decoder cannot commit")
+	cache.begin("truthy")
+	cache.append("truthy",bytes)
+	broken = status.duplicate()
+	broken.finished = "false"
+	check(cache.commit("truthy",broken,waveform) != OK and cache.lookup("truthy").is_empty(), "nonboolean finished state rejected")
 	restored.set_scope("https://test.invalid", "B")
 	check(restored.lookup("one").is_empty(), "account isolation")
 	restored.begin("one")
