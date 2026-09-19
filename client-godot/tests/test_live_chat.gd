@@ -69,9 +69,13 @@ func _run() -> void:
 	check(labels.any(func(label): return label.text == "第一句"), "actual response appears in visible bubble")
 	var captions := view.find_children("*", "Label", true, false)
 	check(not captions.any(func(label): return label.text.contains("演示")), "live delivery is not labelled simulated")
-	for button in view.find_children("*", "Button", true, false):
-		if button.text == "退出登录":
-			button.pressed.emit()
+	var menus := view.find_children("*", "MenuButton", true, false)
+	check(menus.size() == 1, "chat exposes a compact more menu")
+	if menus.size() == 1:
+		var popup: PopupMenu = menus[0].get_popup()
+		check(popup.get_item_text(popup.get_item_index(0)) == "打开日志", "logs accessible through menu")
+		check(popup.get_item_text(popup.get_item_index(2)) == "退出登录", "logout accessible through menu")
+		popup.id_pressed.emit(2)
 	check(logout_seen, "logout request is exposed to application")
 	session.stop()
 	check(session.get_messages().is_empty() and session.get_state().phase == "idle", "stop clears old account messages")
