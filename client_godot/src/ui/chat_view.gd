@@ -17,6 +17,9 @@ var _refresh_again := false
 var _stop_voice: Button
 var _clear_dialog := ConfirmationDialog.new()
 var _menu := MenuButton.new()
+var _history_status := Label.new()
+var _history_retry := Button.new()
+var _history_skip := Button.new()
 
 func _init(session: Node) -> void:
 	_session = session
@@ -63,6 +66,18 @@ func _ready() -> void:
 	_status.add_theme_color_override("font_color", Color("607f8d"))
 	identity.add_child(_status)
 	column.add_child(HSeparator.new())
+	var history_row := HBoxContainer.new()
+	column.add_child(history_row)
+	_history_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_history_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_history_status.add_theme_font_size_override("font_size",12)
+	history_row.add_child(_history_status)
+	_history_retry.text = "重试历史"
+	_history_retry.pressed.connect(_session.retry_history)
+	history_row.add_child(_history_retry)
+	_history_skip.text = "跳过本次"
+	_history_skip.pressed.connect(_session.skip_history)
+	history_row.add_child(_history_skip)
 	var audio_controls := HBoxContainer.new()
 	audio_controls.add_child(Style.label("语音音量", 12))
 	var volume := HSlider.new()
@@ -136,6 +151,8 @@ func _refresh_messages() -> void:
 	var bar := _scroll.get_v_scroll_bar()
 	var follow := bar.value >= bar.max_value - bar.page - 24
 	var previous := bar.value
+	var previous_max := bar.max_value
+	var old_first: String = _messages.get_child(1).get_meta("message_id", "") if _messages.get_child_count() > 1 else ""
 	var messages: Array[Dictionary] = _session.get_messages()
 	_empty.visible = messages.is_empty()
 	var current_ids: Dictionary = {}
@@ -155,9 +172,12 @@ func _refresh_messages() -> void:
 			_messages.add_child(bubble)
 			bubble.configure(message)
 			_bubbles[message.id] = bubble
+			bubble.set_meta("message_id", message.id)
 			bubble.audio_action.connect(func(action): _audio_action(message.id,action))
 		if message.role == "assistant":
 			_bubbles[message.id].set_audio_state(_session.get_message_audio(message.id))
+	for index in messages.size():
+		_messages.move_child(_bubbles[messages[index].id],index+1)
 	await get_tree().process_frame
 	if not is_inside_tree():
 		return
@@ -169,7 +189,8 @@ func _refresh_messages() -> void:
 		if follow:
 			_to_latest()
 		else:
-			_scroll.scroll_vertical = roundi(previous)
+			var prepended: bool = not old_first.is_empty() and not messages.is_empty() and messages[0].id != old_first
+			_scroll.scroll_vertical = roundi(previous + (bar.max_value - previous_max if prepended else 0))
 			_latest.visible = true
 	_refresh_pending = false
 	if _refresh_again:
@@ -181,6 +202,12 @@ func _to_latest() -> void:
 	_latest.hide()
 
 func _state_changed(state: Dictionary) -> void:
+	var history: Dictionary = state.get("history",{"phase":"idle","count":0})
+	_history_retry.visible = history.phase in ["first_failed","failed"]
+	_history_skip.visible = history.phase == "first_failed"
+	_history_status.text = {"first_loading":"正在同步最近历史；发送的消息将暂时排队。", "first_failed":"首批历史加载失败；可重试或跳过后发送。", "loading":"后台同步历史 · 已加载 %s 条" % history.count, "failed":"较早历史加载失败，已加载内容保留。", "skipped":"已跳过本次历史同步。"}.get(history.phase, "")
+	if history.get("incomplete",false):
+		_history_status.text += " 检测到分页重复，无法确认历史完整。"
 	_status.text = {"idle":"连接已关闭", "connecting":"正在连接…", "authenticating":"正在验证账户…",
 		"ready":"已连接", "reconnecting":"正在重新连接 · 可以继续输入", "auth_rejected":"聊天凭据已失效，请退出后重新登录。"}.get(state.phase, "")
 	if state.thinking:
