@@ -2,6 +2,7 @@ extends SceneTree
 const Transport = preload("res://src/network/websocket_transport.gd")
 const Session = preload("res://src/session/chat_session.gd")
 const View = preload("res://src/ui/chat_view.gd")
+const Log = preload("res://src/storage/client_log.gd")
 var failures: Array[String] = []
 var expressions: Array[String] = []
 var thinking_seen := false
@@ -22,7 +23,8 @@ func _initialize() -> void:
 	_run.call_deferred()
 
 func _run() -> void:
-	var session = Session.new(Transport.new())
+	var directory := "user://chat-log-test-%s" % Time.get_ticks_usec()
+	var session = Session.new(Transport.new(), Log.new(directory))
 	root.add_child(session)
 	session.expression_requested.connect(func(command): expressions.append(command))
 	session.state_changed.connect(func(state): thinking_seen = thinking_seen or state.thinking)
@@ -58,6 +60,9 @@ func _run() -> void:
 		check(session.get_messages()[0].text == "你好", "message snapshots are independent")
 	check(expressions == ["微笑脸", "温柔脸", "normal"], "expressions follow reply order and duplicate terminal is ignored")
 	check(thinking_seen and not session.get_state().thinking, "thinking and waiting propagated")
+	var log_text := FileAccess.get_file_as_string(directory + "/client.jsonl")
+	check(log_text.contains("reply_received") and log_text.contains("audio_chars"), "actual reply arrival is diagnosable")
+	check(not log_text.contains("message-test") and not log_text.contains("第一句"), "chat logs exclude tokens and text")
 	await process_frame
 	await process_frame
 	var labels := view.find_children("*", "RichTextLabel", true, false)
@@ -86,5 +91,7 @@ func _run() -> void:
 	view.queue_free()
 	session.queue_free()
 	await process_frame
+	DirAccess.remove_absolute(directory + "/client.jsonl")
+	DirAccess.remove_absolute(directory)
 	print("Live text chat: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)

@@ -8,6 +8,7 @@ const Avatar = preload("res://src/avatar/avatar_panel.gd")
 const Chat = preload("res://src/session/chat_session.gd")
 const Transport = preload("res://src/network/websocket_transport.gd")
 const ChatView = preload("res://src/ui/chat_view.gd")
+const Log = preload("res://src/storage/client_log.gd")
 var _session: Node
 var _chat: Node
 var _chat_view: Control
@@ -42,7 +43,10 @@ func _ready() -> void:
 		var security = ClassDB.instantiate("WindowsSecurity")
 		_session = Session.new(Api.new(security), Store.new(security))
 	add_child(_session)
-	_chat = Chat.new(Transport.new())
+	var log = Log.new("user://logs" if _layout_path == "user://window_layout.cfg" else _layout_path.get_base_dir().path_join("logs"))
+	if log.record("client_started") != OK:
+		push_warning("Client diagnostic log is unavailable")
+	_chat = Chat.new(Transport.new(), log)
 	add_child(_chat)
 	_split = HSplitContainer.new()
 	_center = CenterContainer.new()

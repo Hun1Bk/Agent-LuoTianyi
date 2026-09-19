@@ -29,6 +29,9 @@ func _ready() -> void:
 	var title := Style.label("和天依聊聊", 23)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(title)
+	var logs := Style.button("打开日志", func(): OS.shell_open(_session.get_log_directory()))
+	logs.disabled = _session.get_log_directory().is_empty()
+	heading.add_child(logs)
 	heading.add_child(Style.button("退出登录", func(): logout_requested.emit()))
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.add_theme_font_size_override("font_size", 13)
