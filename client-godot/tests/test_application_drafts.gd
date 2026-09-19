@@ -17,9 +17,8 @@ func _run() -> void:
 	await process_frame
 	await session.perform("login",OS.get_environment("GODOT_TEST_SERVER"),{"username":"ui","password":"synthetic-password","request_token":false},false)
 	await process_frame
-	var menus: Array = app.find_children("*","MenuButton",true,false)
-	var menu: PopupMenu = menus.filter(func(n): return n.text == "更多 ···")[0].get_popup()
-	check(menu.get_item_index(3)>=0,"chat menu exposes preferences")
+	var menu = app.find_child("ChatMore",true,false)
+	check(menu.get_items().any(func(item): return item.get("id") == "preferences"),"chat menu exposes preferences")
 	var dynamics: Array = []
 	for tick in 200:
 		dynamics = app.find_children("*","Button",true,false).filter(func(n): return n.text == "动态 · 99+")
@@ -35,16 +34,16 @@ func _run() -> void:
 		if draft != null:
 			draft.text = "unsaved dynamic"
 			draft.text_changed.emit()
-	menu.id_pressed.emit(4)
+	menu.activated.emit("models")
 	await process_frame
 	check(app.find_children("*","Window",true,false).filter(func(n): return n.title == "LLM / VLM 模型设置").size()==1,"model menu opens shared settings")
-	if menu.get_item_index(3)>=0:
-		menu.id_pressed.emit(3)
+	if menu.get_items().any(func(item): return item.get("id") == "preferences"):
+		menu.activated.emit("preferences")
 		await create_timer(.15).timeout
 		var windows: Array = app.find_children("*","Window",true,false).filter(func(n): return n.title == "相处模式")
 		check(windows.size()==1,"preferences opens independent window")
 		if windows.size()==1:
-			menu.id_pressed.emit(3)
+			menu.activated.emit("preferences")
 			check(app.find_children("*","Window",true,false).filter(func(n): return n.title == "相处模式").size()==1,"repeated open focuses same window")
 			var input: TextEdit = windows[0].find_children("*","TextEdit",true,false)[0]
 			var deadline := Time.get_ticks_msec()+2500
@@ -58,13 +57,13 @@ func _run() -> void:
 			check(not dialogs.is_empty(),"app exit asks before discarding settings")
 			if not dialogs.is_empty():
 				dialogs[0].get_cancel_button().pressed.emit()
-			menu.id_pressed.emit(2)
+			menu.activated.emit("logout")
 			dialogs = app.find_children("*","ConfirmationDialog",true,false).filter(func(n): return n.visible)
 			check(not session.get_session().is_empty() and not dialogs.is_empty(),"logout waits for draft decision")
 			if not dialogs.is_empty():
 				dialogs[0].get_cancel_button().pressed.emit()
 				check(windows[0].is_dirty(),"default cancel retains sensitive drafts")
-				menu.id_pressed.emit(2)
+				menu.activated.emit("logout")
 				dialogs[0].get_ok_button().pressed.emit()
 				await process_frame
 				check(session.get_session().is_empty(),"confirmed discard completes logout")

@@ -17,9 +17,9 @@ func _run() -> void:
 	await capture(root,"agentluo-010-login")
 	await account.perform("login",OS.get_environment("GODOT_TEST_SERVER"),{"username":"visual","password":"synthetic","request_token":false},false)
 	await create_timer(.5).timeout
-	var menu: PopupMenu = app.find_children("*","MenuButton",true,false).filter(func(n): return n.text=="更多 ···")[0].get_popup()
-	for item in [[0,"客户端日志","logs"],[3,"相处模式","preferences"],[4,"LLM / VLM 模型设置","models"]]:
-		menu.id_pressed.emit(item[0])
+	var menu = app.find_child("ChatMore",true,false)
+	for item in [["logs","客户端日志","logs"],["preferences","相处模式","preferences"],["models","LLM / VLM 模型设置","models"]]:
+		menu.activated.emit(item[0])
 		await create_timer(.4).timeout
 		var windows: Array = app.find_children("*","Window",true,false).filter(func(n): return n.title.begins_with(item[1]))
 		if windows.is_empty():

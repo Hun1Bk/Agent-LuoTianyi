@@ -3,8 +3,8 @@ var _settings: Node
 var _types: Array = []
 var _drafts := {}
 var _current := ""
-var _selector := OptionButton.new()
-var _copy := OptionButton.new()
+var _selector := preload("res://src/ui/unified_dropdown.gd").new()
+var _copy := preload("res://src/ui/unified_dropdown.gd").new()
 var _fields := {}
 var _enabled := CheckBox.new()
 var _json := CheckBox.new()
@@ -44,7 +44,7 @@ func _ready() -> void:
 	scroll.add_child(column)
 	column.add_child(Style.label("每个用途独立配置，保存不会调用供应商",18))
 	column.add_child(_selector)
-	_selector.item_selected.connect(func(index): _select(index))
+	_selector.activated.connect(func(index): _select(index))
 	column.add_child(_requirements)
 	_requirements.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_enabled.text = "启用此用途的本地模型"
@@ -121,19 +121,21 @@ func _update(state: Dictionary) -> void:
 	_save_button.disabled = state.phase != "ready"
 	if _types.is_empty() and state.phase == "ready":
 		_types = _settings.get_types()
+		var options: Array = []
 		for type in _types:
-			_selector.add_item(type.name)
-			_copy.add_item(type.name)
+			options.append({"id":type.id,"label":type.name})
 			_drafts[type.id] = _as_draft(_settings.get_config(type.id))
+		_selector.set_items(options)
+		_copy.set_items(options)
 		if not _types.is_empty():
-			_select(0)
+			_select(_types[0].id)
 	if state.phase != "ready":
 		_status.text = "正在获取模型用途…" if state.phase == "loading" else "无法读取模型用途（%s），可关闭后重新打开。"%state.code
 	elif state.code not in ["OK",""]:
 		_status.text = "部分配置未能恢复或不再满足用途要求，请检查（%s）。"%state.code
 
-func _select(index: int) -> void:
-	_current = _types[index].id
+func _select(id: String) -> void:
+	_current = id
 	_refreshing = true
 	var draft: Dictionary = _drafts[_current]
 	for key in _fields:
@@ -142,7 +144,7 @@ func _select(index: int) -> void:
 	_json.button_pressed = draft.model_capabilities.can_use_json
 	_thinking.button_pressed = draft.model_capabilities.can_enable_thinking
 	_params.text = draft.params_text
-	var type: Dictionary = _types[index]
+	var type: Dictionary = _types.filter(func(item): return item.id == id)[0]
 	_requirements.text = "%s · %s\n要求：JSON %s / thinking %s"%[type.model_kind.to_upper(),type.description,"是" if type.requires_json else "否","是" if type.requires_thinking else "否"]
 	_refreshing = false
 	_status.text = "能力勾选是配置声明，不代表已完成全面认证。"
@@ -175,7 +177,7 @@ func _save(allow_plain: bool) -> void:
 	var result: Dictionary = _settings.save(_current,config,allow_plain)
 	if result.ok:
 		_drafts[_current] = _as_draft(config)
-		_select(_selector.selected)
+		_select(_selector.get_selected_id())
 		_status.text = "已保存；后续委托使用新配置。"
 	elif result.code == "PLAINTEXT_CONFIRMATION_REQUIRED":
 		_plain.popup_centered()
@@ -184,11 +186,11 @@ func _save(allow_plain: bool) -> void:
 		_status.text = "保存失败，草稿已保留（%s）。"%result.code
 
 func _copy_selected() -> void:
-	if _current.is_empty() or _copy.selected < 0:
+	if _current.is_empty() or _copy.get_selected_id().is_empty():
 		return
-	var copied: Dictionary = _settings.copy_config(_drafts[_types[_copy.selected].id],_current)
+	var copied: Dictionary = _settings.copy_config(_drafts[_copy.get_selected_id()],_current)
 	_drafts[_current] = copied
-	_select(_selector.selected)
+	_select(_selector.get_selected_id())
 	_status.text = "已复制为草稿；保存时按目标用途重新校验。"
 
 func _test() -> void:

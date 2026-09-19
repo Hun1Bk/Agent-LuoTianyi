@@ -1,10 +1,10 @@
 ﻿extends Window
 const Style = preload("res://src/preview/preview_style.gd")
 var _logger: RefCounted
-var _runs := OptionButton.new()
+var _runs := preload("res://src/ui/unified_dropdown.gd").new()
 var _search := LineEdit.new()
-var _module := OptionButton.new()
-var _level := OptionButton.new()
+var _module := preload("res://src/ui/unified_dropdown.gd").new()
+var _level := preload("res://src/ui/unified_dropdown.gd").new()
 var _follow := CheckBox.new()
 var _text := RichTextLabel.new()
 var _status := Label.new()
@@ -32,17 +32,18 @@ func _ready() -> void:
 	column.add_child(filters)
 	_runs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	filters.add_child(_runs)
-	_runs.item_selected.connect(func(index):
-		_selected = _runs.get_item_metadata(index)
+	_runs.activated.connect(func(index):
+		_selected = index
 		_refresh())
-	for level in ["全部级别","INFO","WARN","ERROR"]:
-		_level.add_item(level)
+	_level.set_items([{"id":"all","label":"全部级别"},{"id":"INFO","label":"INFO"},{"id":"WARN","label":"WARN"},{"id":"ERROR","label":"ERROR"}])
 	filters.add_child(_level)
-	for module in ["全部模块"] + Array(_logger.MODULES):
-		_module.add_item(module)
+	var modules: Array = [{"id":"all","label":"全部模块"}]
+	for module in _logger.MODULES:
+		modules.append({"id":module,"label":module})
+	_module.set_items(modules)
 	filters.add_child(_module)
-	_level.item_selected.connect(func(_index): _refresh())
-	_module.item_selected.connect(func(_index): _refresh())
+	_level.activated.connect(func(_index): _refresh())
+	_module.activated.connect(func(_index): _refresh())
 	_search.placeholder_text = "搜索时间、活动或错误码"
 	_search.text_changed.connect(func(_value): _refresh())
 	column.add_child(_search)
@@ -88,7 +89,7 @@ func _ready() -> void:
 	_logger.write_failed.connect(func(_error): _status.text = "日志写盘失败，当前窗口仍可查看内存记录；归档可能不完整。")
 
 func open() -> void:
-	_runs.clear()
+	var options: Array = []
 	_selected = _logger.get_run_id() if _selected.is_empty() else _selected
 	var runs: Array = _logger.list_runs()
 	if not runs.any(func(run): return run.id == _logger.get_run_id()):
@@ -99,10 +100,10 @@ func open() -> void:
 			caption += " · 本次启动"
 		elif not run.closed:
 			caption += " · 运行中" if run.active else " · 未正常结束"
-		_runs.add_item(caption)
-		_runs.set_item_metadata(_runs.item_count-1,run.id)
-		if run.id == _selected:
-			_runs.select(_runs.item_count-1)
+		options.append({"id":run.id,"label":caption})
+	_runs.set_items(options)
+	_runs.set_selected_id(_selected)
+	_selected = _runs.get_selected_id()
 	_refresh()
 	show()
 	grab_focus()
@@ -119,7 +120,7 @@ func _refresh() -> void:
 			_status.text += " 此次归档不完整。"
 
 func _matches(entry: Dictionary) -> bool:
-	return (_level.selected == 0 or entry.level == _level.get_item_text(_level.selected)) and (_module.selected == 0 or entry.module == _module.get_item_text(_module.selected)) and (_search.text.is_empty() or JSON.stringify(entry).to_lower().contains(_search.text.to_lower()))
+	return (_level.get_selected_id() == "all" or entry.level == _level.get_selected_id()) and (_module.get_selected_id() == "all" or entry.module == _module.get_selected_id()) and (_search.text.is_empty() or JSON.stringify(entry).to_lower().contains(_search.text.to_lower()))
 
 func _append(entry: Dictionary) -> void:
 	_text.push_color({"INFO":Color("d6e5ee"),"WARN":Color("ffd58a"),"ERROR":Color("ff8c8c")}[entry.level])

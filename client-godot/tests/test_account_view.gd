@@ -54,9 +54,9 @@ func run() -> void:
 		await create_timer(0.4).timeout
 		check(has_text(view, "用户名或密码错误"), "authentication rejection visible")
 		check(password.text == "synthetic-password", "failed login preserves draft")
-		var mode: OptionButton = view.find_children("*", "OptionButton", true, false)[0]
-		mode.select(1)
-		mode.item_selected.emit(1)
+		var mode = view.find_child("AccountMode",true,false)
+		mode.set_selected_id("register")
+		mode.activated.emit("register")
 		username.text = "test"
 		input(view, "确认密码").text = "different"
 		input(view, "邀请码").text = "invite-test"
