@@ -30,9 +30,14 @@ func _init(settings: Node,executor: Node = null) -> void:
 
 func _ready() -> void:
 	super._ready()
+	var margin := MarginContainer.new()
+	add_child(margin)
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["left","right","top","bottom"]:
+		margin.add_theme_constant_override("margin_"+side,18)
 	var scroll := ScrollContainer.new()
-	add_child(scroll)
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_child(scroll)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation",10)
@@ -124,6 +129,8 @@ func _update(state: Dictionary) -> void:
 			_select(0)
 	if state.phase != "ready":
 		_status.text = "正在获取模型用途…" if state.phase == "loading" else "无法读取模型用途（%s），可关闭后重新打开。"%state.code
+	elif state.code not in ["OK",""]:
+		_status.text = "部分配置未能恢复或不再满足用途要求，请检查（%s）。"%state.code
 
 func _select(index: int) -> void:
 	_current = _types[index].id
