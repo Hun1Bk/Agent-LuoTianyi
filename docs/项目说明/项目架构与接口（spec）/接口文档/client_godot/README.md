@@ -1,5 +1,19 @@
 # Godot 客户端 interface
 
+## PcmStreamDecoder：增量 WAV 音频
+
+原生 RefCounted 类，由媒体模块在主线程创建；与 WindowsSecurity 共用扩展，无网络或文件副作用。
+
+- `append(bytes: PackedByteArray) -> Dictionary`：首片及跨片头按 RIFF/WAVE 解析，随后按 data 区接收 PCM；支持未知 data 长度 0xFFFFFFFF。PCM 8/16/24/32 位及 IEEE float32，单/双声道，8000～192000 Hz；单声道复制为左右声道，输出归一浮点。支持对应完整 GUID 的 WAVE_FORMAT_EXTENSIBLE，拒绝压缩格式和其他声道数。
+- `finish() -> Dictionary`：标记接收结束；空音频、残缺头、残缺帧或已知 data 长度不足报错。重复 finish 幂等，成功结束后 append 返回 STREAM_FINISHED 且不修改已完成数据。
+- `read_frames(max_count: int) -> PackedVector2Array`：取走至多指定数量立体声帧，供 AudioStreamGeneratorPlayback.push_buffer；GDScript 不逐样本解码。
+- `get_status() -> Dictionary`：ok/code/sample_rate/channels/bits/queued_frames/decoded_frames/input_bytes/finished。错误码 INVALID_WAV、UNSUPPORTED_FORMAT、TRUNCATED_AUDIO、EMPTY_AUDIO、BUFFER_LIMIT 为粘性错误并释放音频缓冲。
+- `get_amplitude(frame_index: int) -> float`：返回指定绝对帧所在约 10ms 窗口的 RMS（0～1）；越界返回 0。调用方使用实际播放进度，不能以收包进度驱动口型。
+
+每次 append 上限 8 MiB，WAV 前置头累计上限 1 MiB，未读解码队列上限 128 MiB，单流时长上限 30 分钟。无效数值拒绝；未知辅助 chunk 按声明长度及偶数字节填充跳过。已知 data 结束后的尾部元数据不作为 PCM。每个 UUID 一个解码器，不猜测无头 PCM 中的采样率变化。
+
+验证入口 tests/test_pcm_decoder.gd：跨片头/半帧、未知长度、正常 WAV、声道/采样率/位深、幅值、非法/空/残缺流及资源边界；真实加载 DLL。此接口只解码，不表示声卡已输出。
+
 本文记录工程构建、角色显示与构图、离线视觉样板的公开契约。网络、媒体接口在对应切片中补充，未列接口不视为已实现；完成事实见开发进度。
 
 ## 工程与构建入口
