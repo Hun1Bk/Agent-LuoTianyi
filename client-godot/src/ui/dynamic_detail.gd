@@ -119,6 +119,8 @@ func update_comments() -> void:
 	if state.code not in ["","OK"]:
 		_load.text = "重试评论"
 		_status.text = "评论加载失败（%s），已保留现有内容。"%state.code
+	elif _status.text.begins_with("评论加载失败"):
+		_status.text = ""
 	var names := {}
 	for item in state.items: names[item.id] = item.author_name
 	for index in state.items.size():
@@ -206,6 +208,12 @@ static func relative_time(raw: String) -> String:
 	var pattern := RegEx.new()
 	pattern.compile("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$")
 	if pattern.search(raw) == null: return raw
+	var year := int(raw.substr(0,4))
+	var month := int(raw.substr(5,2))
+	var day := int(raw.substr(8,2))
+	if year < 1 or month < 1 or month > 12: return raw
+	var days := [31,29 if year%400==0 or (year%4==0 and year%100!=0) else 28,31,30,31,30,31,31,30,31,30,31]
+	if day < 1 or day > days[month-1] or int(raw.substr(11,2)) > 23 or int(raw.substr(14,2)) > 59 or int(raw.substr(17,2)) > 59: return raw
 	var normalized := raw.replace(" ","T")
 	var epoch := Time.get_unix_time_from_datetime_string(normalized)
 	if Time.get_datetime_string_from_unix_time(epoch) != normalized: return raw

@@ -5,7 +5,7 @@ from urllib.parse import urlparse,parse_qs
 from pathlib import Path
 PROJECT=Path(__file__).resolve().parents[1]
 def run(godot,script,gpu=False):
-    errors=[]; reads={}; writes=[]; unread_calls={}
+    errors=[]; reads={}; writes=[]; unread_calls={}; comment_calls={}
     def post(i):
         return dict(id=f'd{i}',author_type='agent',author_name='洛天依',content='合成动态\n第二行\n第三行\n第四行\n第五行\n第六行\n第七行',created_at='2026-09-19 10:00:00',allow_comment=i!=1,comment_count=22,visibility='private')
     def comment(i):
@@ -29,10 +29,20 @@ def run(godot,script,gpu=False):
             if path.path=='/dynamics':
                 if query.get('limit')!=['10']: errors.append('post page limit')
                 if cursor and cursor!='older | page': errors.append('cursor not preserved')
-                self.reply(200,{'items':[post(i) for i in (range(10) if not cursor else range(9,12))],'has_more':not cursor,'next_cursor':'older | page' if not cursor else None}); return
+                items=[post(i) for i in (range(10) if not cursor else range(9,12))]
+                if user in ('private-a','private-b'):
+                    for item in items: item.update(visibility='public',comment_count=2 if user=='private-a' else 1)
+                self.reply(200,{'items':items,'has_more':not cursor,'next_cursor':'older | page' if not cursor else None}); return
             if path.path=='/dynamics/d0/comments':
                 if query.get('limit')!=['20']: errors.append('comment page limit')
+                comment_calls[user]=comment_calls.get(user,0)+1
+                if user=='fail-refresh' and cursor: self.reply(503,{}); return
+                if user=='slow-comments': time.sleep(.3)
+                if user in ('private-a','private-b'):
+                    self.reply(200,{'items':[{**comment(i),'content':user+' private content','owner_user_id':user} for i in range(2 if user=='private-a' else 1)],'has_more':False,'next_cursor':None}); return
                 self.reply(200,{'items':[comment(i) for i in (range(20) if not cursor else range(19,22))],'has_more':not cursor,'next_cursor':'next | comments' if not cursor else None}); return
+            if path.path.startswith('/dynamics/') and path.path.endswith('/comments'):
+                self.reply(200,{'items':[],'has_more':False,'next_cursor':None}); return
             self.reply(404,{})
         def do_POST(self):
             data=json.loads(self.rfile.read(int(self.headers['Content-Length']))); user=data.get('username')

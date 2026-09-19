@@ -58,7 +58,7 @@ func _ready() -> void:
 	get_tree().auto_accept_quit = false
 	get_window().close_requested.connect(func(): _request_close("exit"))
 	_exit_dialog.title = "放弃未保存的内容？"
-	_exit_dialog.dialog_text = "设置窗口中有未保存的修改，确认放弃并继续？"
+	_exit_dialog.dialog_text = "设置或动态窗口中有未保存的内容，确认放弃并继续？"
 	_exit_dialog.ok_button_text = "放弃并继续"
 	_exit_dialog.cancel_button_text = "取消"
 	add_child(_exit_dialog)
@@ -236,7 +236,7 @@ func _open_settings(kind: String) -> void:
 		if _models.get_state().phase == "error":
 			_models.start(_session.get_session())
 	else:
-		window = preload("res://src/ui/dynamics_window.gd").new(_dynamics)
+		window = preload("res://src/ui/dynamics_window.gd").new(_dynamics,_layout_path.get_base_dir().path_join("dynamics-window.cfg"))
 	_windows[kind] = window
 	add_child(window)
 	window.tree_exited.connect(func():

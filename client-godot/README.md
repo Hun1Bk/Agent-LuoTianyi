@@ -84,3 +84,5 @@ release.json 是版本单一来源，界面/诊断/目录/ZIP 使用同一版本
 历史、相处模式、模型配置/委托及动态回归：`scripts/check_features.ps1 -Godot <exe> -Python <python.exe>`。测试依赖另包括 aiohttp；所有默认 fixture 仅监听 loopback，无公共服务写入或收费供应商。新增界面 GPU 截图：`tests/run_feature_tests.py --godot <exe> --script res://tests/capture_release_ui.gd --gpu`。
 
 应用持有聊天/模型/动态控制器，Window 仅展示和编辑；未来页面切换不重连。角色入口 `assets/live2d/character.json` 分离身份与模型资源，加载失败保留原模型；实际平台能力仍是 Windows。详细使用说明见 PREVIEW.md，实际验收记录见开发进度，不将预留移动端/换装/箱庭视为已交付。
+
+0.1.1 动态为独立任务栏窗口，45:55列表/详情分区，完整正文、平铺私人评论、行内回复和独立发布窗；关闭聚合检查所有草稿。正式下拉共享稳定ID组件。原生验收：`tests/run_dynamics_tests.py --godot <exe> --gpu --script res://tests/capture_dynamics_ui.gd`；菜单GPU验收：Godot `--path client_godot --script res://tests/capture_dropdown_ui.gd`。这些测试验证真实HWND、缩放截图和本地接口，不验证公共服务或系统DPI切换。

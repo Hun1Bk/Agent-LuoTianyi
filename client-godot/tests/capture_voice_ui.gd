@@ -47,18 +47,18 @@ func _run() -> void:
 	for dimensions in [Vector2i(1200,800),Vector2i(960,640)]:
 		root.size = dimensions
 		split.split_offset = roundi(dimensions.x*.45)
-		await _capture(view,"voice-ui-%sx%s" % [dimensions.x,dimensions.y])
+		await _capture(view,"agentluo-011-voice-ui-%sx%s" % [dimensions.x,dimensions.y])
 	root.size = Vector2i(1200,800)
 	split.split_offset = 540
 	session.replay("visual-voice")
 	await create_timer(.6).timeout
 	session.pause_replay()
-	await _capture(view,"voice-ui-paused")
+	await _capture(view,"agentluo-011-voice-ui-paused")
 	for factor in [1.25,1.5]:
 		root.content_scale_factor = factor
 		root.size = Vector2i(Vector2(1200,800)*factor)
 		split.split_offset = 540
-		await _capture(view,"voice-ui-scale-%s" % int(factor*100))
+		await _capture(view,"agentluo-011-voice-ui-scale-%s" % int(factor*100))
 	session.clear_cache()
 	session.stop()
 	split.queue_free()
