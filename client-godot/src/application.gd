@@ -16,6 +16,11 @@ var _center: CenterContainer
 var _avatar: Control
 var _ratio := 0.45
 var _layout_ready := false
+var _layout_path: String
+
+func _init(account_session: Node = null, layout_path: String = "user://window_layout.cfg") -> void:
+	_session = account_session
+	_layout_path = layout_path
 
 
 func _ready() -> void:
@@ -30,8 +35,9 @@ func _ready() -> void:
 		add_child(error)
 		push_error("WindowsSecurity extension missing")
 		return
-	var security = ClassDB.instantiate("WindowsSecurity")
-	_session = Session.new(Api.new(security), Store.new(security))
+	if _session == null:
+		var security = ClassDB.instantiate("WindowsSecurity")
+		_session = Session.new(Api.new(security), Store.new(security))
 	add_child(_session)
 	_chat = Chat.new(Transport.new())
 	add_child(_chat)
@@ -51,14 +57,14 @@ func _ready() -> void:
 	_center.add_child(form)
 	_session.changed.connect(_account_changed)
 	var settings := ConfigFile.new()
-	if settings.load("user://window_layout.cfg") == OK:
+	if settings.load(_layout_path) == OK:
 		var ratio: Variant = settings.get_value("layout", "ratio", 0.45)
 		if (ratio is float or ratio is int) and is_finite(float(ratio)):
 			_ratio = clampf(float(ratio), 0.3, 0.6)
 	_split.dragged.connect(func(_offset):
 		_ratio = _avatar.size.x / maxf(size.x, 1)
 		settings.set_value("layout", "ratio", _ratio)
-		if settings.save("user://window_layout.cfg") != OK:
+		if settings.save(_layout_path) != OK:
 			push_warning("Window layout save failed"))
 	resized.connect(_resize_split)
 	await get_tree().process_frame
