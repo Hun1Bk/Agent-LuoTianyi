@@ -68,6 +68,16 @@ func _initialize() -> void:
 		check(unwritable.set_scope("https://test.invalid","A") != OK and unwritable.begin("x") != OK, "unwritable scope reports failure")
 		DirAccess.remove_absolute(obstacle)
 	restored.clear()
+	var scope := root.path_join(JSON.stringify(["https://test.invalid","A"]).sha256_text())
+	var stale := scope.path_join("locked".sha256_text() + ".part")
+	var locked := FileAccess.open(stale,FileAccess.WRITE)
+	locked.store_8(0)
+	locked.close()
+	FileAccess.set_read_only_attribute(stale,true)
+	var stale_cache := Cache.new(root)
+	check(stale_cache.set_scope("https://test.invalid","A") != OK, "failed stale-file cleanup is reported")
+	FileAccess.set_read_only_attribute(stale,false)
+	DirAccess.remove_absolute(stale)
 	cache.abort_all()
 	# Test owns this temporary root; remove only files/directories it generated.
 	for folder in DirAccess.get_directories_at(root):
