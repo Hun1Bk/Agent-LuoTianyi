@@ -4,7 +4,7 @@ from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.parse import urlparse,parse_qs
 from pathlib import Path
 PROJECT=Path(__file__).resolve().parents[1]
-def run(godot,script):
+def run(godot,script,gpu=False):
     errors=[]; reads={}; writes=[]; unread_calls={}
     def post(i):
         return dict(id=f'd{i}',author_type='agent',author_name='洛天依',content='合成动态\n第二行\n第三行\n第四行\n第五行\n第六行\n第七行',created_at='2026-09-19 10:00:00',allow_comment=i!=1,comment_count=22,visibility='private')
@@ -45,10 +45,11 @@ def run(godot,script):
             self.reply(400,{})
     server=ThreadingHTTPServer(('127.0.0.1',0),Handler); thread=threading.Thread(target=server.serve_forever,daemon=True); thread.start()
     try:
-        result=subprocess.run([godot,'--headless','--path',str(PROJECT),'--script',script],env={**os.environ,'GODOT_TEST_SERVER':f'http://127.0.0.1:{server.server_port}'},capture_output=True,text=True,encoding='utf8',errors='replace',timeout=40)
+        import sys
+        result=subprocess.run([godot,*([] if gpu else ['--headless']),'--path',str(PROJECT),'--script',script],env={**os.environ,'GODOT_TEST_SERVER':f'http://127.0.0.1:{server.server_port}','GODOT_TEST_PYTHON':sys.executable},capture_output=True,text=True,encoding='utf8',errors='replace',timeout=60)
         print(result.stdout); print(result.stderr)
         if result.returncode or 'ERROR:' in result.stdout+result.stderr or 'FAIL:' in result.stdout or ': PASS' not in result.stdout or errors: raise RuntimeError(errors or 'dynamics test failed')
     finally: server.shutdown(); server.server_close(); thread.join(2)
     print('Offline dynamics API: PASS')
 if __name__=='__main__':
-    parser=argparse.ArgumentParser(); parser.add_argument('--godot',required=True); parser.add_argument('--script',default='res://tests/test_dynamics.gd'); args=parser.parse_args(); run(args.godot,args.script)
+    parser=argparse.ArgumentParser(); parser.add_argument('--godot',required=True); parser.add_argument('--script',default='res://tests/test_dynamics.gd'); parser.add_argument('--gpu',action='store_true'); args=parser.parse_args(); run(args.godot,args.script,args.gpu)

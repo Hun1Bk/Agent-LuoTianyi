@@ -325,3 +325,8 @@
 ### 2026-09-20 评论全分页刷新
 - SPEC ccdddc7，Red 5dcce8d：缺少完整刷新调用。实现读取至末页后原子合并、循环游标拒绝、失败保留和账号代次隔离；发布返回 item_id。
 - test_dynamics.gd 真实本地 HTTP 全页刷新及既有分页/已读/取消 PASS；作者自审核对服务端协议无变化。
+
+### 2026-09-20 原生双栏动态与行内草稿
+- SPEC b658d69，Red 353844e：缺少双栏选择边界；实现45:55可调原生窗口、完整详情、平铺评论、行内回复、独立发布、每动态草稿和关闭聚合确认；移除被替代的单列卡片。窗口/详情/发布共约500行构成可运行视图切片，保留应用控制器所有权。
+- test_dynamics_detail.gd、test_dynamics_window.gd、test_application_drafts.gd PASS。capture_dynamics_ui.gd 使用真实GPU生成默认、最小、回复、发布及125%/150%内容缩放截图；分区比例断言PASS。Windows HWND无owner/非toolwindow、主窗口实际最小化后动态仍可见PASS。
+- 作者自审修正force_native初始化顺序和分隔条偏移；未将任务栏资格检查或内容缩放截图宣称公共服务/实际OS DPI人工验收。
