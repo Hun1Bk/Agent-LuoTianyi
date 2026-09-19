@@ -392,3 +392,10 @@ AvatarPanel 读取当前角色描述，不写死模型入口。当前文件选�
 
 ## 0.1.1 动态完整刷新
 DynamicsController.refresh_comments(id) 异步从第一页按20条读取到末页，期间 busy=true 禁止同动态分页/写入；所有页校验完成才原子合并已有评论（保留本次已成功提交的评论），按时间排序。失败保留内容与原分页游标、code可重试；取消及跨账号旧响应不生效；重复游标循环为INVALID_RESPONSE。每次请求沿用既有超时。refresh() 首页新动态优先合并此前列表，保留已选择的旧动态，分页仍用最新首页游标去重。publish/comment 成功返回新增 item_id，失败返回空 item_id；不改变服务端协议。测试从真实HTTP验证末页、失败保留及取消。
+
+## 0.1.1 双栏动态窗口（取代上文单列卡片呈现）
+`DynamicsWindow(controller,layout_path="user://dynamics-window.cfg")` 继续继承 DraftWindow，公开 open/is_dirty 保持兼容；force_native=true、transient=false、普通系统窗口，1000×780/最小900×640，布局文件只存尺寸与左右比例，默认45:55。每次创建无选中，select_post(id)->bool/get_selected_id()->String 是视图选择边界，未知ID拒绝。左侧10条自动分页；右侧由 DynamicDetail(controller,post) 呈现完整正文/普通留言/升序平铺评论及单个行内回复。Detail 的 update_post(post)、update_comments()、is_dirty() 供窗口刷新与草稿检查；不是网络适配器。视图仅通过控制器获取和写入数据。
+每条动态的 Detail 与滚动位置在窗口存续期间保留；切换隐藏旧详情，不销毁草稿，旧响应只更新对应详情。取消回复转为无目标的评论草稿，文字保留；再次选回复带到新对象下。普通留言与回复分别保留。发送期间禁用对应输入，成功清空提交内容，失败保留。不可评论同时禁止普通/回复输入。时间助手仅用于显示，北京时间解释无时区字段，异常回显原文。
+列表/评论滚到底自动加载，错误停止自动请求并显示重试；手动刷新保留选择、草稿和阅读位置，评论调用 refresh_comments 全量重新校验。未读独立提示有新的动态或评论，不推断目标。
+发布通过 PublishWindow(controller) 非模态原生子窗，published(id) 只在成功时通知父窗选择新动态。父窗 is_dirty 合并所有详情与发布窗草稿/在途写入；确认放弃后一起销毁，应用退出/登出沿用相同检查。草稿不持久保存。
+验证：真实loopback UI 首次无选中、选择切换、回复取消、读写失败保留、独立发布、关闭聚合确认；原生窗口所有者/任务栏资格/最小化独立和截图另行验证。
