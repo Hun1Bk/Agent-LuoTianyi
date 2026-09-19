@@ -17,6 +17,7 @@ void PcmStreamDecoder::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_status"), &PcmStreamDecoder::get_status);
     ClassDB::bind_method(D_METHOD("read_frames", "max_count"), &PcmStreamDecoder::read_frames);
     ClassDB::bind_method(D_METHOD("get_amplitude", "frame_index"), &PcmStreamDecoder::get_amplitude);
+    ClassDB::bind_method(D_METHOD("get_waveform", "buckets"), &PcmStreamDecoder::get_waveform, DEFVAL(24));
 }
 Dictionary PcmStreamDecoder::get_status() const {
     Dictionary status;
@@ -177,4 +178,22 @@ double PcmStreamDecoder::get_amplitude(int64_t index) const {
     const size_t window = size_t(index / window_frames);
     if (window < amplitudes.size()) return amplitudes[window];
     return energy_frames ? std::sqrt(energy / energy_frames) : 0;
+}
+
+PackedFloat32Array PcmStreamDecoder::get_waveform(int buckets) const {
+    PackedFloat32Array output;
+    if (!ended || !code.is_empty() || !decoded || buckets < 1 || buckets > 128) return output;
+    output.resize(buckets);
+    const uint64_t windows = amplitudes.size() + (energy_frames ? 1 : 0);
+    for (int bucket = 0; bucket < buckets; ++bucket) {
+        const uint64_t start = uint64_t(bucket) * windows / buckets;
+        const uint64_t end = std::max(start + 1, uint64_t(bucket + 1) * windows / buckets);
+        float peak = 0;
+        for (uint64_t window = start; window < end; ++window) {
+            const float value = window < amplitudes.size() ? amplitudes[window] : float(std::sqrt(energy / energy_frames));
+            peak = std::max(peak, value);
+        }
+        output.set(bucket, peak);
+    }
+    return output;
 }

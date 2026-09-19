@@ -48,6 +48,11 @@ func _initialize() -> void:
 		stream.read_frames(480)
 		check(stream.get_waveform(2) == PackedFloat32Array([0,.5]), "waveform represents real quiet and loud halves after consumption")
 		check(stream.get_waveform(0).is_empty() and stream.get_waveform(129).is_empty(), "waveform bucket bounds")
+		stream = decoder()
+		stream.append(wav(PackedByteArray([0,64])))
+		stream.finish()
+		var tiny: PackedFloat32Array = stream.get_waveform(128)
+		check(tiny.size() == 128 and tiny[0] == .5 and tiny[127] == .5, "single RMS window safely covers many buckets")
 	stream = decoder()
 	for part in [data.slice(0,3), data.slice(3,23), data.slice(23,45), data.slice(45)]:
 		check(stream.append(part).ok, "split header and partial sample accepted")

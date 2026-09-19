@@ -3,6 +3,7 @@
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
+#include <godot_cpp/variant/packed_float32_array.hpp>
 #include <vector>
 
 namespace godot {
@@ -30,5 +31,6 @@ public:
     Dictionary get_status() const;
     PackedVector2Array read_frames(int max_count);
     double get_amplitude(int64_t frame_index) const;
+    PackedFloat32Array get_waveform(int buckets = 24) const;
 };
 }
