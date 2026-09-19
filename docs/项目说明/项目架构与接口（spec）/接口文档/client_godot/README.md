@@ -188,4 +188,15 @@ ACK 超时 10 秒，图片选择/取消为 5 秒。持久消息首发后最多�
 
 验证 tests/test_application_window.gd：通过可见账户表单及真实 AccountSession/AccountApi 观察初始/失败/成功/退出窗口状态；检查自定义地址恢复与空配置回退，默认测试不连接预填地址。实际导出截图检查紧凑表单布局。
 
+## ClientLog：客户端诊断日志
+
+`src/storage/client_log.gd` 为 RefCounted，由应用创建并注入聊天/媒体；构造参数 directory 默认 user://logs、max_bytes 默认 2 MiB（测试可缩小），公开 `record(event, fields={}) -> Error` 与 `get_directory() -> String`。
+
+- 按 JSON Lines 写 client.jsonl，逐条 flush；达到大小上限轮换为 client.1.jsonl、client.2.jsonl，最多三份。单条不超过 4 KiB；目录/写入失败返回 Error，不阻塞聊天或谎报日志成功。只在主线程记录。
+- 每条含 UTC time、单调 elapsed_ms 与固定格式 event。字段采用白名单：连接 phase/code，回复 reply_id 的 SHA256 前 12 位，has_audio/audio_chars/bytes/frames/sample_rate/channels/bits/final/audio_error/queued/volume/latency_ms 等布尔/数字；phase/code 只允许短 ASCII 字母数字下划线。忽略未知字段，不写用户名、密码、token、API key、正文、完整委托提示词或 Base64 音频。
+- ChatSession 构造可注入 logger；记录 connection_state、reply_received（是否带音频、编码长度、终止/错误标志）及 system_error，不输出 payload 原文。应用启动记录 client_started。
+- `ChatSession.get_log_directory() -> String` 供 ChatView 的“打开日志”按钮使用；无 logger 返回空串、按钮禁用。打开目录只经用户点击，不自动上传日志。
+
+验证 tests/test_client_log.gd 的白名单、回复标识哈希、轮换和失败返回；现有 loopback 聊天测试检查接收日志并确保合成秘密不出现。日志证明实际收包，不把接收结束等同播放结束。
+
 验证：真实 ChatSession + WebSocketTransport + loopback 服务，观察发送状态、同 UUID 多包/隐藏/临时/音频错误文字、思考、表情顺序、断线和退出；通过 ChatView 可见控件触发发送，验证草稿与真实回复；默认自动化不访问真实账户。
