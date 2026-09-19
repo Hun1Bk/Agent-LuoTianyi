@@ -175,3 +175,13 @@
 - SPEC ba5e025；Red 738f21a（可运行测试确认缺少重放能力）；分支 feat/godot-voice-replay。
 - 验证：test_voice_replay.gd 的真实 AudioEffectCapture 输出、暂停静音/进度冻结、续播、停止/切换/抢占、完整缓存和不可写路径全部通过；test_reply_audio、test_audio_lifecycle、test_audio_cache 回归通过。
 - 作者自审：核对缓存三项提交条件、重复操作、只有一个声音输出、无旧账户完成信号；本条只记录媒体公开接口，尚不表示正式消息按钮已接通。独立核验在限时内未返回结论，不能视为他人审核通过。
+
+### 2026-09-19 正式消息重放控件与清理确认
+
+- 交付行为：Application 注入按账户隔离缓存，ChatSession 提供消息音频操作；气泡下方重放/暂停/继续/停止、真实波形/进度，定向更新不重建文字。更多菜单提供清理确认，取消保留文件，确认移除重放按钮但保留正文。
+- SPEC ba5e025；Red ad0ec6f（真实 loopback 声音可播，但没有消息重放控件及清理确认）；媒体 Green 57b96f0；分支 feat/godot-voice-replay。
+- 验证：check.ps1、check_network.ps1、check_accounts.ps1 全部通过；voice_chat 验证文字选择保持、消息/表情不重复、取消/确认清理。账户窗口测试在本机 GPU 窗口另跑通过，没有 headless 尺寸跳过。
+- 本机 WASAPI：test_voice_replay.gd 通过，双声道 48000Hz、10ms 缓冲；AudioEffectCapture 检查非零输出、暂停静音和进度冻结。日志 artifacts/replay-wasapi.log；不代表人工听感。
+- 截图：真实 ChatView/ChatSession/WebSocket/Avatar 与合成语音，1200×800、960×640、暂停态、125%/150% 内容缩放通过控件边界检查；截图 artifacts/voice-ui-*.png。RTX 4070 Laptop GPU、NVIDIA 610.74；本次是内容缩放检查，不是操作系统 DPI 切换验收。
+- 作者自审：正文选择与播放进度分别更新，UI 不接触音频路径；退出关闭范围，完整缓存保留；手动清理默认聚焦取消。project.godot 原有编辑器改动保留未提交；未改服务端协议及旧客户端。
+- 未验证：真实服务器 TTS/唱歌听感、长期运行/内存、Windows 10、集显性能、系统 DPI 切换和双屏。未正式替换交付入口。

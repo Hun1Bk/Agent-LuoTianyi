@@ -27,7 +27,7 @@ def tone(seconds, rate=24000):
     return target.getvalue()
 
 
-def run(godot, script="res://tests/test_websocket_transport.gd"):
+def run(godot, script="res://tests/test_websocket_transport.gd", gpu=False):
     errors = []
     dropped_ids = []
     rejected_connections = []
@@ -96,6 +96,9 @@ def run(godot, script="res://tests/test_websocket_transport.gd"):
                                 return
                             assert len(set(dropped_ids)) == 1, "retry changed client_msg_id"
                     send("server_ack", {"ok": True}, packet["client_msg_id"])
+                    if username == "visual":
+                        send("agent_message", {"uuid": "visual-voice", "text": "辛苦啦，先让自己休息一下吧。\n我在这里陪着你，想说什么都可以。", "audio": base64.b64encode(tone(2.4)).decode(), "is_final_package": True, "expression": "微笑脸"})
+                        continue
                     if username == "audio":
                         mode = packet["payload"]["message"]
                         def audio_reply(uuid, data, final, **extra):
@@ -141,7 +144,7 @@ def run(godot, script="res://tests/test_websocket_transport.gd"):
         thread.start()
         try:
             port = server.socket.getsockname()[1]
-            result = subprocess.run([godot, "--headless", "--path", str(PROJECT), "--script",
+            result = subprocess.run([godot, *([] if gpu else ["--headless"]), "--path", str(PROJECT), "--script",
                                      script],
                                     env={**os.environ, "GODOT_TEST_SERVER": f"http://127.0.0.1:{port}"},
                                     capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45)
@@ -161,5 +164,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--godot", required=True)
     parser.add_argument("--script", default="res://tests/test_websocket_transport.gd")
+    parser.add_argument("--gpu", action="store_true", help="Use native window for screenshot/layout checks")
     args = parser.parse_args()
-    run(args.godot, args.script)
+    run(args.godot, args.script, args.gpu)
