@@ -33,6 +33,8 @@ async def run(godot, script):
             stop = 120 if end == -1 else end
             start = max(0,stop-50)
             rows = [{'uuid':f'history-{i}','content':f'{user} record {i}','source':'agent' if i%2 else 'user','timestamp':float(i),'type':'text'} for i in range(start,stop)]
+            for row in rows:
+                if row['uuid']=='history-116': row.update(type='image',content='C:\\old-device\\private-image.png')
             if user == 'invalid': start = -2
             if user == 'duplicate' and end == 70: rows[-1]['uuid'] = 'history-119'
             if end == -1: opened.add(user)
