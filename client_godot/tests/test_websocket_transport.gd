@@ -67,6 +67,8 @@ func _run() -> void:
 	check(await until(func(): return transport.get_state().phase == "reconnecting"), "silent auth cannot wait forever")
 	transport.start(session("bad"))
 	check(await until(func(): return errors.has("INVALID_RESPONSE")), "malformed wire input reports safe system error")
+	transport.start(session("policy"))
+	check(await until(func(): return transport.get_state().phase == "auth_rejected"), "authentication policy close is terminal even with coalesced close frame")
 	transport.stop()
 	transport.stop()
 	transport.queue_free()
