@@ -17,9 +17,13 @@ var _history_status := Label.new()
 var _history_retry := Button.new()
 var _history_skip := Button.new()
 var _unread := Button.new()
+var _dynamics_button := Button.new()
 
 func _init(session: Node) -> void:
 	_session = session
+
+func set_dynamics_unread(count: int) -> void:
+	_dynamics_button.text = "动态" if count <= 0 else "动态 · "+("99+" if count > 99 else str(count))
 
 func _ready() -> void:
 	theme = Style.make_theme()
@@ -36,6 +40,9 @@ func _ready() -> void:
 	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(identity)
 	identity.add_child(Style.label("和天依聊聊", 22))
+	_dynamics_button.text = "动态"
+	_dynamics_button.pressed.connect(func(): settings_requested.emit("dynamics"))
+	heading.add_child(_dynamics_button)
 	_menu.text = "更多 ···"
 	heading.add_child(_menu)
 	var popup := _menu.get_popup()

@@ -31,6 +31,7 @@ var _exit_dialog := ConfirmationDialog.new()
 var _exit_action := ""
 var _models: Node
 var _executor: Node
+var _dynamics: Node
 
 func _init(account_session: Node = null, layout_path: String = "user://window_layout.cfg") -> void:
 	_session = account_session
@@ -73,6 +74,11 @@ func _ready() -> void:
 	add_child(_session)
 	_models = preload("res://src/session/model_settings.gd").new(preload("res://src/network/json_request.gd").new(),preload("res://src/storage/model_store.gd").new(ClassDB.instantiate("WindowsSecurity"),_layout_path.get_base_dir().path_join("models")),_log)
 	add_child(_models)
+	_dynamics = preload("res://src/session/dynamics_controller.gd").new(_log)
+	add_child(_dynamics)
+	_dynamics.unread_changed.connect(func(count):
+		if _chat_view != null:
+			_chat_view.set_dynamics_unread(count))
 	var cache = Cache.new(_layout_path.get_base_dir().path_join("audio"),_log)
 	var history = preload("res://src/session/history_sync.gd").new(preload("res://src/network/history_api.gd").new(),_log)
 	var reading = preload("res://src/storage/reading_position.gd").new(_layout_path.get_base_dir().path_join("reading"))
@@ -165,9 +171,11 @@ func _account_changed(state: Dictionary) -> void:
 			_resize_window(_expanded_size, Vector2i(960, 640))
 		_chat.start(_session.get_session())
 		_models.start(_session.get_session())
+		_dynamics.start(_session.get_session())
 	else:
 		_close_windows()
 		_models.stop()
+		_dynamics.stop()
 		_chat.stop()
 		if _chat_view != null:
 			_chat_view.hide()
@@ -214,17 +222,19 @@ func _open_settings(kind: String) -> void:
 	if _windows.has(kind) and is_instance_valid(_windows[kind]):
 		_windows[kind].open()
 		return
-	if kind not in ["preferences","models"]:
+	if kind not in ["preferences","models","dynamics"]:
 		return
 	var controller: Node
 	var window: Window
 	if kind == "preferences":
 		controller = preload("res://src/session/preferences_controller.gd").new(preload("res://src/network/json_request.gd").new(),_log)
 		window = preload("res://src/ui/preferences_window.gd").new(controller)
-	else:
+	elif kind == "models":
 		window = preload("res://src/ui/model_window.gd").new(_models,_executor)
 		if _models.get_state().phase == "error":
 			_models.start(_session.get_session())
+	else:
+		window = preload("res://src/ui/dynamics_window.gd").new(_dynamics)
 	_windows[kind] = window
 	add_child(window)
 	window.tree_exited.connect(func():
