@@ -45,6 +45,12 @@ func start(session: Dictionary) -> void:
 		var stored: Dictionary = _store.read(id)
 		if not stored.config.is_empty():
 			_configs[id].merge(stored.config,true)
+		if not validate(id,_configs[id]).ok:
+			var disabled: Dictionary = _configs[id].duplicate(true)
+			disabled.enabled = false
+			disabled.model_kind = _types[id].model_kind
+			_configs[id] = disabled if validate(id,disabled).ok else _default(_types[id])
+			code = "INVALID_CONFIG"
 		if not stored.ok and stored.code != "NOT_FOUND":
 			code = stored.code
 	_state = {"phase":"ready","code":code,"count":_types.size()}

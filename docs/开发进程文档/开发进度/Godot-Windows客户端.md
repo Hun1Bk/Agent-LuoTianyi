@@ -282,3 +282,8 @@
 - 交付行为：character.json 分离 luotianyi 身份/original 资源、模型入口和映射，AvatarPanel 使用描述加载；候选模型及映射成功后替换，失败保留现有模型/表情/身份。
 - SPEC 3262803；Red 109cfed；真实 gd_cubism 角色加载、原表情/动作/口型回归及描述失败保留测试通过。作者自审核对旧 load_avatar 兼容路径。
 - 当前 FileDialog 在 UI 边界，Application 持有业务生命周期，凭据与 PCM 原生类/源文件职责分离；Windows DLL 仍共同分发。没有移动端/换装/箱庭假成功接口；未交付这些未来功能。
+
+### 2026-09-19 损坏模型配置恢复
+
+- SPEC 71a980d；Red c928947（以实际 git 日志中的 reject malformed persisted model capabilities 提交为准）。损坏的 capabilities/kind 等配置加载后禁用并报告，不向服务端广告，也不把错误结构交给表单。用途类型更新后可重新编辑保存。
+- test_model_settings.gd 真实存储损坏配置恢复及原 DPAPI/草稿回归通过；模型表单补统一边距，作者自审核对恢复不调用供应商且不写回损坏文件。
