@@ -95,6 +95,7 @@ func _ready() -> void:
 	_empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_empty)
 	_scroll.audio_action.connect(_audio_action)
+	_scroll.image_action.connect(_image_action)
 	_scroll.visible_messages.connect(_visible_audio)
 	_scroll.interacted.connect(_session.note_read_interaction)
 	_latest.text = "回到最新 ↓"
@@ -127,6 +128,7 @@ func _ready() -> void:
 	Style.primary(send)
 	footer.add_child(send)
 	_session.message_audio_changed.connect(_audio_changed)
+	_session.message_image_changed.connect(func(id,state): _scroll.set_image_state(id,state))
 	_session.changed.connect(_refresh)
 	_session.state_changed.connect(_state_changed)
 	_state_changed(_session.get_state())
@@ -151,6 +153,8 @@ func _refresh() -> void:
 func _visible_audio(ids: Array[String]) -> void:
 	for id in ids:
 		_scroll.set_audio_state(id,_session.get_message_audio(id))
+		_session.request_message_image(id)
+		_scroll.set_image_state(id,_session.get_message_image(id))
 	_latest.visible = not _scroll.is_at_latest()
 	_report_reading()
 
@@ -222,3 +226,13 @@ func _jump_reading() -> void:
 func _report_reading() -> void:
 	if is_inside_tree():
 		_session.report_visible_messages(_scroll.get_visible_ids(),is_visible_in_tree() and get_window().has_focus() and get_window().mode != Window.MODE_MINIMIZED)
+
+func _image_action(id: String, action: String) -> void:
+	if action == "retry":
+		_session.request_message_image(id,true)
+	else:
+		var texture: Texture2D = _session.preview_message_image(id)
+		if texture != null:
+			var overlay = preload("res://src/preview/image_overlay.gd").new(texture,false)
+			add_child(overlay)
+			overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

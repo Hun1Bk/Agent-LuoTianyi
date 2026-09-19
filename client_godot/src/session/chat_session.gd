@@ -1,5 +1,6 @@
 extends Node
 signal message_audio_changed(id: String, state: Dictionary)
+signal message_image_changed(id: String, state: Dictionary)
 signal changed
 signal state_changed(state: Dictionary)
 signal expression_requested(command: String)
@@ -18,8 +19,9 @@ var _waiting_history := false
 var _pending_history: Dictionary = {}
 var _wire_ids: Dictionary = {}
 var _reading: RefCounted
+var _images: Node
 
-func _init(transport: Node, logger: RefCounted = null, media: Node = null, history: Node = null, reading: RefCounted = null) -> void:
+func _init(transport: Node, logger: RefCounted = null, media: Node = null, history: Node = null, reading: RefCounted = null, images: Node = null) -> void:
 	_transport = transport
 	_logger = logger
 	_media = media if media != null else Audio.new(logger)
@@ -47,11 +49,17 @@ func _init(transport: Node, logger: RefCounted = null, media: Node = null, histo
 			state_changed.emit(get_state()))
 	_reading = reading
 	changed.connect(_update_reading)
+	_images = images
+	if images != null:
+		add_child(images)
+		images.changed.connect(func(id,state): message_image_changed.emit(id,state))
 
 func start(session: Dictionary) -> Error:
 	stop()
 	if _reading != null:
 		_reading.start(session.get("server",""),session.get("username",""))
+	if _images != null:
+		_images.start(session)
 	_media.set_scope(session.get("server",""),session.get("username",""))
 	var result: Error = _transport.start(session)
 	if result == OK and _history != null:
@@ -103,6 +111,8 @@ func stop_voice() -> void:
 	_media.stop_current()
 
 func stop() -> void:
+	if _images != null:
+		_images.stop()
 	_waiting_history = false
 	_pending_history.clear()
 	_wire_ids.clear()
@@ -300,3 +310,16 @@ func report_visible_messages(ids: Array[String], foreground: bool) -> void:
 func _update_reading() -> void:
 	if _reading != null:
 		_reading.update(_messages,get_history_state())
+
+func request_message_image(id: String, retry: bool = false) -> void:
+	if _images != null and _by_id.get(id,{}).get("type") == "image":
+		if retry:
+			_images.retry(id)
+		else:
+			_images.ensure(id)
+
+func get_message_image(id: String) -> Dictionary:
+	return _images.get_state(id) if _images != null else {"status":"idle","texture":null,"code":""}
+
+func preview_message_image(id: String) -> Texture2D:
+	return _images.preview(id) if _images != null and _by_id.get(id,{}).get("type") == "image" else null

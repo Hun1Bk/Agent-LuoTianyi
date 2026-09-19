@@ -3,6 +3,7 @@ signal visible_messages(ids: Array[String])
 signal interacted
 signal audio_action(id: String, action: String)
 signal image_opened(texture: Texture2D)
+signal image_action(id: String, action: String)
 const Bubble = preload("res://src/preview/message_bubble.gd")
 var _canvas := Control.new()
 var _messages: Array[Dictionary] = []
@@ -65,6 +66,10 @@ func is_at_latest() -> bool:
 func set_audio_state(id: String, state: Dictionary) -> void:
 	if _nodes.has(id):
 		_nodes[id].set_audio_state(state)
+
+func set_image_state(id: String, state: Dictionary) -> void:
+	if _nodes.has(id):
+		_nodes[id].set_image_state(state)
 
 func _user_input(event: InputEvent) -> void:
 	if (event is InputEventMouseButton and event.pressed) or event is InputEventPanGesture or (event is InputEventKey and event.pressed):
@@ -133,6 +138,7 @@ func _render() -> void:
 				bubble.configure(message)
 				bubble.audio_action.connect(func(action): audio_action.emit(id,action))
 				bubble.image_opened.connect(func(texture): image_opened.emit(texture))
+				bubble.image_action.connect(func(action): image_action.emit(id,action))
 				_nodes[id] = bubble
 			else:
 				_nodes[id].update_message(message)

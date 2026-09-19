@@ -4,7 +4,7 @@ signal confirmed(texture: Texture2D)
 var _picture := TextureRect.new()
 var _scroll := ScrollContainer.new()
 var _zoom := 1.0
-var feedback := Label.new()
+var feedback: Label
 
 func _init(texture: Texture2D, pending: bool) -> void:
 	add_theme_stylebox_override("panel", Style.box(Color("f7fafc"), 16, 20))
@@ -28,6 +28,7 @@ func _init(texture: Texture2D, pending: bool) -> void:
 	_picture.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(_picture)
 	if pending:
+		feedback = Label.new()
 		feedback.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		column.add_child(feedback)
 		column.add_child(Style.button("发送图片 · 离线演示", func(): confirmed.emit(texture)))
