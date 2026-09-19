@@ -52,6 +52,12 @@ func _run() -> void:
 	var viewer = load("res://src/ui/log_window.gd").new(logger)
 	root.add_child(viewer)
 	viewer.open()
+	await process_frame
+	await process_frame
+	for control in viewer.find_children("*","Button",true,false):
+		if control.has_method("get_selected_id"):
+			var caption_width: float = control.get_theme_font("font").get_string_size(control.text,HORIZONTAL_ALIGNMENT_LEFT,-1,control.get_theme_font_size("font_size")).x
+			check(control.size.x >= caption_width+12,"current log filter remains readable")
 	logger.record("audio_received",{"frames":42})
 	var output: RichTextLabel = viewer.find_children("*","RichTextLabel",true,false)[0]
 	check(output.get_parsed_text().contains("42"),"visible window appends live metrics")
