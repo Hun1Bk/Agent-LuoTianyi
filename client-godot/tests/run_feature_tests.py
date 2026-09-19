@@ -3,7 +3,7 @@ import argparse, json, os, subprocess, threading, base64, hashlib, struct, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 PROJECT=Path(__file__).resolve().parents[1]
-def run(godot,script):
+def run(godot,script,gpu=False):
     reads, writes, errors = {}, {}, []
     provider_calls=[]
     delegated=[]
@@ -19,7 +19,10 @@ def run(godot,script):
             except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError): pass
         def do_GET(self):
             if self.path.startswith('/dynamics/unread?'): self.reply(200,{'unread_count':123}); return
-            if self.path.startswith('/dynamics?'): self.reply(200,{'items':[],'has_more':False,'next_cursor':None}); return
+            if self.path.startswith('/dynamics?'):
+                self.reply(200,{'items':[{'id':'visual-post','author_type':'agent','author_name':'洛天依','content':'今天也一起慢慢来吧。\n忙完以后，记得留一点时间给自己。','created_at':'2026-09-19 18:30:00','allow_comment':True,'comment_count':1,'visibility':'private'}],'has_more':False,'next_cursor':None}); return
+            if self.path.startswith('/dynamics/visual-post/comments?'):
+                self.reply(200,{'items':[{'id':'visual-comment','dynamic_id':'visual-post','author_type':'user','author_name':'测试用户','content':'好呀，晚点一起聊聊。','parent_comment_id':None,'created_at':'2026-09-19 18:31:00'}],'has_more':False,'next_cursor':None}); return
             if self.path=='/provider-stats': self.reply(200,{'calls':provider_calls,'delegated':delegated}); return
             if self.path=='/llm/client-model-types':
                 self.reply(200,{'types':[{'id':'text-purpose','name':'文本用途','description':'local fixture','model_kind':'llm','requires_json':True,'requires_thinking':False},{'id':'vision-purpose','name':'图像用途','description':'local fixture','model_kind':'vlm','requires_json':False,'requires_thinking':False}]}); return
@@ -82,11 +85,11 @@ def run(godot,script):
             self.reply(404,{})
     server=ThreadingHTTPServer(('127.0.0.1',0),Handler); thread=threading.Thread(target=server.serve_forever,daemon=True); thread.start()
     try:
-        result=subprocess.run([godot,'--headless','--path',str(PROJECT),'--script',script],env={**os.environ,'GODOT_TEST_SERVER':f'http://127.0.0.1:{server.server_port}'},capture_output=True,text=True,encoding='utf8',errors='replace',timeout=40)
+        result=subprocess.run([godot,*([] if gpu else ['--headless']),'--path',str(PROJECT),'--script',script],env={**os.environ,'GODOT_TEST_SERVER':f'http://127.0.0.1:{server.server_port}'},capture_output=True,text=True,encoding='utf8',errors='replace',timeout=40)
         print(result.stdout); print(result.stderr)
         if result.returncode or 'ERROR:' in result.stdout+result.stderr or 'FAIL:' in result.stdout or ': PASS' not in result.stdout or errors: raise RuntimeError(str(errors) or 'feature test failed')
         if script.endswith('test_preferences.gd'): assert 'merge' in writes
     finally: server.shutdown(); server.server_close(); thread.join(2)
     print('Offline feature API: PASS')
 if __name__=='__main__':
-    parser=argparse.ArgumentParser(); parser.add_argument('--godot',required=True); parser.add_argument('--script',default='res://tests/test_preferences.gd'); args=parser.parse_args(); run(args.godot,args.script)
+    parser=argparse.ArgumentParser(); parser.add_argument('--godot',required=True); parser.add_argument('--script',default='res://tests/test_preferences.gd'); parser.add_argument('--gpu',action='store_true'); args=parser.parse_args(); run(args.godot,args.script,args.gpu)

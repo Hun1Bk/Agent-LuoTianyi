@@ -1,0 +1,14 @@
+param([string]$Godot, [Parameter(Mandatory=$true)][string]$Python)
+. (Join-Path $PSScriptRoot 'common.ps1')
+$engine = Resolve-Godot $Godot
+$groups = @{
+    'run_history_tests.py' = @('test_history_sync.gd', 'test_history_media.gd')
+    'run_feature_tests.py' = @('test_preferences.gd', 'test_application_drafts.gd', 'test_model_settings.gd', 'test_model_execution.gd')
+    'run_dynamics_tests.py' = @('test_dynamics.gd', 'test_dynamics_window.gd')
+}
+foreach ($runner in $groups.Keys) {
+    foreach ($test in $groups[$runner]) {
+        & $Python (Join-Path $ProjectRoot "tests/$runner") --godot $engine --script "res://tests/$test"
+        if ($LASTEXITCODE -ne 0) { throw "$test failed." }
+    }
+}
