@@ -3,6 +3,10 @@ const Style = preload("res://src/preview/preview_style.gd")
 signal audio_action(action: String)
 var _audio: Control
 signal image_opened(texture: Texture2D)
+signal image_action(action: String)
+var _history_picture: TextureRect
+var _image_button: Button
+var _image_status := "idle"
 var _body: VBoxContainer
 var _text: RichTextLabel
 var _caption: Label
@@ -36,6 +40,18 @@ func configure(message: Dictionary, image_texture: Texture2D = null) -> void:
 	_text.scroll_active = false
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(_text)
+	if message.get("type") == "image":
+		_history_picture = TextureRect.new()
+		_history_picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_history_picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_history_picture.custom_minimum_size.y = 135
+		_history_picture.hide()
+		content.add_child(_history_picture)
+		_history_picture.gui_input.connect(func(event):
+			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+				image_action.emit("preview"))
+		_image_button = Style.button("加载图片…",func(): image_action.emit("retry" if _image_status == "error" else "preview"))
+		content.add_child(_image_button)
 	if image_texture != null:
 		var picture := TextureRect.new()
 		picture.texture = image_texture
@@ -77,3 +93,14 @@ func set_audio_state(state: Dictionary) -> void:
 		_audio.action.connect(func(value): audio_action.emit(value))
 	if _audio != null:
 		_audio.update_state(state)
+
+func set_image_state(state: Dictionary) -> void:
+	if _history_picture == null:
+		return
+	_image_status = state.status
+	_history_picture.texture = state.texture
+	_history_picture.visible = state.status == "ready"
+	_image_button.disabled = state.status in ["idle","loading"]
+	_image_button.text = {"idle":"加载图片…","loading":"正在下载图片…","ready":"打开原图","error":"图片加载失败 · 重试"}.get(state.status,"")
+	if state.code == "CACHE_WRITE_FAILED":
+		_image_button.text += " · 未能缓存"
