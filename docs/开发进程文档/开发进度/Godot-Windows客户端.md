@@ -102,3 +102,11 @@
 - 验证：`check.ps1` 全部通过，包含可控时钟队列测试；覆盖原 ID 重试、迟到/重复 ACK、终止 NACK、容量与包大小、跨龄期拒绝、断线及停止。独立核验指出图片取消事件名和迟到确认边界，新增测试先失败后修正通过。
 - 作者自审：核对 SPEC、旧端事件名及退避策略、payload 深拷贝和终态释放；未改动旧端或服务端。
 - 未验证：实际 WebSocket 连接及聊天 UI；本切片为投递队列，不表示真实聊天已接入。
+### 2026-09-19 WebSocket 认证、心跳与重连
+
+- 交付行为：真实 WebSocketPeer 连接路径前缀下的 chat_ws，以 message_token/user_auth/negative_ack_v1 鉴权；auth_ok 后心跳及业务投递；断线退避、超时、明确拒绝凭据停止重连、退出清理。
+- interface：`WebSocketTransport`；SPEC `02ea78c`、补充 `048dbf4`，Red `d1a7ea9`、`9864666`；分支 `feat/godot-websocket-transport`。
+- Red：本地服务正常，占位实现 19 项行为失败；补充认证关闭码 1008 用例先失败，修复后通过。测试服务普通拒绝保持连接与现有服务一致，单测另覆盖尝试耗尽立即关闭。
+- 验证：`check_network.ps1` 使用真实 socket 与 loopback websockets 16.0 fixture，鉴权字段、心跳、ACK、回复、同 ID 重连、同凭据拒绝和新 token 恢复、认证超时、无效 JSON 全通过；`check.ps1` 全通过。
+- 作者自审：核对 URL/TLS、队列资源、收包数量与字节限制、不输出原始秘密。发现 Godot 对立即关闭时最终帧的保留存在边界，认证关闭码 1008 单独终止，不依赖最后一帧错误文本。
+- 未验证：真实开发服务、TLS 部署、复杂代理网络；当前尚未接入正式聊天界面。
