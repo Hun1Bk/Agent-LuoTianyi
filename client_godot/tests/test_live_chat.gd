@@ -1,0 +1,81 @@
+extends SceneTree
+const Transport = preload("res://src/network/websocket_transport.gd")
+const Session = preload("res://src/session/chat_session.gd")
+const View = preload("res://src/ui/chat_view.gd")
+var failures: Array[String] = []
+var expressions: Array[String] = []
+var thinking_seen := false
+var logout_seen := false
+
+func check(value: bool, description: String) -> void:
+	if not value:
+		failures.append(description)
+		print("FAIL: ", description)
+
+func until(predicate: Callable) -> bool:
+	var deadline := Time.get_ticks_msec() + 2000
+	while not predicate.call() and Time.get_ticks_msec() < deadline:
+		await process_frame
+	return predicate.call()
+
+func _initialize() -> void:
+	_run.call_deferred()
+
+func _run() -> void:
+	var session = Session.new(Transport.new())
+	root.add_child(session)
+	session.expression_requested.connect(func(command): expressions.append(command))
+	session.state_changed.connect(func(state): thinking_seen = thinking_seen or state.thinking)
+	check(session.start({"server":OS.get_environment("GODOT_TEST_SERVER") + "/prefix", "username":"conversation", "message_token":"message-test"}) == OK, "chat starts real transport")
+	check(await until(func(): return session.get_state().phase == "ready"), "chat reports authenticated connection")
+	check(session.send_text(" \n ").is_empty() and session.get_messages().is_empty(), "blank chat rejected")
+	var view := View.new(session)
+	root.add_child(view)
+	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	view.logout_requested.connect(func(): logout_seen = true)
+	await process_frame
+	var inputs := view.find_children("*", "TextEdit", true, false)
+	check(inputs.size() == 1, "live chat exposes one composer")
+	if inputs.size() == 1:
+		var input: TextEdit = inputs[0]
+		input.text = "你好"
+		input.grab_focus()
+		var key := InputEventKey.new()
+		key.keycode = KEY_ENTER
+		key.pressed = true
+		Input.parse_input_event(key)
+		await process_frame
+		key.pressed = false
+		Input.parse_input_event(key)
+		check(input.text.is_empty(), "accepted text clears composer")
+	check(await until(func(): return session.get_messages().size() == 4), "UUID aggregation hides reflection and retains ephemeral text")
+	var messages: Array[Dictionary] = session.get_messages()
+	if messages.size() == 4:
+		check(messages[0].role == "user" and messages[0].status == "sent", "real ACK updates original bubble")
+		check(messages[1].text == "第一句" and messages[2].text == "第二句", "audio error preserves text and reply ordering")
+		check(messages[3].text == "临时可见消息", "ephemeral is independent of display flag")
+		messages[0].text = "mutated"
+		check(session.get_messages()[0].text == "你好", "message snapshots are independent")
+	check(expressions == ["微笑脸", "温柔脸", "normal"], "expressions follow reply order and duplicate terminal is ignored")
+	check(thinking_seen and not session.get_state().thinking, "thinking and waiting propagated")
+	await process_frame
+	await process_frame
+	var labels := view.find_children("*", "RichTextLabel", true, false)
+	check(labels.any(func(label): return label.text == "第一句"), "actual response appears in visible bubble")
+	var captions := view.find_children("*", "Label", true, false)
+	check(not captions.any(func(label): return label.text.contains("演示")), "live delivery is not labelled simulated")
+	for button in view.find_children("*", "Button", true, false):
+		if button.text == "退出登录":
+			button.pressed.emit()
+	check(logout_seen, "logout request is exposed to application")
+	session.stop()
+	check(session.get_messages().is_empty() and session.get_state().phase == "idle", "stop clears old account messages")
+	if inputs.size() == 1:
+		inputs[0].text = "保留草稿"
+		inputs[0].send_requested.emit()
+		check(inputs[0].text == "保留草稿", "rejected send preserves draft")
+	view.queue_free()
+	session.queue_free()
+	await process_frame
+	print("Live text chat: ", "PASS" if failures.is_empty() else "FAIL")
+	quit(0 if failures.is_empty() else 1)
