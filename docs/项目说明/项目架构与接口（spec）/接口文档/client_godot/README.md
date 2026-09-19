@@ -1,5 +1,13 @@
 # Godot 客户端 interface
 
+## ReadingPosition：本机阅读位置
+
+`ReadingPosition(root="user://reading")` RefCounted：`start(server,username)` 规范化并隔离范围，只读本机 UUID，无聊天正文；`update(messages,history_state)` 接收内存快照与同步状态；`get_state()` 返回 saved_id/target_id/pending/manual/located/reason。无旧位置在首批确定后定位最新；有旧位置找到后定位其下一条，直到全量成功仍找不到则最新并 reason=NOT_FOUND。尚在定位期间不得以当前显示最近记录覆盖旧位置；历史失败保持待定位，跳过本次不覆盖旧位置。
+
+`interact()` 标记用户已滚动/发送，随后目标只提供手动入口；`located()` 表示 UI 已执行一次目标定位或接受手动状态，才可记已读。`report_visible(ids,foreground) -> Error` 仅在前台、定位完成后，以可见集合中最后一条稳定服务端 UUID 单调推进；纯本地用户发送 ID 与临时回复不保存。按已加载顺序比较，不用文本/时间推测。以临时文件原子写 scope.json；失败保留旧磁盘记录并 reason=SAVE_FAILED；作用域切换清空内存。不包含跨设备接口。
+
+ChatSession 构造第五参数 reading 可选，正式应用注入；公开 `get_reading_state()`、`note_read_interaction()`、`reading_located()`、`report_visible_messages(ids,foreground)`，UI 不读文件。ChatView 自动定位只一次，已交互则显示“定位未读”按钮；前台窗口焦点与列表可见集合共同上报，后台下载不算已读。验证独立存储目录、首次最新、已读后定位、未找到说明、等待/后台不推进、手动标记、单调性及账号隔离。
+
 ## VirtualMessageList：可视消息列表
 
 `VirtualMessageList` 是 ScrollContainer。`set_messages(Array[Dictionary])` 使用 ChatSession 消息快照，按稳定 id 更新；只创建可见范围及有限前后缓冲的气泡节点，1000 条数据不创建 1000 个控件。`scroll_to_message(id) -> bool`、`scroll_to_latest()`、`get_visible_ids() -> Array[String]`、`get_reading_anchor() -> Dictionary`（id/offset）与 `is_at_latest() -> bool` 提供阅读操作。插入历史保留首个可见 id 和相对偏移，原在底部则继续跟随；消息文字未改变不重设 RichTextLabel。改变宽度时重新测量，测量修正仍保持锚点。
