@@ -15,6 +15,8 @@ def run(godot,script):
             try: self.wfile.write(body)
             except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError): pass
         def do_GET(self):
+            if self.path=='/llm/client-model-types':
+                self.reply(200,{'types':[{'id':'text-purpose','name':'文本用途','description':'local fixture','model_kind':'llm','requires_json':True,'requires_thinking':False},{'id':'vision-purpose','name':'图像用途','description':'local fixture','model_kind':'vlm','requires_json':False,'requires_thinking':False}]}); return
             if self.path=='/chat_ws':
                 self.send_response(101); self.send_header('Upgrade','websocket'); self.send_header('Connection','Upgrade')
                 self.send_header('Sec-WebSocket-Accept',base64.b64encode(hashlib.sha1((self.headers['Sec-WebSocket-Key']+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest()).decode()); self.end_headers()
