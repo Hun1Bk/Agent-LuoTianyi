@@ -80,7 +80,7 @@ func _load_posts(more: bool) -> void:
 	if result.ok:
 		result = _page(result.data,cursor,false)
 	if result.ok:
-		_posts = _merge(_posts if more else [],result.items)
+		_posts = _merge(_posts,result.items) if more else _merge(result.items,_posts)
 		_cursor = result.cursor
 		_state.has_more = result.has_more
 	_state.code = result.code
@@ -111,6 +111,40 @@ func load_comments(id: String,more: bool = false) -> void:
 		state.has_more = result.has_more
 		state.loaded = true
 	state.code = result.code
+	_notify()
+
+func refresh_comments(id: String) -> void:
+	if _session.is_empty() or _writing or _find_post(id).is_empty(): return
+	if not _comments.has(id): _comments[id] = _empty_comments()
+	var state: Dictionary = _comments[id]
+	if state.busy: return
+	state.busy = true
+	changed.emit()
+	var generation := _generation
+	var cursor := ""
+	var seen := {}
+	var collected: Array[Dictionary] = []
+	var result: Dictionary
+	while true:
+		seen[cursor] = true
+		result = await _request("/dynamics/"+id.uri_encode()+"/comments",HTTPClient.METHOD_GET,{},20,cursor)
+		if generation != _generation: return
+		if result.ok: result = _page(result.data,cursor,true,id)
+		if not result.ok: break
+		collected = _merge(collected,result.items)
+		if not result.has_more: break
+		cursor = result.cursor
+		if seen.has(cursor):
+			result = _failure("INVALID_RESPONSE")
+			break
+	state.busy = false
+	state.code = result.code
+	if result.ok:
+		state.items = _merge(collected,state.items)
+		_sort_comments(state.items)
+		state.has_more = false
+		state.cursor = ""
+		state.loaded = true
 	_notify()
 
 func refresh_unread() -> void:
@@ -217,7 +251,7 @@ func _write(id: String,content: String,parent: String) -> Dictionary:
 			post.comment_count = int(post.get("comment_count",0))+1
 	_state.code = result.code
 	_notify()
-	return {"ok":result.ok,"code":result.code}
+	return {"ok":result.ok,"code":result.code,"item_id":result.data.item.id if result.ok else ""}
 
 func _page(data: Dictionary,cursor: String,comments: bool,id: String = "") -> Dictionary:
 	if not data.get("items") is Array or not data.get("has_more") is bool:
