@@ -148,3 +148,16 @@ C++ 临时明文缓冲在释放前清零；Windows 句柄和 DPAPI 输出无论�
 ACK 超时 10 秒，图片选择/取消为 5 秒。持久消息首发后最多重试 8 次，退避 1/2/4/8/16/30/30/30 秒；若排队龄期达到 240 秒或下一次重试将达到龄期上限，即结束为 DELIVERY_UNCERTAIN。正常 NACK 的 code 只保留字符串错误码，不传原始 message 给日志。瞬时事件不重试。依据 client/src/delivery_policy.py 及 ws_transport.py。
 
 验证 `tests/test_reliable_outbox.gd`：成功/旧格式/重复 ACK，非重试 NACK，ACK 丢失和可重试 NACK 保留 ID，重试与龄期边界，瞬时事件不挡文本，断线和显式停止。
+## WebSocketTransport：认证连接与事件传输
+
+`src/network/websocket_transport.gd` 为 Node，由应用创建并注入单调毫秒时钟 Callable（默认 Time.get_ticks_msec）。拥有 WebSocketPeer 和 ReliableOutbox，在主线程逐帧 poll；不阻塞 UI，不保存凭据，不写原始网络日志。
+
+- `start(session: Dictionary) -> Error`：接受 server/username/message_token；规范化 HTTP(S) 地址为 WS(S) 的 `/chat_ws`，保留路径前缀。无效输入返回 ERR_INVALID_PARAMETER；启动替换旧连接和投递队列。连接后发送 `user_auth`，使用 message_token 和 capabilities:[negative_ack_v1]；只有 `auth_ok` 才进入 ready，`system_ready` 本身不算认证成功。
+- `send_event(type, payload, durable=false) -> String`：通过 ReliableOutbox 返回稳定 ID；ready/connecting/authenticating/reconnecting 可接受，idle/auth_rejected 拒绝返回空串。持久消息可等待重连；瞬时事件离线终止。UI 仍经消息控制器调用，不直接生成协议包。
+- `get_state() -> Dictionary` 与 `state_changed(state)`：返回 phase（idle/connecting/authenticating/ready/reconnecting/auth_rejected）和 code，不含身份秘密。`delivery_changed(id,state,code)` 转发投递状态；`event_received(event)` 交付已校验 type/payload 的业务事件；`system_error(code)` 只报告错误码，不把 error 伪装角色消息。
+- `stop()`：关闭 socket、清理内存凭据、终止队列及心跳；重复调用安全，退出树自动调用。后续显式 start 可使用新的会话。
+- 明确 `auth_error` 或认证期 `error` 后停止同凭据自动/手动重连，以规范化服务器/用户名/token 的 SHA256 指纹记住拒绝；相同凭据 start 返回 ERR_UNAUTHORIZED，更新凭据才可继续。不把临时网络断开当鉴权拒绝。
+- 连接期限 8 秒、打开后认证期限 5 秒；断开/超时按 2/4/8/16/30 秒退避，认证成功后复位。ready 后立即心跳，之后每 10 秒 hb_ping（ping_id 递增）；hb_pong 不产生角色事件，沿用旧端无独立 pong 超时规则。
+- `server_ack` 按顶层 reply_to 交给 outbox；包大小上限 8 MiB，二进制帧、非对象 JSON 或缺少 type/payload 对象视为 INVALID_RESPONSE 并断线重连。TLS 使用 Godot 默认验证；每帧最多处理 64 包，防止网络洪峰独占界面。
+
+验证：本地 Python websockets fixture + 真实 Godot WebSocketPeer；检查 URL、user_auth/message_token/capabilities、auth_ok、立即心跳、ACK/业务事件、连接断开后同 ID 重试、拒绝凭据不重连、更新凭据恢复、认证超时、退出清理；单调时钟注入用于加速退避和心跳，不访问生产服务。
