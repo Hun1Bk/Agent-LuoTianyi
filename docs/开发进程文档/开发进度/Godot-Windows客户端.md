@@ -343,3 +343,9 @@
 - check.ps1、check_accounts.ps1、check_network.ps1、check_features.ps1 全部PASS；新增补回归覆盖刷新后页失败保留、双账号私人评论/数量、退出取消、发布后选择、草稿/阅读位置/分隔比例恢复。补回归首次通过，不伪造Red。
 - 新版账户/日志/偏好/模型/动态及语音默认/最小/暂停/125%/150%内容缩放GPU截图成功；原生动态独立最小化和菜单边缘/键盘测试PASS。日志筛选宽度修复后已重新截图核查。
 - 测试布局隔离到临时目录；恢复错误提示、异常时间保留原文。版本单一来源设为0.1.1，使用说明与现行interface消除旧单列界面描述；原有project.godot编辑器修改保留未提交。作者自审与diff检查完成，未修改服务端/旧Python端/App。
+
+### 2026-09-20 0.1.1 完整ZIP交付核验
+- 打包SPEC b4f79ee、Red 303b960验证实际残包缺少EXE；构建改为临时ZIP、完整条目校验后原子发布正式名。失败不会留下同名正式包，同版本覆盖被拒绝。作者自审核对Windows路径规范与失败清理。
+- agentluo-0.1.1.zip：43,172,555字节/14文件；SHA256 f22ec8da492c740244b9012a2f109a6ac4bcde254ac98658a91a52dc1bb9602d。verify_release_archive.py CRC/版本/逐文件字节比对PASS，两DLL与锁文件一致，0.1.0旧包哈希未变。
+- 最终PCK的角色/新UI资源加载、0.1.1版本、完整重放WASAPI实际混音PASS；动态追加滚底自动分页和不可评论输入回归PASS。
+- 截图/验证/提交/自审及未验证范围汇总：client_godot/artifacts/agentluo-011-acceptance.md。公共服务、真实系统DPI/Windows10/集显、人工听感与长期性能未验收；未推送合并或切换入口。

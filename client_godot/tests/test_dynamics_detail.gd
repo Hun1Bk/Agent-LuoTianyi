@@ -29,6 +29,8 @@ func _run() -> void:
 	draft.text = "ordinary draft"
 	check(window.is_dirty(),"comment draft counted")
 	window.select_post("d1")
+	for input in window.find_children("CommentDraft","TextEdit",true,false):
+		if input.is_visible_in_tree(): check(not input.editable,"read-only dynamic disables input")
 	window.select_post("d0")
 	check(draft.text == "ordinary draft" and draft.is_visible_in_tree(),"switch preserves correct draft")
 	check(not window.select_post("missing") and window.get_selected_id()=="d0","unknown selection cannot clear current detail")
@@ -41,6 +43,13 @@ func _run() -> void:
 	window.select_post("d0")
 	await process_frame
 	check(active.scroll_vertical==140,"per-post reading position restored")
+	active.scroll_vertical = 100000
+	await create_timer(.15).timeout
+	check(controller.get_comments("d0").items.size()==22,"scrolling detail to bottom loads next comment page")
+	for scroll in window.find_children("*","ScrollContainer",true,false):
+		if not scroll.has_method("update_comments"): scroll.scroll_vertical = 100000
+	await create_timer(.15).timeout
+	check(controller.get_posts().size()==12,"scrolling feed to bottom loads next post page")
 	var replies = window.find_children("*","Button",true,false).filter(func(b): return b.text == "回复" and b.is_visible_in_tree())
 	check(not replies.is_empty(),"explicit inline reply actions")
 	if not replies.is_empty():
