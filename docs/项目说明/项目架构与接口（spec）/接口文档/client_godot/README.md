@@ -163,3 +163,19 @@ ACK 超时 10 秒，图片选择/取消为 5 秒。持久消息首发后最多�
 验证：本地 Python websockets fixture + 真实 Godot WebSocketPeer；检查 URL、user_auth/message_token/capabilities、auth_ok、立即心跳、ACK/业务事件、连接断开后同 ID 重试、拒绝凭据不重连、更新凭据恢复、认证超时、退出清理；单调时钟注入用于加速退避和心跳，不访问生产服务。
 
 认证阶段收到 WebSocket 关闭码 1008 同样视为 AUTH_REJECTED，禁止同凭据重连；这是服务端认证期限/尝试次数耗尽的实际关闭语义。Godot peer 在同次 poll 收到最终数据帧与关闭帧时可能已清空入站队列，因此不能仅依赖最后一帧 auth_error；普通关闭与 1013 仍按网络退避处理。
+## ChatSession 与 ChatView：真实文字聊天
+
+`src/session/chat_session.gd`（Node）由真实 WebSocketTransport 构造并拥有其生命周期；应用在账户 signed_in 时调用 `start(account_session) -> Error`，退出或账户切换调用 `stop()`。UI 使用下列接口，不发送协议包：
+
+- `send_text(text) -> String`：拒绝纯空白/未登录，正常保留正文，发送 user_text，llm_mode.types 默认空列表；返回网络的稳定 ID，立即产生 user 消息，不等待回复。重连期间可排队；无法入队返回空串且保留输入。
+- `get_messages() -> Array[Dictionary]` 返回深拷贝；消息含 id/role/text/status/code（queued/sending/sent/failed/uncertain 或 received）。投递状态更新原消息，不增加气泡；DELIVERY_UNCERTAIN 明确显示“无法确认送达”，不提供换 ID 自动重发。
+- `get_state() -> Dictionary` 与 `state_changed(state)` 提供连接 phase/code、thinking 和系统提示；`changed` 表示消息内容/状态改变；`expression_requested(command)` 由应用连接 AvatarDriver。stop 关闭传输并清空消息、回复 UUID 和账户状态，不泄漏给下一账户。
+- 接收 agent_state_changed 的 thinking/waiting；agent_message 按 payload.uuid 合并。重复分片不增加气泡，非空 text 更新同 UUID 的正文，空尾包不清文字；display_in_chat=false 不出气泡，is_ephemeral 保留显示语义但本切片不写缓存。
+- 按 UUID 首次到达顺序展示文本/表情，前一回复终止前后续回复暂存；is_final_package 或 audio_error 结束该回复。断线释放未完成回复等待，保留已显示文字。保留音频相关字段语义，但此切片不播放或缓存声音，不能视为媒体验收。
+- 无效回复（缺 uuid/text 类型错误）只产生安全系统提示；网络 error/auth_error 不进入天依消息。重复终止包忽略，不重放表情。
+
+`src/ui/chat_view.gd`（Control）注入 ChatSession，发送/状态/正文使用真实控制器；公开 `logout_requested` 交给应用调用 AccountSession.logout。沿用已确认的气泡、输入控件和主题，正式发送状态不带“演示”。Enter/Shift+Enter/IME 规则不变；只有接受发送后清输入，失败保留。已有气泡更新而不全部重建，保持文字选择；在底部跟随新消息，阅读旧内容保留滚动位置并提供回到最新。当前不提供尚未接入的图片/音频按钮。
+
+应用沿用左角色右聊天；账户成功显示 ChatView、隐藏账户表单；退出返回账户表单并取消连接。分隔比例保存到 user://window_layout.cfg，窗口缩放保持比例。离线 preview 保持独立。
+
+验证：真实 ChatSession + WebSocketTransport + loopback 服务，观察发送状态、同 UUID 多包/隐藏/临时/音频错误文字、思考、表情顺序、断线和退出；通过 ChatView 可见控件触发发送，验证草稿与真实回复；默认自动化不访问真实账户。
