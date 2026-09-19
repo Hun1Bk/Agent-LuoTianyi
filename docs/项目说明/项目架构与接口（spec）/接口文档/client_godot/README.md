@@ -1,5 +1,17 @@
 # Godot 客户端 interface
 
+## 历史首批边界与全量同步
+
+`HistoryApi(timeout=15)` 为 Node，`fetch_page(session,end_index=-1) -> Dictionary` 异步 POST /history，字段 username/token/count=50/end_index；真实 username 与 message_token，复用规范化服务器。返回 `{ok,code,status,data}`，无重试/重定向，8 MiB 响应上限；`cancel()` 结束请求并隔离迟到结果。只接受 history 数组和非负整型 start_index；未知字段不传 UI。历史本身不操作播放器。
+
+`HistorySync(api,logger=null)` 为 Node，拥有 api；`start(session)` 重置范围并异步取最新首批，`stop()` 取消并清空范围；`retry()` 重试失败页，`skip()` 仅首批失败有效、释放发送且该登录不再导入历史。`get_state()`/`state_changed(state)` 提供 phase（idle/first_loading/first_failed/loading/failed/complete/skipped）、code、count、start_index、incomplete。`page_received(messages)` 向 ChatSession 提交经校验的 id/role/text/type/timestamp/history=true；`boundary_ready` 仅首批成功或明确跳过发出一次。成功页按 start_index 向前取，首批后的请求不再使用 -1；断线重连不重置此控制器。
+
+UUID 重复去重并显式 incomplete，不用文本/时间猜测身份。非法字段、非整数/不递减边界、数量与索引跨度不符均失败保留已有页，错误 HISTORY_INVALID；首批空记录 start=0 正常完成。旧 image 路径不进入文本，只保留 image 类型与 UUID；未知记录类型显式拒绝，不假装完整。取消/新登录令旧响应失效。
+
+ChatSession 构造新增可选第四参数 history（默认 null 供不含历史的现有契约测试），正式应用注入 HistorySync。start 并行启动传输及历史；历史首批前 send_text 立即建立稳定本地 ID、status=waiting_history，至多 128 条、单包 8 MiB，保留未发正文；成功/跳过后顺序发送并显式映射网络 ID 到本地 ID。等待首批不消耗网络投递龄期；身份拒绝不重新发送。`get_history_state()`、`retry_history()`、`skip_history()` 为 UI 边界。已获取历史放在实时消息前，按 UUID 去重，实时天依正文优先；历史导入不触发声音/表情。stop 同时取消同步、清空排队与 ID 映射；get_state 含 history 子状态。ChatView 显示同步进度、首批/后续失败重试，只有首批失败提供跳过。
+
+验证真实 loopback HTTP + WebSocket：首批延迟时消息尚未送达但可见、认证/心跳正常；固定分页边界、发送后后台页不重复最新历史、首批失败/跳过、后续失败重试、坏页/重复、取消/账号切换与无历史音频/表情。
+
 ## 日志窗口与应用生命周期
 
 Application 在正常入口最早创建 ClientLog 并记录 client_started，退出树 finish；账户状态与发送/投递记录固定事件、数字和代码。`LogWindow(logger)` 是独立非模态 Window，`open()` 显示并聚焦已有实例；关闭仅隐藏，登录前按钮和 ChatView.log_requested 信号由 Application 打开同一实例。深色等宽终端按级别配色，默认完整当前启动记录，追加记录只追加一行，不反复重建。搜索、模块/级别筛选、历史启动选择、复制可见记录、暂停/恢复跟随；筛选或切换才重新读取。导出选定启动通过原生 FileDialog 选择 ZIP 路径，调用 ClientLog.export_run，失败显示错误，不导出筛选子集。
