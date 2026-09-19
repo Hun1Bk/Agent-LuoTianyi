@@ -1,4 +1,4 @@
-extends SceneTree
+﻿extends SceneTree
 const Log = preload("res://src/storage/client_log.gd")
 var failures: Array[String] = []
 func check(value: bool, description: String) -> void:
@@ -8,24 +8,55 @@ func check(value: bool, description: String) -> void:
 func _initialize() -> void:
 	var directory := "user://log-test-%s" % Time.get_ticks_usec()
 	var log = Log.new(directory, 4096)
-	check(log.record("reply_received", {"reply_id":"synthetic-uuid", "has_audio":true, "audio_chars":128,
-		"final":false, "token":"SECRET-TOKEN", "audio":"SECRET-AUDIO", "text":"SECRET-TEXT", "code":"bad secret code"}) == OK, "diagnostic record written")
-	var file := directory + "/client.jsonl"
-	check(FileAccess.file_exists(file), "log file exists")
-	if FileAccess.file_exists(file):
-		var contents := FileAccess.get_file_as_string(file)
-		var entry: Dictionary = JSON.parse_string(contents.strip_edges())
-		check(entry.get("has_audio") == true and entry.get("audio_chars") == 128, "audio receipt metadata retained")
-		check(entry.get("reply_id") == "synthetic-uuid".sha256_text().left(12), "reply correlation is hashed")
-		check(not contents.contains("SECRET") and not contents.contains("bad secret code"), "unapproved fields and raw error text excluded")
-		check(entry.has("time") and entry.has("elapsed_ms"), "timestamps recorded")
+	log.record("client_started")
+	check(log.has_method("read_entries"), "startup records remain queryable from launch")
+	if not log.has_method("read_entries"):
+		DirAccess.remove_absolute(directory + "/client.jsonl")
+		DirAccess.remove_absolute(directory)
+		quit(1)
+		return
 	for index in range(120):
-		log.record("audio_decoded", {"frames":index, "bytes":48000, "sample_rate":24000})
-	check(FileAccess.file_exists(directory + "/client.1.jsonl") and FileAccess.file_exists(directory + "/client.2.jsonl"), "log rotation is bounded")
-	var bad = Log.new(file + "/impossible")
-	check(bad.record("test") != OK, "write failure reported")
-	for path in ["client.jsonl", "client.1.jsonl", "client.2.jsonl"]:
-		DirAccess.remove_absolute(directory + "/" + path)
+		check(log.record("reply_received", {"reply_id":"synthetic-uuid", "frames":index,
+			"has_audio":true,"token":"SECRET-TOKEN", "text":"SECRET-TEXT", "code":"bad secret code"}) == OK, "record written")
+	var entries: Array = log.read_entries()
+	check(entries.size() == 121 and entries[0].event == "client_started", "no truncation of launch records")
+	var raw := JSON.stringify(entries)
+	check(not raw.contains("SECRET") and not raw.contains("bad secret code"), "secrets excluded")
+	check(entries[1].reply_id == "synthetic-uuid".sha256_text().left(12), "correlation hashed")
+	check(entries[1].has_audio and entries[1].has("module") and entries[1].has("level"), "terminal metadata present")
+	var id: String = log.get_run_id()
+	log.finish()
+	log.finish()
+	check(log.read_entries().size() == 122, "finish is idempotent")
+	check(log.record("after_finish") != OK, "closed run immutable")
+	var observer = Log.new(directory)
+	check(observer.read_entries(id).size() == 122, "complete run recovered across instances")
+	var zip_path := directory + "/diagnostic.zip"
+	check(observer.export_run(id, zip_path) == OK, "export whole selected startup")
+	var zip := ZIPReader.new()
+	check(zip.open(zip_path) == OK, "export is valid ZIP")
+	check(zip.get_files().size() == 3, "only diagnostic entries included")
+	check(zip.read_file("events.jsonl").get_string_from_utf8().contains("client_started"), "export retains beginning")
+	check(zip.read_file("readable.txt").get_string_from_utf8().contains("客户端启动"), "readable Chinese explanation")
+	zip.close()
+	check(observer.export_run(id, zip_path) != OK, "export does not overwrite")
+	observer.record("client_started")
+	var active: String = observer.get_run_id()
+	for index in range(53):
+		var run = Log.new(directory)
+		run.record("client_started")
+		run.finish()
+	var runs: Array = observer.list_runs()
+	check(runs.size() == 50, "50 startup retention")
+	check(not observer.read_entries(active).is_empty(), "another active instance protected")
+	check(observer.read_entries(id).is_empty(), "old finished run evicted whole")
+	check(observer.read_entries("../diagnostic").is_empty(), "path traversal rejected")
+	observer.finish()
+	var bad = Log.new(zip_path + "/impossible")
+	check(bad.record("client_started") != OK, "write failure surfaced")
+	check(bad.read_entries().size() == 1, "failed disk write retained for current viewer")
+	for file in DirAccess.get_files_at(directory):
+		DirAccess.remove_absolute(directory.path_join(file))
 	DirAccess.remove_absolute(directory)
-	print("Client diagnostics: ", "PASS" if failures.is_empty() else "FAIL")
+	print("Client startup diagnostics: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
