@@ -1,10 +1,22 @@
 """Offline real HTTP/WS history contract; no public server or account data."""
-import argparse, asyncio, json, os
+import argparse, asyncio, json, os, struct, zlib
 from pathlib import Path
 from aiohttp import web
 PROJECT = Path(__file__).resolve().parents[1]
 async def run(godot, script):
     errors, requests, opened = [], {}, set()
+    image_calls = {}
+    def chunk(tag, data):
+        return struct.pack('!I',len(data))+tag+data+struct.pack('!I',zlib.crc32(tag+data))
+    png = b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('!2I5B',2,2,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(b'\0\x66\xcc\xff\x66\xcc\xff'*2))+chunk(b'IEND',b'')
+    async def image(request):
+        data=await request.json()
+        if set(data) != {'username','token','uuid'} or data['token'] != 'message-test':
+            errors.append('image protocol mismatch')
+            return web.Response(status=400)
+        key=(data['username'],data['uuid']); image_calls[key]=image_calls.get(key,0)+1
+        if data['uuid']=='slow': await asyncio.sleep(.3)
+        return web.Response(body=b'broken' if data['uuid']=='broken' and image_calls[key]==1 else png,content_type='image/png')
     async def history(request):
         try:
             assert request.headers.get('Authorization') == 'Bearer message-test'
@@ -49,6 +61,7 @@ async def run(godot, script):
     app=web.Application()
     app.router.add_get('/history',history)
     app.router.add_get('/chat_ws',websocket)
+    app.router.add_post('/get_image',image)
     runner=web.AppRunner(app,access_log=None)
     await runner.setup()
     site=web.TCPSite(runner,'127.0.0.1',0)
@@ -62,8 +75,12 @@ async def run(godot, script):
         text=(out+err).decode('utf8',errors='replace')
         print(text)
         if proc.returncode or 'ERROR:' in text or errors: raise RuntimeError(str(errors) or 'Godot history test failed')
-        if requests.get('normal') != [-1,70,20]: raise AssertionError(f'fixed boundary: {requests}')
-        if requests.get('skip') != [-1]: raise AssertionError('skip reimported history')
+        if script.endswith('test_history_sync.gd'):
+            if requests.get('normal') != [-1,70,20]: raise AssertionError(f'fixed boundary: {requests}')
+            if requests.get('skip') != [-1]: raise AssertionError('skip reimported history')
+        elif script.endswith('test_history_media.gd'):
+            assert image_calls.get(('images','sample')) == 1, 'cache re-downloaded'
+            assert image_calls.get(('other','sample')) == 1, 'account isolation not exercised'
         print('HTTP + WebSocket history: PASS')
     finally: await runner.cleanup()
 if __name__=='__main__':
