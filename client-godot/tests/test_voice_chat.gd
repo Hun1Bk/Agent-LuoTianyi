@@ -54,9 +54,15 @@ func _run() -> void:
 	session.send_text("bad")
 	check(await until(func(): return session.get_state().code == "AUDIO_ERROR"), "decode failure reported to UI")
 	check(session.get_messages().any(func(message): return message.text == "voice-bad"), "malformed audio preserves text")
+	root.size = Vector2i(1200,800)
 	var view := View.new(session)
 	root.add_child(view)
+	view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	await process_frame
+	var list: ScrollContainer = view.find_children("*","ScrollContainer",true,false).filter(func(n): return n.has_method("scroll_to_message"))[0]
+	list.scroll_to_message("voice-first")
+	for _frame in 4:
+		await process_frame
 	check(button(view,"重放") != null,"completed voice exposes visible replay control")
 	if button(view,"重放") != null:
 		var label: RichTextLabel

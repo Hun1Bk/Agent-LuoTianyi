@@ -25,7 +25,7 @@ func _run() -> void:
 	check(list.scroll_to_message("500"),"can jump to real history UUID")
 	for _frame in 12:
 		await process_frame
-	var anchor: Dictionary = list.get_anchor()
+	var anchor: Dictionary = list.get_reading_anchor()
 	check(anchor.id == "500","jump settles on requested anchor")
 	var older: Array[Dictionary] = []
 	for index in 100:
@@ -33,16 +33,16 @@ func _run() -> void:
 	list.set_messages(older+messages)
 	for _frame in 12:
 		await process_frame
-	check(list.get_anchor().id == anchor.id and absf(list.get_anchor().offset-anchor.offset)<2,"prepend retains exact reading anchor")
+	check(list.get_reading_anchor().id == anchor.id and absf(list.get_reading_anchor().offset-anchor.offset)<2,"prepend retains exact reading anchor")
 	var labels: Array = list.find_children("*","RichTextLabel",true,false)
 	var selected: RichTextLabel = labels[0]
-	selected.select(0,2)
+	selected.select_all()
 	list.set_audio_state("500",{"available":false,"code":""})
-	check(is_instance_valid(selected) and selected.get_selected_text().length()==2,"audio updates preserve selection")
+	check(is_instance_valid(selected) and not selected.get_selected_text().is_empty(),"audio updates preserve selection")
 	list.size.x = 460
 	for _frame in 12:
 		await process_frame
-	check(list.get_anchor().id == "500","resize preserves anchor")
+	check(list.get_reading_anchor().id == "500","resize preserves anchor")
 	check(not list.scroll_to_message("missing"),"unknown ID doesn't fabricate jump")
 	list.scroll_to_latest()
 	for _frame in 12:

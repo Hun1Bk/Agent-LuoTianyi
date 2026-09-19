@@ -15,4 +15,5 @@ Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_reliable_outbox.gd') 'reliable-outbox'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_client_log.gd') 'client-log'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_log_window.gd') 'log-window'
+Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_virtual_history.gd') 'virtual-history'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_voice_replay.gd') 'voice-replay'
