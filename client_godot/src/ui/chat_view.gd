@@ -15,6 +15,7 @@ var _menu := MenuButton.new()
 var _history_status := Label.new()
 var _history_retry := Button.new()
 var _history_skip := Button.new()
+var _unread := Button.new()
 
 func _init(session: Node) -> void:
 	_session = session
@@ -95,10 +96,15 @@ func _ready() -> void:
 	column.add_child(_empty)
 	_scroll.audio_action.connect(_audio_action)
 	_scroll.visible_messages.connect(_visible_audio)
+	_scroll.interacted.connect(_session.note_read_interaction)
 	_latest.text = "回到最新 ↓"
 	_latest.hide()
 	_latest.pressed.connect(_to_latest)
 	column.add_child(_latest)
+	_unread.text = "定位未读"
+	_unread.hide()
+	_unread.pressed.connect(_jump_reading)
+	column.add_child(_unread)
 	column.add_child(HSeparator.new())
 	column.add_child(audio_controls)
 	_input.placeholder_text = "想说些什么？"
@@ -125,11 +131,13 @@ func _ready() -> void:
 	_session.state_changed.connect(_state_changed)
 	_state_changed(_session.get_state())
 	_refresh()
+	get_window().focus_entered.connect(_report_reading)
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO,size), Style.SURFACE)
 
 func _send() -> void:
+	_session.note_read_interaction()
 	if not _session.send_text(_input.text).is_empty():
 		_input.clear()
 
@@ -138,11 +146,13 @@ func _refresh() -> void:
 	_empty.visible = messages.is_empty()
 	_scroll.set_messages(messages)
 	_visible_audio(_scroll.get_visible_ids())
+	_apply_reading()
 
 func _visible_audio(ids: Array[String]) -> void:
 	for id in ids:
 		_scroll.set_audio_state(id,_session.get_message_audio(id))
 	_latest.visible = not _scroll.is_at_latest()
+	_report_reading()
 
 func _to_latest() -> void:
 	_scroll.scroll_to_latest()
@@ -155,6 +165,12 @@ func _state_changed(state: Dictionary) -> void:
 	_history_status.text = {"first_loading":"正在同步最近历史；发送的消息将暂时排队。", "first_failed":"首批历史加载失败；可重试或跳过后发送。", "loading":"后台同步历史 · 已加载 %s 条" % history.count, "failed":"较早历史加载失败，已加载内容保留。", "skipped":"已跳过本次历史同步。"}.get(history.phase, "")
 	if history.get("incomplete",false):
 		_history_status.text += " 检测到分页重复，无法确认历史完整。"
+	_apply_reading()
+	var reading: Dictionary = _session.get_reading_state()
+	if reading.reason == "NOT_FOUND":
+		_history_status.text += " 原阅读位置已找不到，回到最新消息。"
+	elif reading.reason == "SAVE_FAILED":
+		_history_status.text += " 本机阅读位置未能保存。"
 	_status.text = {"idle":"连接已关闭", "connecting":"正在连接…", "authenticating":"正在验证账户…",
 		"ready":"已连接", "reconnecting":"正在重新连接 · 可以继续输入", "auth_rejected":"聊天凭据已失效，请退出后重新登录。"}.get(state.phase, "")
 	if state.thinking:
@@ -182,3 +198,27 @@ func _audio_action(id: String, action: String) -> void:
 		"pause": _session.pause_replay()
 		"resume": _session.resume_replay()
 		"stop": _session.stop_replay()
+
+func _apply_reading() -> void:
+	var reading: Dictionary = _session.get_reading_state()
+	if reading.pending or reading.located:
+		return
+	if reading.manual:
+		_unread.visible = not reading.target_id.is_empty()
+		_session.reading_located()
+	else:
+		_jump_reading()
+
+func _jump_reading() -> void:
+	var reading: Dictionary = _session.get_reading_state()
+	if reading.pending:
+		return
+	if not reading.target_id.is_empty() and not _scroll.scroll_to_message(reading.target_id):
+		return
+	_session.reading_located()
+	_unread.hide()
+	_report_reading.call_deferred()
+
+func _report_reading() -> void:
+	if is_inside_tree():
+		_session.report_visible_messages(_scroll.get_visible_ids(),is_visible_in_tree() and get_window().has_focus() and get_window().mode != Window.MODE_MINIMIZED)
