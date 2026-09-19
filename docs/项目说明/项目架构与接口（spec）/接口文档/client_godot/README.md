@@ -192,7 +192,7 @@ ACK 超时 10 秒，图片选择/取消为 5 秒。持久消息首发后最多�
 
 ## ReplyAudio：实际流式播放
 
-`src/media/reply_audio.gd` 为 Node，由组装根创建，构造可注入 ClientLog；ChatSession 构造可接收第三个参数 media，未传则创建真实 ReplyAudio（保留既有调用兼容）。媒体拥有 AudioStreamPlayer/Generator 与每 UUID 的 PcmStreamDecoder，不直接改变气泡或角色。
+`src/media/reply_audio.gd` 为 Node，由组装根创建，构造参数 `(logger=null, clock=Callable())` 可注入 ClientLog 与返回单调毫秒的时钟（默认 Time.get_ticks_msec，测试可控）；ChatSession 构造可接收第三个参数 media，未传则创建真实 ReplyAudio（保留既有调用兼容）。媒体拥有 AudioStreamPlayer/Generator 与每 UUID 的 PcmStreamDecoder，不直接改变气泡或角色。
 
 - `append_reply_audio(id, encoded, final, audio_error=false)`：接收每包 Base64 字符串，先解码/缓存。空音频可用于文字回复及终止；坏 Base64、原生失败、服务端 audio_error 产生可识别错误，保留聊天文字，不落盘部分流。
 - `play_reply(id)`：允许一个活跃 UUID；可在首片到达后调用，约 80ms 预缓冲或 final 后自动开始实际播放。后续 UUID 先解码，等待会话按顺序调用；每 UUID 采样率来自 WAV，由 Godot 混音器重采样。
