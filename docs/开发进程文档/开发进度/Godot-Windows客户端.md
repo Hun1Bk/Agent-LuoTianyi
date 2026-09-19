@@ -330,3 +330,7 @@
 - SPEC b658d69，Red 353844e：缺少双栏选择边界；实现45:55可调原生窗口、完整详情、平铺评论、行内回复、独立发布、每动态草稿和关闭聚合确认；移除被替代的单列卡片。窗口/详情/发布共约500行构成可运行视图切片，保留应用控制器所有权。
 - test_dynamics_detail.gd、test_dynamics_window.gd、test_application_drafts.gd PASS。capture_dynamics_ui.gd 使用真实GPU生成默认、最小、回复、发布及125%/150%内容缩放截图；分区比例断言PASS。Windows HWND无owner/非toolwindow、主窗口实际最小化后动态仍可见PASS。
 - 作者自审修正force_native初始化顺序和分隔条偏移；未将任务栏资格检查或内容缩放截图宣称公共服务/实际OS DPI人工验收。
+
+### 2026-09-20 原生下拉坐标与缩放修正
+- 沿用 UnifiedDropdown SPEC，Red 8e9b066：真实GPU下125%/150%菜单没有跟随按钮物理宽度。修正原生窗口位置加Viewport最终变换，弹层按实际缩放绘制，蓝色选中标记。
+- capture_dropdown_ui.gd 和 test_dropdown.gd PASS：底部向上、35项长列表、键盘跳过禁用项、Enter/Esc、父窗口移动收起、原生触发点对齐和缩放边界。作者自审确认无页面操作弹层内部。

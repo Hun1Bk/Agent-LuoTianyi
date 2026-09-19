@@ -8,6 +8,7 @@ func _initialize() -> void:
 	_run.call_deferred()
 func _run() -> void:
 	root.size = Vector2i(520,400)
+	root.content_scale_size = Vector2i.ZERO
 	root.theme = load("res://src/preview/preview_style.gd").make_theme()
 	var menu = load("res://src/ui/unified_dropdown.gd").new()
 	root.add_child(menu)
@@ -24,6 +25,7 @@ func _run() -> void:
 	var popup: Window = menu.find_children("*","Window",true,false)[0]
 	check(screen.encloses(Rect2i(popup.position,popup.size)),"long menu clamped inside screen")
 	check(popup.position.y < root.position.y+330,"bottom edge opens upwards")
+	check(absi(popup.position.x-(root.position.x+260))<=1,"popup aligns with native trigger")
 	await RenderingServer.frame_post_draw
 	popup.get_texture().get_image().save_png("res://artifacts/agentluo-011-dropdown.png")
 	var key := InputEventKey.new()
@@ -49,7 +51,6 @@ func _run() -> void:
 		menu.open_menu()
 		await create_timer(.2).timeout
 		check(screen.encloses(Rect2i(popup.position,popup.size)),"scaled menu stays on screen")
-		print("Scale diagnostic: ",factor," final=",root.get_final_transform()," root=",root.position," popup=",popup.position)
 		check(popup.size.x>=int(menu.size.x*factor),"scaled menu matches trigger physical width")
 		await RenderingServer.frame_post_draw
 		popup.get_texture().get_image().save_png("res://artifacts/agentluo-011-dropdown-%s.png"%int(factor*100))

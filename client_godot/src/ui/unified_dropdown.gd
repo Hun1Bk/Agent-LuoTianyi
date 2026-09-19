@@ -117,24 +117,27 @@ func open_menu() -> void:
 	_owner_geometry = Rect2i(owner.position,owner.size)
 	var screen := DisplayServer.screen_get_usable_rect(owner.current_screen)
 	# Embedded canvas coordinates must be transformed to native screen pixels.
-	var transform := get_screen_transform()
+	var transform := Transform2D(0,Vector2(owner.position))*owner.get_final_transform()*get_global_transform_with_canvas()
 	var origin := Vector2i(transform * Vector2.ZERO)
 	var bottom := Vector2i(transform * Vector2(0,size.y))
 	var scale_y := transform.get_scale().y
-	var width := maxi(int(size.x * transform.get_scale().x),230)
+	var width := maxi(int(size.x * transform.get_scale().x),int(230*scale_y))
 	for row in _buttons:
-		width = maxi(width,int(row.get_combined_minimum_size().x)+32)
+		width = maxi(width,int((row.get_combined_minimum_size().x+32)*scale_y))
 	width = mini(width,screen.size.x)
-	var height := mini(_buttons.size()*42+24,mini(420,screen.size.y))
+	var height := mini(int(mini(_buttons.size()*42+24,420)*scale_y),screen.size.y)
 	var y := bottom.y
 	if y + height > screen.end.y: y = origin.y-height
 	y = clampi(y,screen.position.y,screen.end.y-height)
-	_popup.content_scale_factor = maxf(1.0,scale_y)
+	_popup.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	_popup.content_scale_size = Vector2i.ZERO
+	_popup.content_scale_factor = maxf(.5,scale_y)
 	_popup.popup(Rect2i(Vector2i(clampi(origin.x,screen.position.x,screen.end.x-width),y),Vector2i(width,height)))
 	_focus_index = -1
 	for index in _buttons.size():
 		var row := _buttons[index]
 		row.text = ("✓  " if not action_menu and row.get_meta("id") == _selected else "    ") + _label(row.get_meta("id"))
+		row.add_theme_color_override("font_color",Style.ACCENT if not action_menu and row.get_meta("id") == _selected else Color("353c43"))
 		if row.get_meta("id") == _selected: _focus_index = index
 	if _focus_index >= 0: _buttons[_focus_index].grab_focus()
 
