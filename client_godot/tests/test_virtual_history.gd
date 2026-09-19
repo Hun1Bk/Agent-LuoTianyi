@@ -1,4 +1,4 @@
-﻿extends SceneTree
+extends SceneTree
 var failures: Array[String] = []
 func check(value: bool,text: String) -> void:
 	if not value:
@@ -34,7 +34,7 @@ func _run() -> void:
 	for _frame in 12:
 		await process_frame
 	check(list.get_anchor().id == anchor.id and absf(list.get_anchor().offset-anchor.offset)<2,"prepend retains exact reading anchor")
-	var labels := list.find_children("*","RichTextLabel",true,false)
+	var labels: Array = list.find_children("*","RichTextLabel",true,false)
 	var selected: RichTextLabel = labels[0]
 	selected.select(0,2)
 	list.set_audio_state("500",{"available":false,"code":""})
