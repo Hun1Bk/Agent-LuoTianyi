@@ -1,5 +1,5 @@
 ﻿"""Offline authenticated settings API fixture; never contacts public/paid services."""
-import argparse, json, os, subprocess, threading
+import argparse, json, os, subprocess, threading, base64, hashlib, struct
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 PROJECT=Path(__file__).resolve().parents[1]
@@ -8,12 +8,35 @@ def run(godot,script):
     from run_security_interop import server_crypto
     crypto=server_crypto(); crypto.generate_keys()
     class Handler(BaseHTTPRequestHandler):
+        protocol_version='HTTP/1.1'
         def log_message(self,*args): pass
         def reply(self,status,data):
             body=json.dumps(data).encode(); self.send_response(status); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); self.end_headers()
             try: self.wfile.write(body)
             except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError): pass
         def do_GET(self):
+            if self.path=='/chat_ws':
+                self.send_response(101); self.send_header('Upgrade','websocket'); self.send_header('Connection','Upgrade')
+                self.send_header('Sec-WebSocket-Accept',base64.b64encode(hashlib.sha1((self.headers['Sec-WebSocket-Key']+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest()).decode()); self.end_headers()
+                self.connection.settimeout(3)
+                try:
+                    while True:
+                        head=self.rfile.read(2)
+                        if len(head)<2 or head[0]&15==8: break
+                        size=head[1]&127
+                        if size==126: size=struct.unpack('!H',self.rfile.read(2))[0]
+                        if size==127: size=struct.unpack('!Q',self.rfile.read(8))[0]
+                        assert size<65536
+                        mask=self.rfile.read(4); body=self.rfile.read(size)
+                        packet=json.loads(bytes(value^mask[i%4] for i,value in enumerate(body)))
+                        if packet['type'] not in ('user_auth','hb_ping'): continue
+                        response={'type':'auth_ok' if packet['type']=='user_auth' else 'hb_pong','payload':{}}
+                        encoded=json.dumps(response).encode(); self.wfile.write(bytes([129,len(encoded)])+encoded); self.wfile.flush()
+                except (OSError,ConnectionError): pass
+                self.close_connection=True
+                return
+            if self.path.startswith('/history?'):
+                self.reply(200,{'history':[],'start_index':0}); return
             self.reply(200,{'public_key':crypto.get_public_key_pem()}) if self.path=='/auth/public_key' else self.reply(404,{})
         def do_POST(self):
             data=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
@@ -41,7 +64,7 @@ def run(godot,script):
     try:
         result=subprocess.run([godot,'--headless','--path',str(PROJECT),'--script',script],env={**os.environ,'GODOT_TEST_SERVER':f'http://127.0.0.1:{server.server_port}'},capture_output=True,text=True,encoding='utf8',errors='replace',timeout=40)
         print(result.stdout); print(result.stderr)
-        if result.returncode or 'ERROR:' in result.stdout+result.stderr or errors: raise RuntimeError(str(errors) or 'feature test failed')
+        if result.returncode or 'ERROR:' in result.stdout+result.stderr or 'FAIL:' in result.stdout or ': PASS' not in result.stdout or errors: raise RuntimeError(str(errors) or 'feature test failed')
         if script.endswith('test_preferences.gd'): assert 'merge' in writes
     finally: server.shutdown(); server.server_close(); thread.join(2)
     print('Offline feature API: PASS')
