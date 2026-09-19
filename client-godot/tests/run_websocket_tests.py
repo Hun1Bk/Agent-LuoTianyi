@@ -34,6 +34,11 @@ def run(godot):
             if username == "reject" and fields["token"] == "message-test":
                 rejected_connections.append(1)
                 send("auth_error", {"code": "INVALID_TOKEN", "message": "never show raw error"}, auth["client_msg_id"])
+                socket.recv(timeout=3)  # Like the server, keep failed auth open until the client leaves.
+                return
+            if username == "policy":
+                send("auth_error", {"code": "AUTH_ATTEMPTS_EXCEEDED"}, auth["client_msg_id"])
+                socket.close(1008)
                 return
             if username == "slow":
                 try:
@@ -44,6 +49,7 @@ def run(godot):
             send("auth_ok", {"capabilities": ["negative_ack_v1"]}, auth["client_msg_id"])
             if username == "bad":
                 socket.send("[]")
+                socket.recv(timeout=3)
                 return
             for raw in socket:
                 packet = json.loads(raw)
