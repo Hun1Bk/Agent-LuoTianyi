@@ -29,6 +29,7 @@ var _log_problem := Label.new()
 var _windows: Dictionary = {}
 var _exit_dialog := ConfirmationDialog.new()
 var _exit_action := ""
+var _models: Node
 
 func _init(account_session: Node = null, layout_path: String = "user://window_layout.cfg") -> void:
 	_session = account_session
@@ -69,6 +70,8 @@ func _ready() -> void:
 		var security = ClassDB.instantiate("WindowsSecurity")
 		_session = Session.new(Api.new(security), Store.new(security))
 	add_child(_session)
+	_models = preload("res://src/session/model_settings.gd").new(preload("res://src/network/json_request.gd").new(),preload("res://src/storage/model_store.gd").new(ClassDB.instantiate("WindowsSecurity"),_layout_path.get_base_dir().path_join("models")),_log)
+	add_child(_models)
 	var cache = Cache.new(_layout_path.get_base_dir().path_join("audio"),_log)
 	var history = preload("res://src/session/history_sync.gd").new(preload("res://src/network/history_api.gd").new(),_log)
 	var reading = preload("res://src/storage/reading_position.gd").new(_layout_path.get_base_dir().path_join("reading"))
@@ -159,8 +162,10 @@ func _account_changed(state: Dictionary) -> void:
 			_split.dragger_visibility = SplitContainer.DRAGGER_VISIBLE
 			_resize_window(_expanded_size, Vector2i(960, 640))
 		_chat.start(_session.get_session())
+		_models.start(_session.get_session())
 	else:
 		_close_windows()
+		_models.stop()
 		_chat.stop()
 		if _chat_view != null:
 			_chat_view.hide()
@@ -207,17 +212,25 @@ func _open_settings(kind: String) -> void:
 	if _windows.has(kind) and is_instance_valid(_windows[kind]):
 		_windows[kind].open()
 		return
-	if kind != "preferences":
+	if kind not in ["preferences","models"]:
 		return
-	var controller = preload("res://src/session/preferences_controller.gd").new(preload("res://src/network/json_request.gd").new(),_log)
-	var window = preload("res://src/ui/preferences_window.gd").new(controller)
+	var controller: Node
+	var window: Window
+	if kind == "preferences":
+		controller = preload("res://src/session/preferences_controller.gd").new(preload("res://src/network/json_request.gd").new(),_log)
+		window = preload("res://src/ui/preferences_window.gd").new(controller)
+	else:
+		window = preload("res://src/ui/model_window.gd").new(_models)
+		if _models.get_state().phase == "error":
+			_models.start(_session.get_session())
 	_windows[kind] = window
 	add_child(window)
 	window.tree_exited.connect(func():
 		if _windows.get(kind) == window:
 			_windows.erase(kind))
 	window.open()
-	controller.start(_session.get_session())
+	if controller != null:
+		controller.start(_session.get_session())
 
 func _request_close(action: String) -> void:
 	for window in _windows.values():

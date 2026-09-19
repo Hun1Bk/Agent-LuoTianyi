@@ -252,3 +252,9 @@
 - 候选代码 869d3bd；build.ps1 导出/独立启动通过。同版本标准引擎加载实际 AgentLuo.pck 与随包 DLL，完整重放 WASAPI 测试通过（artifacts/export-replay-verified.log）。
 - ZIP：artifacts/AgentLuo-replay-869d3bd-win64.zip，43,061,194 字节，13 个文件；CRC、EXE/PCK/DLL/许可核验通过，DLL 哈希与依赖锁一致。SHA256 eeacb6bef3cc3a61dfad385cc308e5f36e7d714c56402e5d3c66bd888264ee29。
 - 旧 AgentLuo-voice-fix-win64.zip 保留；本地 PR 说明、提交/自审与实际测试记录见 artifacts/voice-replay-review.md。没有推送/合并或切换正式下载入口；未验证范围沿用上一条记录。
+
+### 2026-09-19 动态用途模型设置与密钥保存
+
+- 交付行为：从现有模型类型路由生成非模态设置表单；用途独立草稿、复制后保持目标类型/要求、纯本地能力及参数校验、DPAPI 密钥隔离持久化。保护失败明确明文确认，默认取消；窗口关闭不释放应用持有的运行配置，未保存内容参与退出确认。
+- SPEC a58ba0e；Red 3993b65、4a8bc5a。Model settings 真实本地类型接口、DPAPI 跨实例恢复/账户隔离/明文选择与可见表单草稿保护通过；Application drafts 回归通过，git diff --check 通过。
+- 作者自审：核对无固定用途 ID、无保存时供应商调用、深拷贝配置、目标要求不随复制改变；本条不代表模型委托或手动供应商测试已经接通。未验证公共服务模型类型、人工多 DPI 表单及跨 Windows 用户保护。
