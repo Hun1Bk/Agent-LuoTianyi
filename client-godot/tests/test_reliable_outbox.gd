@@ -76,7 +76,10 @@ func _check_order_and_late_ack() -> void:
 	if packets.size() == 1:
 		check(packets[0].payload.message == "original", "returned packet cannot mutate retry payload")
 	queue.acknowledge(first, {"ok":false, "retryable":true}, 1003)
+	queue.acknowledge(first, {"ok":false, "retryable":true}, 1003)
 	queue.acknowledge(first, {"ok":true}, 1004)
+	queue.acknowledge(first, {"ok":true}, 1004)
+	queue.acknowledge("unknown", {"ok":true}, 1004)
 	packets = queue.take_ready(1004, true)
 	check(packets.size() == 1 and packets[0].client_msg_id == second, "late ACK during backoff releases next durable")
 	queue.acknowledge(second, {"ok":false, "retryable":"true", "code":42}, 1005)
@@ -85,6 +88,10 @@ func _check_order_and_late_ack() -> void:
 	queue.take_ready(239000, true)
 	queue.acknowledge(aging, {"ok":false, "retryable":true}, 239000)
 	check(states.get(aging) == ["uncertain", "DELIVERY_UNCERTAIN"], "retry at exact age limit is forbidden")
+	var late: String = queue.enqueue("user_text", {}, true, 0)
+	queue.take_ready(239999, true)
+	queue.acknowledge(late, {"ok":true}, 240000)
+	check(states.get(late) == ["uncertain", "DELIVERY_UNCERTAIN"], "ACK cannot extend total age limit")
 
 func _check_transients_and_limits() -> void:
 	var queue = Outbox.new()
@@ -95,6 +102,10 @@ func _check_transients_and_limits() -> void:
 	check(states.get(selection, [""])[0] == "sending", "selection waits five seconds for ACK")
 	queue.take_ready(5000, true)
 	check(states.get(selection, [""])[0] == "failed", "selection ACK timeout terminates transient")
+	var cancel_id: String = queue.enqueue("user_image_selecting_cancel", {}, false, 0)
+	queue.take_ready(0, true)
+	queue.take_ready(5000, true)
+	check(states.get(cancel_id, [""])[0] == "failed", "wire cancel event also has five second timeout")
 	var typing: String = queue.enqueue("user_typing", {}, false, 0)
 	queue.take_ready(0, false)
 	check(states.get(typing, [""])[0] == "failed" and queue.take_ready(1, true).is_empty(), "offline transient is dropped")
@@ -106,3 +117,4 @@ func _check_transients_and_limits() -> void:
 	check(ids.size() == 128 and not ids.has(""), "queue accepts 128 unique pending IDs")
 	check(queue.enqueue("user_text", {}, true, 0).is_empty(), "pending queue has bounded capacity")
 	queue.stop()
+	check(not queue.enqueue("user_text", {}, true, 0).is_empty(), "stop restores queue capacity")
