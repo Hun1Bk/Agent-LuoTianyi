@@ -49,6 +49,8 @@ func _run() -> void:
 	app.queue_free()
 	await process_frame
 	for folder in ["logs","reading"]:
+		if not DirAccess.dir_exists_absolute(path+"/"+folder):
+			continue
 		for file in DirAccess.get_files_at(path+"/"+folder):
 			DirAccess.remove_absolute(path+"/"+folder+"/"+file)
 		DirAccess.remove_absolute(path+"/"+folder)
