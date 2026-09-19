@@ -28,7 +28,7 @@ func _ready() -> void:
 	_error_label.position = Vector2(20, 80)
 	_error_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_error_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if avatar.load_avatar("res://assets/live2d/luo/model.model3.json") != OK:
+	if avatar.load_character("res://assets/live2d/character.json") != OK:
 		_error_label.text = "角色加载失败，请检查资源是否完整。"
 		return
 	var restored: Error = framing.load_settings(SETTINGS)
