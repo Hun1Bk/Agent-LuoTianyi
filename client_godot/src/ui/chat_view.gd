@@ -1,5 +1,6 @@
 extends MarginContainer
 signal logout_requested
+signal log_requested
 const Style = preload("res://src/preview/preview_style.gd")
 const Bubble = preload("res://src/preview/message_bubble.gd")
 const Composer = preload("res://src/preview/composer_input.gd")
@@ -51,7 +52,7 @@ func _ready() -> void:
 	popup.add_item("退出登录", 2)
 	popup.id_pressed.connect(func(id):
 		if id == 0:
-			OS.shell_open(_session.get_log_directory())
+			log_requested.emit()
 		elif id == 1:
 			_clear_dialog.popup_centered()
 			_clear_dialog.get_cancel_button().grab_focus()

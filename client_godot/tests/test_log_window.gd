@@ -36,11 +36,33 @@ func _run() -> void:
 			check(not window.visible,"close hides log window")
 			open_button.pressed.emit()
 			check(window.visible,"reopen retains same window")
+	push_warning("synthetic engine detail must not enter diagnostic archive")
+	await process_frame
+	await process_frame
 	app.queue_free()
 	await process_frame
 	var observer = Log.new(directory+"/logs")
 	var runs: Array = observer.list_runs() if observer.has_method("list_runs") else []
 	check(runs.size() == 1 and runs[0].closed,"application exit closes startup archive")
+	if runs.size() == 1:
+		var data := JSON.stringify(observer.read_entries(runs[0].id))
+		check(data.contains("ENGINE_WARNING") and not data.contains("synthetic engine detail"),"engine warning captured without raw details")
+	var logger = Log.new(directory+"/logs")
+	logger.record("client_started")
+	var viewer = load("res://src/ui/log_window.gd").new(logger)
+	root.add_child(viewer)
+	viewer.open()
+	logger.record("audio_received",{"frames":42})
+	var output: RichTextLabel = viewer.find_children("*","RichTextLabel",true,false)[0]
+	check(output.get_parsed_text().contains("42"),"visible window appends live metrics")
+	var search: LineEdit = viewer.find_children("*","LineEdit",true,false).filter(func(n): return n.placeholder_text.begins_with("搜索"))[0]
+	search.text = "audio_received"
+	search.text_changed.emit(search.text)
+	check(output.get_parsed_text().contains("audio_received") and not output.get_parsed_text().contains("client_started"),"search filters display")
+	check(logger.read_entries().size() == 2,"filter does not discard archive entries")
+	viewer.queue_free()
+	await process_frame
+	logger.finish()
 	for file in DirAccess.get_files_at(directory+"/logs"):
 		DirAccess.remove_absolute(directory+"/logs/"+file)
 	DirAccess.remove_absolute(directory+"/logs")
