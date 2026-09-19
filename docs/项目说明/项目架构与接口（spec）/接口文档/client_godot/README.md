@@ -363,3 +363,11 @@ ChatSession 公开同名 get_message_audio/replay/pause_replay/resume_replay/sto
 `refresh()` 加载首批10条，`load_more()` 使用服务端不透明 next_cursor；`load_comments(id,more=false)` 每页20条。GET /dynamics、/{id}/comments、/unread 使用 username query + Bearer message_token；对 cursor URI 编码。校验分页字段及显示字段、ID 去重，拒绝不前进/空的有后续页；失败保留已显示内容及原 cursor，可重试。刷新不自动标已读。`refresh_unread()` 失败保留原数量；`mark_read()` 只有 POST /dynamics/read 返回 ok=true 后清零，忙碌轮询期间不提交，避免旧响应覆盖结果。
 
 只保存内存列表/评论，不新增正文数据库。服务端负责私有动态/评论隔离；客户端只展示当前账号返回数据。日志只记录安全阶段/错误/数量。测试使用本地 HTTP 的10/20条边界、分页去重/异常、未读失败保留、显式标读、取消与重新登录。
+
+## 动态写入与非模态窗口
+
+DynamicsController 新增 `publish(content)`、`comment(id,content,parent_comment_id="")`，异步返回 ok/code；空文本拒绝；评论必须属于已加载且允许评论动态，回复目标必须属于已加载的该动态评论。POST 使用既有 content/parent_comment_id 字段；无幂等键、不自动重试，单个写请求在途返回 BUSY。超时显示可能已发送，保留草稿由用户核实后自行重试。成功响应 item 校验后插入内存列表/评论，不自动标已读；其他分页边界保留。退出返回 CANCELLED、不能影响新账号。
+
+`DynamicsWindow(controller)` 继承 DraftWindow，应用共享控制器不由窗口拥有。顶部发布草稿/刷新/全部已读，单列头像、名字、时间、六行折叠正文卡片；卡片评论分页，点击已加载评论指定回复对象，可取消。每条动态独立评论草稿，刷新/分页和失败不清草稿；成功才清当前提交草稿，发送在途禁止编辑该输入，避免覆盖后续修改。`is_dirty()` 包含发布/评论草稿；关闭窗口/退出统一默认取消。重复打开聚焦已有窗口；窗口关闭销毁 UI 草稿。
+
+ChatView 增加 `set_dynamics_unread(count)` 更新顶部常驻按钮（大于99为99+），按钮 settings_requested("dynamics") 由 Application 打开。未读轮询只更新徽标/窗口状态，不重建卡片或打断编辑。Application 登录 start、退出 stop。测试从真实 HTTP 和可见 UI 验证发布/回复、不可评论、失败保留、关闭确认和顶部入口；不向公共服务器写入测试动态。
