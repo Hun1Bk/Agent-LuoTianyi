@@ -22,6 +22,10 @@ var _layout_ready := false
 var _layout_path: String
 var _expanded := false
 var _expanded_size := Vector2i(1200, 800)
+var _log: RefCounted
+var _log_window: Window
+var _engine_log: Logger
+var _log_problem := Label.new()
 
 func _init(account_session: Node = null, layout_path: String = "user://window_layout.cfg") -> void:
 	_session = account_session
@@ -36,6 +40,13 @@ func _ready() -> void:
 		add_child(load("res://scenes/chat_preview.tscn").instantiate())
 		return
 	_resize_window(Vector2i(660, 800), Vector2i(480, 640))
+	_log = Log.new("user://logs" if _layout_path == "user://window_layout.cfg" else _layout_path.get_base_dir().path_join("logs"))
+	_log.write_failed.connect(func(_error): _log_problem.text = "日志保存失败，打开日志可查看本次内存记录；磁盘归档可能不完整。")
+	_log.record("client_started")
+	_engine_log = preload("res://src/storage/engine_log_sink.gd").new(_log)
+	OS.add_logger(_engine_log)
+	_log_window = preload("res://src/ui/log_window.gd").new(_log)
+	add_child(_log_window)
 	if not ClassDB.class_exists("WindowsSecurity"):
 		var error := Label.new()
 		error.text = "凭据保护组件缺失，请重新解压完整程序。"
@@ -46,11 +57,8 @@ func _ready() -> void:
 		var security = ClassDB.instantiate("WindowsSecurity")
 		_session = Session.new(Api.new(security), Store.new(security))
 	add_child(_session)
-	var log = Log.new("user://logs" if _layout_path == "user://window_layout.cfg" else _layout_path.get_base_dir().path_join("logs"))
-	if log.record("client_started") != OK:
-		push_warning("Client diagnostic log is unavailable")
-	var cache = Cache.new(_layout_path.get_base_dir().path_join("audio"),log)
-	_chat = Chat.new(Transport.new(), log, Audio.new(log,Callable(),cache))
+	var cache = Cache.new(_layout_path.get_base_dir().path_join("audio"),_log)
+	_chat = Chat.new(Transport.new(), _log, Audio.new(_log,Callable(),cache))
 	add_child(_chat)
 	_split = HSplitContainer.new()
 	_center = CenterContainer.new()
@@ -69,6 +77,11 @@ func _ready() -> void:
 	var form := AccountView.new(_session)
 	form.custom_minimum_size.x = 390
 	_center.add_child(form)
+	form.log_requested.connect(_log_window.open)
+	add_child(_log_problem)
+	_log_problem.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_log_problem.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_log_problem.add_theme_color_override("font_color",Color("b72a2a"))
 	_session.changed.connect(_account_changed)
 	var settings := ConfigFile.new()
 	if settings.load(_layout_path) == OK:
@@ -108,6 +121,7 @@ func _ready() -> void:
 		_session.resume()
 
 func _account_changed(state: Dictionary) -> void:
+	_log.record("account_state", {"phase":state.phase,"code":state.code})
 	if state.phase == "signed_in":
 		_center.hide()
 		if _avatar == null:
@@ -123,6 +137,7 @@ func _account_changed(state: Dictionary) -> void:
 			_chat_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_split.add_child(_chat_view)
 			_chat_view.logout_requested.connect(func(): _session.logout())
+			_chat_view.log_requested.connect(_log_window.open)
 		if not _expanded:
 			_expanded = true
 			_split.dragger_visibility = SplitContainer.DRAGGER_VISIBLE
@@ -163,3 +178,10 @@ func _resize_window(target: Vector2i, minimum: Vector2i) -> void:
 		origin.x = clampi(origin.x, usable.position.x, maxi(usable.position.x, usable.end.x - window.size.x))
 		origin.y = clampi(origin.y, usable.position.y, maxi(usable.position.y, usable.end.y - window.size.y))
 		window.position = origin
+
+func _exit_tree() -> void:
+	if _engine_log != null:
+		OS.remove_logger(_engine_log)
+		_engine_log.stop()
+	if _log != null:
+		_log.finish()

@@ -1,4 +1,5 @@
 extends PanelContainer
+signal log_requested
 const Style = preload("res://src/preview/preview_style.gd")
 var _session: Node
 var _form := VBoxContainer.new()
@@ -61,6 +62,7 @@ func _ready() -> void:
 	_status.add_theme_font_size_override("font_size", 13)
 	_status.add_theme_color_override("font_color", Color("607f8d"))
 	column.add_child(_status)
+	column.add_child(Style.button("打开日志",func(): log_requested.emit()))
 	var defaults: Dictionary = _session.get_login_defaults()
 	_fields.server.text = defaults.server
 	_fields.username.text = defaults.username

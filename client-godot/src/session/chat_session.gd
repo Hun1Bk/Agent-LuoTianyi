@@ -48,6 +48,8 @@ func send_text(text: String) -> String:
 	var message := {"id":id, "role":"user", "text":text, "status":"queued", "code":""}
 	_messages.append(message)
 	_by_id[id] = message
+	if _logger != null:
+		_logger.record("message_queued", {"reply_id":id})
 	changed.emit()
 	return id
 
@@ -94,6 +96,8 @@ func _connection_changed(connection: Dictionary) -> void:
 	state_changed.emit(get_state())
 
 func _delivery_changed(id: String, status: String, code: String) -> void:
+	if _logger != null:
+		_logger.record("message_delivery", {"reply_id":id,"phase":status,"code":code})
 	if _by_id.has(id):
 		_by_id[id].status = status
 		_by_id[id].code = code

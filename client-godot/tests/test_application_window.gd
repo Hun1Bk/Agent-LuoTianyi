@@ -116,7 +116,8 @@ func _run() -> void:
 	empty_config.free()
 	DirAccess.remove_absolute(settings_path)
 	DirAccess.remove_absolute(folder + "/layout.cfg")
-	DirAccess.remove_absolute(folder + "/logs/client.jsonl")
+	for filename in DirAccess.get_files_at(folder + "/logs"):
+		DirAccess.remove_absolute(folder + "/logs/" + filename)
 	DirAccess.remove_absolute(folder + "/logs")
 	DirAccess.remove_absolute(folder)
 	print("Application window: ", "PASS" if failures.is_empty() else "FAIL")
