@@ -13,8 +13,12 @@ var _by_id: Dictionary = {}
 var _replies: Dictionary = {}
 var _finished: Dictionary = {}
 var _state := {"phase":"idle", "code":"", "thinking":false, "speaking":false}
+var _history: Node
+var _waiting_history := false
+var _pending_history: Dictionary = {}
+var _wire_ids: Dictionary = {}
 
-func _init(transport: Node, logger: RefCounted = null, media: Node = null) -> void:
+func _init(transport: Node, logger: RefCounted = null, media: Node = null, history: Node = null) -> void:
 	_transport = transport
 	_logger = logger
 	_media = media if media != null else Audio.new(logger)
@@ -32,20 +36,38 @@ func _init(transport: Node, logger: RefCounted = null, media: Node = null) -> vo
 	transport.delivery_changed.connect(_delivery_changed)
 	transport.event_received.connect(_receive)
 	transport.system_error.connect(_system_error)
+	_history = history
+	if history != null:
+		add_child(history)
+		history.page_received.connect(_history_page)
+		history.boundary_ready.connect(_release_history_sends)
+		history.state_changed.connect(func(_value): state_changed.emit(get_state()))
 
 func start(session: Dictionary) -> Error:
 	stop()
 	_media.set_scope(session.get("server",""),session.get("username",""))
-	return _transport.start(session)
+	var result: Error = _transport.start(session)
+	if result == OK and _history != null:
+		_waiting_history = true
+		_history.start(session)
+	return result
 
 func send_text(text: String) -> String:
-	if text.strip_edges().is_empty():
+	if text.strip_edges().is_empty() or _state.phase in ["idle","auth_rejected"]:
 		return ""
-	var id: String = _transport.send_event("user_text", {"message":text, "llm_mode":{"types":[]}}, true)
+	var id: String
+	if _waiting_history:
+		if _pending_history.size() >= 128 or text.to_utf8_buffer().size() > 8*1024*1024-1024:
+			_system_error("SEND_REJECTED")
+			return ""
+		id = "local-" + Crypto.new().generate_random_bytes(16).hex_encode()
+		_pending_history[id] = text
+	else:
+		id = _transport.send_event("user_text", {"message":text, "llm_mode":{"types":[]}}, true)
 	if id.is_empty():
 		_system_error("SEND_REJECTED")
 		return ""
-	var message := {"id":id, "role":"user", "text":text, "status":"queued", "code":""}
+	var message := {"id":id, "role":"user", "text":text, "status":"waiting_history" if _waiting_history else "queued", "code":""}
 	_messages.append(message)
 	_by_id[id] = message
 	if _logger != null:
@@ -57,7 +79,9 @@ func get_messages() -> Array[Dictionary]:
 	return _messages.duplicate(true)
 
 func get_state() -> Dictionary:
-	return _state.duplicate(true)
+	var result := _state.duplicate(true)
+	result.history = get_history_state()
+	return result
 
 func get_log_directory() -> String:
 	return _logger.get_directory() if _logger != null else ""
@@ -72,6 +96,11 @@ func stop_voice() -> void:
 	_media.stop_current()
 
 func stop() -> void:
+	_waiting_history = false
+	_pending_history.clear()
+	_wire_ids.clear()
+	if _history != null:
+		_history.stop()
 	_transport.stop()
 	_media.set_scope("", "")
 	_messages.clear()
@@ -96,6 +125,7 @@ func _connection_changed(connection: Dictionary) -> void:
 	state_changed.emit(get_state())
 
 func _delivery_changed(id: String, status: String, code: String) -> void:
+	id = _wire_ids.get(id,id)
 	if _logger != null:
 		_logger.record("message_delivery", {"reply_id":id,"phase":status,"code":code})
 	if _by_id.has(id):
@@ -201,3 +231,42 @@ func clear_cache() -> Error:
 	if result != OK:
 		_system_error("CACHE_CLEAR_FAILED")
 	return result
+
+func get_history_state() -> Dictionary:
+	return _history.get_state() if _history != null else {"phase":"idle","code":"","count":0,"incomplete":false}
+
+func retry_history() -> void:
+	if _history != null:
+		_history.retry()
+
+func skip_history() -> void:
+	if _history != null:
+		_history.skip()
+
+func _release_history_sends() -> void:
+	_waiting_history = false
+	for id in _pending_history:
+		var wire: String = _transport.send_event("user_text",{"message":_pending_history[id],"llm_mode":{"types":[]}},true)
+		if wire.is_empty():
+			_by_id[id].status = "failed"
+			_by_id[id].code = "SEND_REJECTED"
+		else:
+			_wire_ids[wire] = id
+			_by_id[id].status = "queued"
+	_pending_history.clear()
+	changed.emit()
+
+func _history_page(messages: Array[Dictionary]) -> void:
+	var prepend: Array[Dictionary] = []
+	for message in messages:
+		if _by_id.has(message.id):
+			# History UUID is authoritative identity, never text/time matching.
+			# Preserve live content while moving the item into its history position.
+			var existing: Dictionary = _by_id[message.id]
+			_messages.erase(existing)
+			prepend.append(existing)
+		else:
+			_by_id[message.id] = message
+			prepend.append(message)
+	_messages = prepend + _messages
+	changed.emit()

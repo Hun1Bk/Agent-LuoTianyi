@@ -66,9 +66,15 @@ func _run() -> void:
 	check(await until(func(): return chat.get_history_state().phase == "complete"),"duplicate pagination settles")
 	check(chat.get_history_state().incomplete and chat.get_messages().size() == 119,"duplicate explicit and UUID deduplicated")
 	chat.start(credentials("late_cancel"))
+	await create_timer(.1).timeout
 	chat.stop()
 	await create_timer(.35).timeout
 	check(chat.get_messages().is_empty() and chat.get_history_state().phase == "idle","cancel isolates late history results")
+	chat.start(credentials("old_account"))
+	await create_timer(.1).timeout
+	chat.start(credentials("replacement"))
+	check(await until(func(): return chat.get_history_state().phase == "complete"),"new account sync completes after cancellation")
+	check(not JSON.stringify(chat.get_messages()).contains("old_account"),"late previous account body never enters new account")
 	chat.queue_free()
 	await process_frame
 	print("History sync: ","PASS" if failures.is_empty() else "FAIL")

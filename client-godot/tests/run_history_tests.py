@@ -1,4 +1,4 @@
-﻿"""Offline real HTTP/WS history contract; no public server or account data."""
+"""Offline real HTTP/WS history contract; no public server or account data."""
 import argparse, asyncio, json, os
 from pathlib import Path
 from aiohttp import web
@@ -20,8 +20,8 @@ async def run(godot, script):
                 return web.json_response({},status=503)
             stop = 120 if end == -1 else end
             start = max(0,stop-50)
-            rows = [{'uuid':f'history-{i}','content':f'record {i}','source':'agent' if i%2 else 'user','timestamp':float(i),'type':'text'} for i in range(start,stop)]
-            if user == 'invalid': start = stop + 1
+            rows = [{'uuid':f'history-{i}','content':f'{user} record {i}','source':'agent' if i%2 else 'user','timestamp':float(i),'type':'text'} for i in range(start,stop)]
+            if user == 'invalid': start = -2
             if user == 'duplicate' and end == 70: rows[-1]['uuid'] = 'history-119'
             if end == -1: opened.add(user)
             return web.json_response({'history':rows,'start_index':start})
