@@ -5,7 +5,7 @@ var _status := Label.new()
 var _save := Button.new()
 var _reload := Button.new()
 var _refreshing := false
-var _presets: Array[OptionButton] = []
+var _presets: Array[Button] = []
 func _init(controller: Node) -> void:
 	_controller = controller
 	title = "相处模式"
@@ -34,14 +34,20 @@ func _ready() -> void:
 			_fields[pair[0]] = input
 			row.add_child(input)
 			input.text_changed.connect(func(_text): _edit())
-			var presets := OptionButton.new()
+			var presets := preload("res://src/ui/unified_dropdown.gd").new()
 			_presets.append(presets)
-			for preset in (["朋友","知己","偶像","搭档","家人"] if pair[0] == "relationship" else ["活泼可爱","温柔可人","文静恬淡"]):
-				presets.add_item(preset)
+			var values: Dictionary = {"friend":"朋友","confidant":"知己","idol":"偶像","partner":"搭档","family":"家人"} if pair[0] == "relationship" else {"lively":"活泼可爱","gentle":"温柔可人","quiet":"文静恬淡"}
+			var options: Array = [{"id":"custom","label":"自定义"}]
+			for id in values:
+				options.append({"id":id,"label":values[id]})
+			presets.set_items(options)
+			presets.set_meta("field",pair[0])
+			presets.set_meta("values",values)
 			row.add_child(presets)
-			presets.item_selected.connect(func(index):
-				input.text = presets.get_item_text(index)
-				_edit())
+			presets.activated.connect(func(id):
+				if id != "custom":
+					input.text = values[id]
+					_edit())
 		else:
 			var input := TextEdit.new()
 			input.placeholder_text = "用逗号、顿号或换行分隔" if pair[0] == "personality_text" else "想让天依了解的相处背景"
@@ -82,6 +88,11 @@ func _update(state: Dictionary) -> void:
 	_refreshing = false
 	for presets in _presets:
 		presets.disabled = state.phase != "ready"
+		var values: Dictionary = presets.get_meta("values")
+		var value: String = _fields[presets.get_meta("field")].text
+		presets.set_selected_id("custom")
+		for id in values:
+			if values[id] == value: presets.set_selected_id(id)
 	_save.disabled = not state.can_save
 	_reload.disabled = state.phase in ["loading","saving"] or state.dirty
 	_status.text = {"idle":"", "loading":"正在读取相处偏好…", "saving":"正在合并服务器最新设置并保存…", "error":"加载失败，请重试。加载成功前不能保存。", "ready":"有未保存的修改。" if state.dirty else "已从服务器读取。"}.get(state.phase,"")

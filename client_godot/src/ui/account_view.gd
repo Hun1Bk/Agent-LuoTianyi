@@ -3,7 +3,7 @@ signal log_requested
 const Style = preload("res://src/preview/preview_style.gd")
 var _session: Node
 var _form := VBoxContainer.new()
-var _mode := OptionButton.new()
+var _mode := preload("res://src/ui/unified_dropdown.gd").new()
 var _fields: Dictionary = {}
 var _remember := CheckBox.new()
 var _submit := Button.new()
@@ -25,10 +25,10 @@ func _ready() -> void:
 	column.add_child(Style.label("登录你的账户，继续这段陪伴。", 13, Color("809ba7")))
 	column.add_child(_form)
 	_form.add_theme_constant_override("separation", 10)
-	for caption in ["密码登录", "注册账户", "邀请码重置账户"]:
-		_mode.add_item(caption)
+	_mode.name = "AccountMode"
+	_mode.set_items([{"id":"login","label":"密码登录"},{"id":"register","label":"注册账户"},{"id":"reset","label":"邀请码重置账户"}])
 	_form.add_child(_mode)
-	_mode.item_selected.connect(func(_index): _apply_mode())
+	_mode.activated.connect(func(_index): _apply_mode())
 	for item in [["server", "服务器地址"], ["username", "用户名"], ["password", "密码"], ["confirm", "确认密码"], ["invite", "邀请码"]]:
 		var field := LineEdit.new()
 		field.placeholder_text = item[1]
@@ -71,18 +71,18 @@ func _ready() -> void:
 	_apply_mode()
 
 func _apply_mode() -> void:
-	_fields.confirm.visible = _mode.selected != 0
-	_fields.invite.visible = _mode.selected != 0
-	_remember.visible = _mode.selected == 0
-	_submit.text = ["登录", "注册", "重置账户"][_mode.selected]
+	_fields.confirm.visible = _mode.get_selected_id() != "login"
+	_fields.invite.visible = _mode.get_selected_id() != "login"
+	_remember.visible = _mode.get_selected_id() == "login"
+	_submit.text = {"login":"登录","register":"注册","reset":"重置账户"}[_mode.get_selected_id()]
 
 func _send() -> void:
 	if _submit.disabled:
 		return
-	if _mode.selected != 0 and _fields.password.text != _fields.confirm.text:
+	if _mode.get_selected_id() != "login" and _fields.password.text != _fields.confirm.text:
 		_status.text = "两次输入的密码不一致。"
 		return
-	var operation: String = ["login", "register", "reset"][_mode.selected]
+	var operation: String = _mode.get_selected_id()
 	var fields := {"username":_fields.username.text, "password":_fields.password.text}
 	if operation == "login":
 		fields.request_token = _remember.button_pressed
@@ -94,7 +94,7 @@ func _send() -> void:
 	if response.ok:
 		_clear_secrets()
 		if operation != "login":
-			_mode.select(0)
+			_mode.set_selected_id("login")
 			_apply_mode()
 			_status.text = "注册成功，请登录。" if operation == "register" else "账户重置成功，请用新账户登录。"
 	else:

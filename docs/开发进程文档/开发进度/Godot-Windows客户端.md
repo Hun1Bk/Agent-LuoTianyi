@@ -317,3 +317,7 @@
 - 交付行为：共享稳定 ID 选择器/操作菜单，白底圆角弹出层，禁用项、方向键/Enter/Esc、滚动及窗口变化收起。
 - interface：client_godot/README.md UnifiedDropdown；SPEC 9260ab1，Red c2802b4（共享组件缺失）。
 - 验证：Godot 4.7.1 headless test_dropdown.gd PASS；当前提交已自审。原生弹窗边界和缩放尚未真机验收。
+
+### 2026-09-20 正式页面下拉迁移
+- 账户、聊天更多、相处预设、模型用途/复制、日志筛选及启动选择使用 UnifiedDropdown；业务通过稳定 ID 操作。机械迁移 Red 不适用，保留既有业务断言。
+- check_accounts.ps1、check_network.ps1、check_features.ps1 全部 PASS；覆盖原账户、聊天/语音、历史、设置及动态流程。作者自审核对无直接 PopupMenu 业务依赖。
