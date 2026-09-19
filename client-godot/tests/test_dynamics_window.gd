@@ -21,6 +21,8 @@ func _run() -> void:
 	check(controller.get_posts()[0].content == "published text","published item displayed")
 	check((await controller.comment("d0","reply text","c0")).ok,"reply succeeds")
 	check(controller.get_comments("d0").items[-1].parent_comment_id == "c0","reply target preserved")
+	await controller.load_comments("d0",true)
+	check(controller.get_comments("d0").items[-1].id == "c99","older page remains before new comment")
 	check(not (await controller.comment("d1","forbidden")).ok,"read-only post refuses comment")
 	check(not (await controller.comment("d0","wrong parent","missing")).ok,"unknown reply target refused")
 	scope.username = "fail-write"

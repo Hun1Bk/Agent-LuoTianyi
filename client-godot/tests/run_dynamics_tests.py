@@ -9,7 +9,7 @@ def run(godot,script):
     def post(i):
         return dict(id=f'd{i}',author_type='agent',author_name='洛天依',content='合成动态\n第二行\n第三行\n第四行\n第五行\n第六行\n第七行',created_at='2026-09-19 10:00:00',allow_comment=i!=1,comment_count=22,visibility='private')
     def comment(i):
-        return dict(id=f'c{i}',dynamic_id='d0',author_type='user',author_name='测试用户',content='合成评论',created_at='2026-09-19 10:01:00',parent_comment_id='c0' if i else None)
+        return dict(id=f'c{i}',dynamic_id='d0',author_type='user',author_name='测试用户',content='合成评论',created_at=f'2026-09-19 10:{i:02}:00',parent_comment_id='c0' if i else None)
     class Handler(BaseHTTPRequestHandler):
         def log_message(self,*args): pass
         def reply(self,status,data):
