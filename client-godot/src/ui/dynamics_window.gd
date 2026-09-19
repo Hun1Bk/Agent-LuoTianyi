@@ -102,6 +102,8 @@ func _update() -> void:
 			_by_id.erase(id)
 	if posts.is_empty() and state.code in ["","OK"]:
 		_status.text = "正在加载…" if state.busy else "还没有动态。"
+	elif state.code in ["","OK"] and not _writing:
+		_status.text = "已加载 %s 条动态。"%posts.size()
 
 func _publish() -> void:
 	if _writing:
