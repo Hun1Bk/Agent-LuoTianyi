@@ -30,6 +30,7 @@ var _windows: Dictionary = {}
 var _exit_dialog := ConfirmationDialog.new()
 var _exit_action := ""
 var _models: Node
+var _executor: Node
 
 func _init(account_session: Node = null, layout_path: String = "user://window_layout.cfg") -> void:
 	_session = account_session
@@ -76,7 +77,8 @@ func _ready() -> void:
 	var history = preload("res://src/session/history_sync.gd").new(preload("res://src/network/history_api.gd").new(),_log)
 	var reading = preload("res://src/storage/reading_position.gd").new(_layout_path.get_base_dir().path_join("reading"))
 	var images = preload("res://src/storage/history_images.gd").new(_layout_path.get_base_dir().path_join("images"),_log)
-	_chat = Chat.new(Transport.new(), _log, Audio.new(_log,Callable(),cache),history,reading,images)
+	_executor = preload("res://src/session/model_executor.gd").new(_models,_log)
+	_chat = Chat.new(Transport.new(), _log, Audio.new(_log,Callable(),cache),history,reading,images,_executor)
 	add_child(_chat)
 	_split = HSplitContainer.new()
 	_center = CenterContainer.new()
@@ -220,7 +222,7 @@ func _open_settings(kind: String) -> void:
 		controller = preload("res://src/session/preferences_controller.gd").new(preload("res://src/network/json_request.gd").new(),_log)
 		window = preload("res://src/ui/preferences_window.gd").new(controller)
 	else:
-		window = preload("res://src/ui/model_window.gd").new(_models)
+		window = preload("res://src/ui/model_window.gd").new(_models,_executor)
 		if _models.get_state().phase == "error":
 			_models.start(_session.get_session())
 	_windows[kind] = window

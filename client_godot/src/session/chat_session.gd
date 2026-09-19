@@ -20,10 +20,15 @@ var _pending_history: Dictionary = {}
 var _wire_ids: Dictionary = {}
 var _reading: RefCounted
 var _images: Node
+var _models: Node
 
-func _init(transport: Node, logger: RefCounted = null, media: Node = null, history: Node = null, reading: RefCounted = null, images: Node = null) -> void:
+func _init(transport: Node, logger: RefCounted = null, media: Node = null, history: Node = null, reading: RefCounted = null, images: Node = null, models: Node = null) -> void:
 	_transport = transport
 	_logger = logger
+	_models = models
+	if models != null:
+		add_child(models)
+		models.completed.connect(func(response): _transport.send_event("llm_response",response,false))
 	_media = media if media != null else Audio.new(logger)
 	add_child(_media)
 	_media.playback_finished.connect(_audio_finished)
@@ -56,6 +61,8 @@ func _init(transport: Node, logger: RefCounted = null, media: Node = null, histo
 
 func start(session: Dictionary) -> Error:
 	stop()
+	if _models != null:
+		_models.start()
 	if _reading != null:
 		_reading.start(session.get("server",""),session.get("username",""))
 	if _images != null:
@@ -78,7 +85,7 @@ func send_text(text: String) -> String:
 		id = "local-" + Crypto.new().generate_random_bytes(16).hex_encode()
 		_pending_history[id] = text
 	else:
-		id = _transport.send_event("user_text", {"message":text, "llm_mode":{"types":[]}}, true)
+		id = _transport.send_event("user_text", {"message":text, "llm_mode":{"types":_model_types()}}, true)
 	if id.is_empty():
 		_system_error("SEND_REJECTED")
 		return ""
@@ -111,6 +118,8 @@ func stop_voice() -> void:
 	_media.stop_current()
 
 func stop() -> void:
+	if _models != null:
+		_models.stop()
 	if _images != null:
 		_images.stop()
 	_waiting_history = false
@@ -166,6 +175,8 @@ func _receive(event: Dictionary) -> void:
 			state_changed.emit(get_state())
 	elif event.type == "agent_message":
 		_receive_reply(payload)
+	elif event.type == "llm_request" and _models != null:
+		_models.submit(payload)
 
 func _receive_reply(payload: Dictionary) -> void:
 	var id: Variant = payload.get("uuid")
@@ -267,7 +278,7 @@ func skip_history() -> void:
 func _release_history_sends() -> void:
 	_waiting_history = false
 	for id in _pending_history:
-		var wire: String = _transport.send_event("user_text",{"message":_pending_history[id],"llm_mode":{"types":[]}},true)
+		var wire: String = _transport.send_event("user_text",{"message":_pending_history[id],"llm_mode":{"types":_model_types()}},true)
 		if wire.is_empty():
 			_by_id[id].status = "failed"
 			_by_id[id].code = "SEND_REJECTED"
@@ -323,3 +334,6 @@ func get_message_image(id: String) -> Dictionary:
 
 func preview_message_image(id: String) -> Texture2D:
 	return _images.preview(id) if _images != null and _by_id.get(id,{}).get("type") == "image" else null
+
+func _model_types() -> Array:
+	return _models.enabled_types() if _models != null else []

@@ -70,6 +70,22 @@ func _run() -> void:
 	config.model = "manual"
 	var tested: Dictionary = await executor.test_config("text-purpose",config)
 	check(tested.ok and not tested.has("content"),"manual fixed probe returns status only")
+	settings.save("text-purpose",config)
+	var chat = load("res://src/session/chat_session.gd").new(load("res://src/network/websocket_transport.gd").new(),null,null,null,null,null,load("res://src/session/model_executor.gd").new(settings))
+	root.add_child(chat)
+	chat.start({"server":base,"username":"executor","message_token":"message-test"})
+	for tick in 200:
+		if chat.get_state().phase == "ready":
+			break
+		await create_timer(0.01).timeout
+	check(not chat.send_text("fixture user text").is_empty(),"chat sends with enabled purpose advertisement")
+	for tick in 200:
+		stats = await http.send(base+"/provider-stats",HTTPClient.METHOD_GET)
+		if not stats.data.delegated.is_empty():
+			break
+		await create_timer(0.01).timeout
+	check(stats.data.delegated.size()==1 and stats.data.delegated[0].get("request_id")=="ws-delegate" and stats.data.delegated[0].has("content"),"real WS request executes and returns llm_response")
+	chat.queue_free()
 	executor.queue_free()
 	settings.queue_free()
 	http.queue_free()
