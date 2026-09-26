@@ -27,15 +27,17 @@ static func from_image(image: Image) -> Dictionary:
 
 static func from_bytes(bytes: PackedByteArray, mime: String) -> Dictionary:
 	if bytes.size() > MAX_BYTES: return {"ok":false,"code":"IMAGE_TOO_LARGE"}
+	var detected_mime := detect_mime(bytes)
+	if detected_mime.is_empty(): return {"ok":false,"code":"IMAGE_FORMAT"}
 	if bytes.size() < 24: return {"ok":false,"code":"INVALID_IMAGE"}
-	var header := header_dimensions(bytes, mime)
+	var header := header_dimensions(bytes, detected_mime)
 	if not header.ok:
 		return {"ok":false,"code":header.code}
 	if header.has("width") and (header.width < 1 or header.height < 1 or header.width > MAX_SIDE or header.height > MAX_SIDE or header.width * header.height > MAX_PIXELS):
 		return {"ok":false,"code":"IMAGE_DIMENSIONS"}
 	var image := Image.new()
 	var error := ERR_INVALID_DATA
-	match mime:
+	match detected_mime:
 		"image/bmp":
 			if bytes.size() < 26 or bytes.slice(0,2).get_string_from_ascii() != "BM": return {"ok":false,"code":"INVALID_IMAGE"}
 			if image.load_bmp_from_buffer(bytes) != OK: return {"ok":false,"code":"INVALID_IMAGE"}
@@ -52,7 +54,18 @@ static func from_bytes(bytes: PackedByteArray, mime: String) -> Dictionary:
 		_: return {"ok":false,"code":"IMAGE_FORMAT"}
 	if error != OK or image.is_empty(): return {"ok":false,"code":"INVALID_IMAGE"}
 	if not _dimensions_ok(image): return {"ok":false,"code":"IMAGE_DIMENSIONS"}
-	return {"ok":true,"code":"OK","bytes":bytes,"mime":mime,"texture":ImageTexture.create_from_image(image)}
+	return {"ok":true,"code":"OK","bytes":bytes,"mime":detected_mime,"texture":ImageTexture.create_from_image(image)}
+
+static func detect_mime(bytes: PackedByteArray) -> String:
+	if bytes.size() >= 8 and bytes.slice(0,8).hex_encode() == "89504e470d0a1a0a":
+		return "image/png"
+	if bytes.size() >= 2 and bytes[0] == 0xff and bytes[1] == 0xd8:
+		return "image/jpeg"
+	if bytes.size() >= 12 and bytes.slice(0,4).get_string_from_ascii() == "RIFF" and bytes.slice(8,12).get_string_from_ascii() == "WEBP":
+		return "image/webp"
+	if bytes.size() >= 2 and bytes.slice(0,2).get_string_from_ascii() == "BM":
+		return "image/bmp"
+	return ""
 
 static func _dimensions_ok(image: Image) -> bool:
 	return image.get_width() <= MAX_SIDE and image.get_height() <= MAX_SIDE and image.get_width() * image.get_height() <= MAX_PIXELS

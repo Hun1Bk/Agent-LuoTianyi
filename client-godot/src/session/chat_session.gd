@@ -131,7 +131,9 @@ func send_image(bytes: PackedByteArray, mime: String) -> String:
 	if not attachment.ok:
 		_system_error(attachment.code)
 		return ""
-	var payload := {"image_base64":Marshalls.raw_to_base64(bytes), "mime_type":mime, "image_client_path":"", "llm_mode":{"types":_model_types()}}
+	var normalized_bytes: PackedByteArray = attachment.bytes
+	var normalized_mime: String = attachment.mime
+	var payload := {"image_base64":Marshalls.raw_to_base64(normalized_bytes), "mime_type":normalized_mime, "image_client_path":"", "llm_mode":{"types":_model_types()}}
 	var id: String
 	if _waiting_history:
 		if _pending_history.size() >= 128:
@@ -147,7 +149,7 @@ func send_image(bytes: PackedByteArray, mime: String) -> String:
 	var message := {"id":id,"role":"user","type":"image","text":"","status":"waiting_history" if _waiting_history else "queued","code":""}
 	_messages.append(message)
 	_by_id[id] = message
-	_images.store_local(id, bytes)
+	_images.store_local(id, normalized_bytes)
 	if _state.code in ["INVALID_IMAGE", "IMAGE_FORMAT", "IMAGE_DIMENSIONS", "IMAGE_TOO_LARGE", "SEND_REJECTED"]:
 		_state.code = ""
 		state_changed.emit(get_state())

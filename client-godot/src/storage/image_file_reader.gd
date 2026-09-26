@@ -8,5 +8,5 @@ static func read(path: String) -> Dictionary:
 		return {"ok":false,"code":"IMAGE_TOO_LARGE"}
 	var bytes := file.get_buffer(file.get_length())
 	file.close()
-	var mime: String = {"png":"image/png","jpg":"image/jpeg","jpeg":"image/jpeg","webp":"image/webp","bmp":"image/bmp"}.get(path.get_extension().to_lower(), "")
-	return {"ok":true,"code":"OK","bytes":bytes,"mime":mime}
+	var declared_mime: String = {"png":"image/png","jpg":"image/jpeg","jpeg":"image/jpeg","webp":"image/webp","bmp":"image/bmp"}.get(path.get_extension().to_lower(), "")
+	return Attachment.from_bytes(bytes, declared_mime)

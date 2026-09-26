@@ -1,6 +1,6 @@
 extends SceneTree
 
-"""Run the same wire behavior sequence as server/scripts/client_behavior_python.py."""
+# Run the same wire behavior sequence as server/scripts/client_behavior_python.py.
 
 const PASSWORD := "bG9jYWwtcGFzc3dvcmQ="
 const IMAGE := "bG9jYWwtaW1hZ2U="
@@ -327,7 +327,7 @@ func _redact(value: Variant, key: String = "") -> Variant:
 			result[item_key] = _redact(value[item_key], String(item_key))
 		return result
 	if value is Array:
-		var result_array: Array[Variant] = []
+		var result_array := []
 		for item in value:
 			result_array.append(_redact(item, key))
 		return result_array
