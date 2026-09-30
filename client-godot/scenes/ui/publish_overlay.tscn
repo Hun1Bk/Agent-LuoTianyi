@@ -37,13 +37,6 @@ size_flags_horizontal = 3
 text = "分享此刻的想法"
 theme_override_font_sizes/font_size = 20
 
-[node name="ClosePublish" type="Button" parent="Center/Panel/Column/Header"]
-unique_name_in_owner = true
-text = "×"
-tooltip_text = "关闭发布"
-flat = true
-custom_minimum_size = Vector2(36,36)
-
 [node name="PublishDraft" type="TextEdit" parent="Center/Panel/Column"]
 unique_name_in_owner = true
 size_flags_vertical = 3

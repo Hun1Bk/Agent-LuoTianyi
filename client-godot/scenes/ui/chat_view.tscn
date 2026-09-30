@@ -98,13 +98,6 @@ theme_override_colors/font_color = Color(0.376470596, 0.498039216, 0.552941203, 
 theme_override_font_sizes/font_size = 12
 autowrap_mode = 3
 
-[node name="CompanionHint" type="Label" parent="Margin/Column/HeaderMargin/Heading"]
-unique_name_in_owner = true
-size_flags_vertical = 4
-theme_override_font_sizes/font_size = 12
-theme_override_colors/font_color = Color(0.47, 0.6, 0.66, 1)
-text = "此刻，慢慢来就好"
-
 [node name="SepTop" type="HSeparator" parent="Margin/Column"]
 
 [node name="MessagesMargin" type="MarginContainer" parent="Margin/Column"]

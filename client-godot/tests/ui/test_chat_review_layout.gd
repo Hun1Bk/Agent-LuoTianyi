@@ -226,6 +226,12 @@ func capture_samples(app: Control, chat: Control) -> void:
 			for frame in 4: await process_frame
 			check(scroll.scroll_to_message("date"), "sample framing starts at date after content settles")
 			await capture(app, chat, "review-%s-%sx%s" % [pair[0], dimensions.x, dimensions.y])
+			check(chat.find_child("CompanionHint", true, false) == null, "decorative chat header hint removed")
+			var selected_text: RichTextLabel = scroll.get_node("%Canvas").get_children().filter(func(bubble): return bubble.get_node("%Text").text == "回来啦。今天过得怎么样？")[0].get_node("%Text")
+			selected_text.select_all()
+			check(selected_text.get_selected_text() == selected_text.text, "chat text remains selectable")
+			await capture(app, chat, "review-selection-%s-%sx%s" % [pair[0], dimensions.x, dimensions.y])
+			selected_text.deselect()
 	check(scroll.scroll_to_message("long"), "long sample remains scrollable")
 	root.size = Vector2i(960, 640)
 	await capture(app, chat, "review-long-message-960x640")

@@ -8,7 +8,6 @@ const PostRow = preload("res://scenes/ui/dynamics_post_row.tscn")
 @onready var _split: HSplitContainer = %Split
 @onready var _list_scroll: ScrollContainer = %ListScroll
 @onready var _list: VBoxContainer = %List
-@onready var _more: Button = %More
 @onready var _right: PanelContainer = %Right
 @onready var _empty: Label = %Empty
 @onready var _publish: Button = %Publish
@@ -69,10 +68,8 @@ func _initialize() -> void:
 	_publish.pressed.connect(_open_publisher)
 	_refresh_button.pressed.connect(_refresh)
 	_read_all.pressed.connect(_controller.mark_read)
-	_more.pressed.connect(func():
-		if _controller.get_state().has_more: _controller.load_more()
-		else: _controller.refresh())
 	_list_scroll.get_v_scroll_bar().value_changed.connect(func(_value): _at_bottom())
+	_list_scroll.gui_input.connect(_list_input)
 	_split.resized.connect(_resize_split)
 	_split.dragged.connect(func(_offset):
 		_ratio = clampf(_split.split_offset/maxf(1,_split.size.x),.25,.7)
@@ -91,7 +88,9 @@ func get_selected_id() -> String:
 func select_post(id: String) -> bool:
 	var posts: Array = _controller.get_posts().filter(func(post): return post.id == id)
 	if posts.is_empty(): return false
-	if _selected == id: return true
+	if _selected == id:
+		_refresh_selected_comments(id)
+		return true
 	if not _selected.is_empty() and _details.has(_selected):
 		_detail_scroll_positions[_selected] = _details[_selected].scroll_vertical
 	_selected = id
@@ -108,9 +107,12 @@ func select_post(id: String) -> bool:
 	_details[id].scroll_vertical = position
 	_details[id].set_deferred('scroll_vertical', position)
 	_select_style()
-	var state: Dictionary = _controller.get_comments(id)
-	if not state.loaded and not state.busy: _controller.load_comments(id)
+	_refresh_selected_comments(id)
 	return true
+
+func _refresh_selected_comments(id: String) -> void:
+	var state: Dictionary = _controller.get_comments(id)
+	if not state.busy: _details[id].refresh_comments()
 
 func is_dirty() -> bool:
 	if is_instance_valid(_publisher) and _publisher.is_dirty(): return true
@@ -118,15 +120,18 @@ func is_dirty() -> bool:
 
 func _update_unread(count: int) -> void:
 	_unread.text = "动态"+(" · "+("99+" if count>99 else str(count)) if count else "")
-	_notice.text = "有新的动态或评论，点击刷新查看。" if count else ""
-	var code: String = _controller.get_state().unread_code
+	_notice.text = "有新的动态或评论，点击卡片查看最新评论，刷新可更新动态列表。" if count else ""
+	var state: Dictionary = _controller.get_state()
+	if state.busy:
+		_notice.text += " 正在加载动态…"
+	elif state.code not in ["","OK"]:
+		_notice.text += " 动态加载失败（%s），滚动到底部或点击刷新重试。" % state.code
+	var code: String = state.unread_code
 	if code not in ["","OK"]: _notice.text += " 未读操作失败（%s）。"%code
 
 func _update() -> void:
 	var state: Dictionary = _controller.get_state()
-	_more.visible = state.busy or state.has_more or state.code not in ["","OK"]
-	_more.disabled = state.busy
-	_more.text = "加载中…" if state.busy else ("重试加载动态" if state.code not in ["","OK"] else "加载更多动态")
+	_update_unread(state.unread)
 	var posts: Array = _controller.get_posts()
 	for index in posts.size():
 		var post: Dictionary = posts[index]
@@ -157,7 +162,7 @@ func _open_publisher() -> void:
 	if not is_instance_valid(_publisher):
 		_publisher = load("res://scenes/ui/publish_overlay.tscn").instantiate()
 		if _ui_style != null:
-			_ui_style.apply_view(_publisher, {"PublishButton":"action_send", "ClosePublish":"action_close", "CancelPublish":"action_close"})
+			_ui_style.apply_view(_publisher, {"PublishButton":"action_send", "CancelPublish":"action_close"})
 		_publisher.setup(_controller)
 		add_child(_publisher)
 		_publisher.published.connect(func(id):
@@ -166,10 +171,14 @@ func _open_publisher() -> void:
 			_list_scroll.scroll_vertical = 0)
 	_publisher.open()
 
+func _list_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		_at_bottom.call_deferred()
+
 func _at_bottom() -> void:
 	var bar := _list_scroll.get_v_scroll_bar()
 	var state: Dictionary = _controller.get_state()
-	if bar.value+bar.page >= bar.max_value-24 and state.has_more and not state.busy and state.code in ["","OK"]:
+	if bar.value+bar.page >= bar.max_value-24 and state.has_more and not state.busy:
 		_controller.load_more()
 
 func _resize_split() -> void:

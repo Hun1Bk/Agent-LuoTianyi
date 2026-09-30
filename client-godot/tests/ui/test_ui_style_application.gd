@@ -99,6 +99,9 @@ func run() -> void:
 			check_icon(viewer, entry[0], entry[1], emoji)
 		var theme: Theme = load("res://theme/app_theme.tres")
 		check(app.theme == theme and settings.theme == theme and dynamics.theme == theme, "scene roots retain the single shared theme")
+		for kind in ["LineEdit", "TextEdit", "RichTextLabel"]:
+			check(theme.get_color("selection_color", kind).is_equal_approx(Color("0078d7")), "text selection stays blue in " + str(pair) + ": " + kind)
+			check(theme.get_color("font_selected_color", kind).is_equal_approx(Color.WHITE), "selected text stays white in " + str(pair) + ": " + kind)
 		check(theme.get_stylebox("panel", "AppSurface").shadow_size == (12 if crystal else 0), "open surfaces hot-switch shadows")
 		for bubble in chat.get_node("%Scroll").get_node("%Canvas").get_children():
 			var panel: StyleBoxFlat = bubble.get_node("%Bubble").get_theme_stylebox("panel")

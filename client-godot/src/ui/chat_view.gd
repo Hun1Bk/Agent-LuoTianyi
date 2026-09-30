@@ -263,7 +263,6 @@ func _exit_tree() -> void:
 	files.cancel()
 
 func _update_density() -> void:
-	%CompanionHint.visible = size.x >= 600
 	_latest.text = "最新" if size.x < 520 else "回到最新"
 	_latest.tooltip_text = "回到最新消息"
 	_unread.text = "未读" if size.x < 520 else "定位未读"

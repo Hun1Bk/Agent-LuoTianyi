@@ -3,7 +3,7 @@ const THEME_PATH := "res://theme/app_theme.tres"
 # Public scene entrypoints; no internal container paths or script implementation snapshots.
 const SCENES := {
 	"res://scenes/ui/publish_overlay.tscn": {
-		"root":"PublishOverlay","type":"Control","setup":"setup","unique":["PublishDraft","PublishButton","PublishStatus","ClosePublish","CancelPublish","DiscardDialog"]
+		"root":"PublishOverlay","type":"Control","setup":"setup","unique":["PublishDraft","PublishButton","PublishStatus","CancelPublish","DiscardDialog"]
 	},
 	"res://scenes/ui/preferences_page.tscn": {
 		"root":"PreferencesPage","type":"Control","setup":"setup","unique":["RelationshipField","RelationshipPresets","SpeakingStyleField","SpeakingStylePresets","PersonalityField","CustomContextField","Status","Reload"]
@@ -46,7 +46,7 @@ const SCENES := {
 		"root":"ImageWindow","type":"Window","setup":"","unique":["ImageScroll","Picture","ImageError","RetryImage","ZoomIn","ZoomOut","FitImage","OriginalSize","CloseImage","ConfirmImage","Chrome"]
 	},
 	"res://scenes/ui/dynamics_window.tscn": {
-		"root":"DynamicsWindow","type":"Window","setup":"setup","unique":["Unread","Publish","Refresh","ReadAll","Notice","Split","ListScroll","List","More","Right","Empty"]
+		"root":"DynamicsWindow","type":"Window","setup":"setup","unique":["Unread","Publish","Refresh","ReadAll","Notice","Split","ListScroll","List","Right","Empty"]
 	},
 	"res://scenes/ui/dynamics_post_row.tscn": {
 		"root":"DynamicsPostRow","type":"Button","setup":"setup","unique":["Avatar","Author","Meta","Excerpt"]

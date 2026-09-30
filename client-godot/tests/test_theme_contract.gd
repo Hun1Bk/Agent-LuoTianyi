@@ -26,6 +26,9 @@ func run() -> void:
 	if primary != null: check(primary.bg_color.is_equal_approx(ACCENT), "primary action uses Tianyi blue")
 	for kind in ["Label", "Button", "LineEdit", "TextEdit", "CheckBox", "RichTextLabel"]:
 		check(theme.get_color("font_color", kind).is_equal_approx(INK), "dark body text: " + kind)
+	for kind in ["LineEdit", "TextEdit", "RichTextLabel"]:
+		check(theme.get_color("selection_color", kind).is_equal_approx(Color("0078d7")), "system blue text selection: " + kind)
+		check(theme.get_color("font_selected_color", kind).is_equal_approx(Color.WHITE), "white selected text: " + kind)
 	for kind in ["Button", "OptionButton", "MenuButton", "CheckBox"]:
 		var normal := check_surface(theme, kind, "normal", 8)
 		for state in ["hover", "pressed", "disabled"]:

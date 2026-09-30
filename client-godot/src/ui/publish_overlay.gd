@@ -10,7 +10,6 @@ func setup(controller: Node) -> void:
 	_controller = controller
 func _ready() -> void:
 	close_requested.connect(_request_close)
-	%ClosePublish.pressed.connect(func(): close_requested.emit())
 	%CancelPublish.pressed.connect(func(): close_requested.emit())
 	%DiscardDialog.confirmed.connect(queue_free)
 	_send.pressed.connect(_publish)

@@ -63,6 +63,8 @@ python client-godot/tests/run_feature_tests.py --godot 'D:/godot/godot4.7.1/godo
 
 导航精简后的专项还验证聊天/动态/设置在两种风格及 SVG/emoji 下保持 64×64、导航上下头像和输入栏停止语音控件已删除、角色背景占满高度且没有底栏/手势提示；通过实际鼠标事件点击悬浮重置，确认构图恢复，并检查缩放窗口后按钮始终位于角色区右下角内侧16px。
 
+后续精简验收使用 `run_feature_tests.py --godot <exe> --script res://tests/ui/test_dynamics_review_actions.gd --gpu`：挂载真实动态窗口与发布弹层，注入本地展示控制器，通过鼠标点击与滚轮事件验证无手动加载按钮、滚动分页及失败重试、点击缓存卡片及重复点击均刷新评论、进行中不重复请求、刷新保留草稿与当前阅读位置、失败保留内容、浏览不清未读、发布标题没有关闭按钮、底部取消仍保护草稿。覆盖扁平/清透及 1100×800 / 960×640，截图为 `dynamics-actions-*`、`dynamics-publish-clean-*` 和 `dynamics-selection-*`。共享主题契约和整应用风格专项验证三类文本控件均为 `#0078D7` 蓝底白字；聊天审阅图专项另外验证标题提示语已删除，并生成 `review-selection-*` 聊天选区截图。
+
 必须在真实图形会话运行。以下是现行入口，按需要分别执行，不将内容缩放当作系统DPI验收。
 
 | 脚本（相对tests） | 启动方式 | 验证内容 |
