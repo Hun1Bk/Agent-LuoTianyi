@@ -23,8 +23,25 @@ var _is_image := false
 var _image_status := "idle"
 var _layout_pending := false
 var _original_size := Vector2i.ZERO
+var _ui_style: RefCounted
+var _other_style: StyleBoxFlat
+var _styled_panel: StyleBoxFlat
+
+func set_ui_style(style: RefCounted) -> void:
+	if _ui_style != null and _ui_style.style_changed.is_connected(_apply_ui_style):
+		_ui_style.style_changed.disconnect(_apply_ui_style)
+	_ui_style = style
+	_ui_style.style_changed.connect(_apply_ui_style)
+	if is_node_ready(): _apply_ui_style()
+	if _audio != null: _audio.set_ui_style(style)
+
+func _apply_ui_style() -> void:
+	if _ui_style == null or _styled_panel == null: return
+	_ui_style.apply_bubble_style(_styled_panel)
+	_styled_panel.bg_color = (Color(0.863, 0.949, 1, 0.74) if _own else Color(1, 1, 1, 0.75)) if _ui_style.is_crystal() else (Color(0.80, 0.92, 1.0, 1) if _own else Color(0.945, 0.969, 0.984, 1))
 
 func _ready() -> void:
+	_other_style = _bubble.get_theme_stylebox("panel") as StyleBoxFlat
 	_image_button.pressed.connect(func(): image_action.emit("retry" if _image_status == "error" else "preview"))
 	_history_picture.gui_input.connect(func(event):
 		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -53,10 +70,14 @@ func configure(message: Dictionary, image_texture: Texture2D = null) -> void:
 	if _own:
 		move_child(_avatar,get_child_count()-1)
 		_bubble.add_theme_stylebox_override("panel",own_style)
-		_caption.show()
+	_styled_panel = (own_style if _own else _other_style).duplicate() as StyleBoxFlat
+	_bubble.add_theme_stylebox_override("panel", _styled_panel)
+	_apply_ui_style()
 	if _is_image:
 		_history_picture.show()
 		_image_button.show()
+		%Content.move_child(_text, %Content.get_child_count() - 1)
+		_text.add_theme_font_size_override("normal_font_size", 12)
 	if image_texture != null:
 		_picture.texture = image_texture
 		_original_size = Vector2i(image_texture.get_size())
@@ -101,16 +122,16 @@ func update_message(message: Dictionary) -> void:
 		_text.text = message.text
 		_queue_layout()
 	if _own:
-		_caption.text = {"waiting_history":"等待历史同步…", "queued":"等待发送…", "sent":"已发送", "sending":"发送中…", "failed":"发送失败", "uncertain":"无法确认送达，请勿重复发送"}.get(message.status, "")
-		if message.get("demo", false):
-			_caption.text += " · 演示"
-		_caption.add_theme_color_override("font_color", get_theme_color("delivery_failed" if message.status in ["failed", "uncertain"] else "delivery_status", "MessageBubble"))
+		_caption.text = {"failed":"发送失败", "uncertain":"无法确认送达，请勿重复发送"}.get(message.status, "")
+		_caption.visible = not _caption.text.is_empty()
+		_caption.add_theme_color_override("font_color", get_theme_color("delivery_failed", "MessageBubble"))
 
 func set_audio_state(state: Dictionary) -> void:
 	if _system_message:
 		return
 	if _audio == null and (state.available or not state.code.is_empty()):
 		_audio = AudioRow.instantiate()
+		if _ui_style != null: _audio.set_ui_style(_ui_style)
 		_column.add_child(_audio)
 		_audio.action.connect(func(value): audio_action.emit(value))
 	if _audio != null:
@@ -125,6 +146,7 @@ func set_image_state(state: Dictionary) -> void:
 	if _original_size == Vector2i.ZERO and state.texture != null:
 		_original_size = Vector2i(state.texture.get_size())
 	_history_picture.visible = state.status == "ready"
+	_image_button.visible = state.status != "ready"
 	_image_button.disabled = state.status in ["idle","loading"]
 	_image_button.text = {"idle":"加载图片…","loading":"正在下载图片…","ready":"打开原图","error":"图片加载失败 · 重试"}.get(state.status,"")
 	if state.code == "CACHE_WRITE_FAILED":

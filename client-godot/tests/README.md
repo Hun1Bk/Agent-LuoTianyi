@@ -39,6 +39,30 @@ $python = '<已安装测试依赖的python.exe>'
 
 ## GPU与原生验收
 
+### 界面与图标风格
+
+当前源码目录为 `client-godot`。`check.ps1` 包含 `ui/test_ui_style.gd`：验证默认扁平/SVG、四种组合、保存失败回滚、草稿关闭保护、重启恢复、虚拟列表新旧气泡及音频状态图标。
+
+整应用验收使用已有本地 HTTP/WebSocket 夹具，隔离用户数据；不会连接生产服务。下面的命令验证设置保存、跨窗口热切换与重新启动，并将截图保存到 `client-godot/artifacts/ui-style/`：
+
+```powershell
+python client-godot/tests/run_feature_tests.py --godot 'D:/godot/godot4.7.1/godot.exe' --script res://tests/ui/test_ui_style_application.gd --gpu
+```
+
+不加 `--gpu` 可执行相同整应用行为断言，但不采集截图。加密夹具从当前 `server/src/application/user/account.py` 提取实际函数及解密异常类型。
+
+### 其他图形验收
+
+聊天审阅图落地的专项验收：
+
+```powershell
+python client-godot/tests/run_feature_tests.py --godot 'D:/godot/godot4.7.1/godot.exe' --script res://tests/ui/test_chat_review_layout.gd --gpu
+```
+
+该测试挂载真实 `main.tscn`，经过本地夹具登录，使用实际聊天控件、原头像/图标与 Live2D。检查 1280×800 / 960×640、扁平/清透、SVG/emoji、草稿与阅读锚点保持、分隔条及独立窗口入口；也检查图片/音量上排图标、音量滑条浮层、输入右侧方形发送图标、正常消息无发送状态占位、最新未读动态卡片及显式已读后隐藏。截图保存在 `artifacts/ui-redraw-client/`，含 `volume-popup-*` 和 `review-no-unread-*`。`flat-svg-*` / `crystal-svg-*` 是本地接口实际消息；`review-*` 使用同一产品节点树填入固定展示数据，并明确标注“布局样例 · 离线固定内容”，覆盖长文、图片和语音。不使用 `render_chat.gd` 的另绘 UI 作为产品验收。图片、窗口与系统 DPI 等其他契约仍分别运行现有测试，不据此宣称全量回归通过。
+
+导航精简后的专项还验证聊天/动态/设置在两种风格及 SVG/emoji 下保持 64×64、导航上下头像和输入栏停止语音控件已删除、角色背景占满高度且没有底栏/手势提示；通过实际鼠标事件点击悬浮重置，确认构图恢复，并检查缩放窗口后按钮始终位于角色区右下角内侧16px。
+
 必须在真实图形会话运行。以下是现行入口，按需要分别执行，不将内容缩放当作系统DPI验收。
 
 | 脚本（相对tests） | 启动方式 | 验证内容 |

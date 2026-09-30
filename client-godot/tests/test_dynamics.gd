@@ -22,6 +22,11 @@ func test_reads() -> void:
 	var scope := {"server":OS.get_environment("GODOT_TEST_SERVER"),"username":"read","message_token":"fixture-token"}
 	await controller.start(scope)
 	check(controller.get_state().unread==123,"initial unread query")
+	check(controller.get_latest_unread().get("id") == "d0", "latest unread dynamic is fetched without opening the window")
+	check(controller.get_posts().is_empty(), "preview does not preselect or mutate the window list")
+	var preview: Dictionary = controller.get_latest_unread()
+	preview.content = "mutated"
+	check(controller.get_latest_unread().content != "mutated", "unread preview snapshots are independent")
 	await controller.refresh()
 	check(controller.get_posts().size()==10 and controller.get_state().unread==123,"reading ten posts does not clear unread")
 	await controller.load_more()
@@ -40,6 +45,25 @@ func test_reads() -> void:
 	check(controller.get_comments("d0").items.size()==22,"comments page merge")
 	await controller.mark_read()
 	check(controller.get_state().unread==0,"explicit mark read clears unread")
+	check(controller.get_latest_unread().is_empty(), "explicit mark read clears the preview")
+	scope.username = "comments-only"
+	await controller.start(scope)
+	check(controller.get_state().unread == 123 and controller.get_latest_unread().is_empty(), "unread comments alone never show a dynamic card")
+	scope.username = "preview-fail"
+	await controller.start(scope)
+	await controller.refresh_unread()
+	check(controller.get_latest_unread().get("id") == "d0" and controller.get_state().unread_code == "HTTP_ERROR", "failed preview fetch retains known unread content and reports error")
+	scope.username = "preview-pagination"
+	await controller.start(scope)
+	check(controller.get_latest_unread().get("id") == "d9", "latest unread skips user-authored posts across pages")
+	scope.username = "preview-late"
+	controller.start(scope)
+	await create_timer(.1).timeout
+	controller.stop()
+	scope.username = "read"
+	await controller.start(scope)
+	await create_timer(.4).timeout
+	check(controller.get_latest_unread().is_empty(), "late preview from previous account cannot repopulate the card")
 	scope.username = "fail-refresh"
 	await controller.start(scope)
 	await controller.refresh()
@@ -66,10 +90,12 @@ func test_reads() -> void:
 	await controller.start(scope)
 	await controller.refresh_unread()
 	check(controller.get_state().unread==123 and controller.get_state().unread_code=="HTTP_ERROR","failed unread poll preserves count")
+	check(controller.get_latest_unread().get("id") == "d0", "failed unread poll preserves known preview")
 	scope.username = "fail-write"
 	await controller.start(scope)
 	await controller.mark_read()
 	check(controller.get_state().unread==123,"failed mark read preserves count")
+	check(controller.get_latest_unread().get("id") == "d0", "failed mark read preserves preview")
 	scope.username = "slow"
 	controller.start(scope)
 	controller.stop()

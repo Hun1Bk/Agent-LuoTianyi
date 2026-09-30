@@ -16,13 +16,36 @@ const PostRow = preload("res://scenes/ui/dynamics_post_row.tscn")
 @onready var _read_all: Button = %ReadAll
 var _controller: Node
 @export var settings: Resource = preload("res://src/storage/settings_store.gd").new()
-var _ratio := .45
+var _ratio := .35
 var _selected := ""
 var _details := {}
+var _detail_scroll_positions := {}
 var _rows := {}
 var _publisher: Control
 var _refreshing := false
 var _initialized := false
+var _ui_style: RefCounted
+var _panel_style: StyleBoxFlat
+var _right_style: StyleBoxFlat
+
+func set_ui_style(style: RefCounted) -> void:
+	if _ui_style != null and _ui_style.style_changed.is_connected(_apply_ui_style):
+		_ui_style.style_changed.disconnect(_apply_ui_style)
+	_ui_style = style
+	style.apply_view(self, {"Publish":"action_edit", "Refresh":"action_refresh", "ReadAll":"action_check_all"})
+	_ui_style.style_changed.connect(_apply_ui_style)
+	if is_node_ready(): _apply_ui_style()
+
+func _apply_ui_style() -> void:
+	if _ui_style == null or not is_node_ready(): return
+	if _panel_style == null:
+		_panel_style = (get_node('Panel').get_theme_stylebox('panel') as StyleBoxFlat).duplicate() as StyleBoxFlat
+	if _right_style == null:
+		_right_style = _right.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	_ui_style.apply_surface_style(_panel_style)
+	_ui_style.apply_surface_style(_right_style)
+	get_node('Panel').add_theme_stylebox_override('panel', _panel_style)
+	_right.add_theme_stylebox_override("panel", _right_style)
 
 func setup(controller: Node,settings_store: Resource = null) -> void:
 	_controller = controller
@@ -41,7 +64,7 @@ func _initialize() -> void:
 	if config.load_settings() == OK:
 		var saved: Variant = config.get_value("window","size",size)
 		if saved is Vector2i: size = saved.max(min_size)
-		var ratio: Variant = config.get_value("window","ratio",.45)
+		var ratio: Variant = config.get_value("window","ratio",.35)
 		if (ratio is float or ratio is int) and is_finite(ratio): _ratio = clampf(ratio,.25,.7)
 	_publish.pressed.connect(_open_publisher)
 	_refresh_button.pressed.connect(_refresh)
@@ -69,15 +92,21 @@ func select_post(id: String) -> bool:
 	var posts: Array = _controller.get_posts().filter(func(post): return post.id == id)
 	if posts.is_empty(): return false
 	if _selected == id: return true
+	if not _selected.is_empty() and _details.has(_selected):
+		_detail_scroll_positions[_selected] = _details[_selected].scroll_vertical
 	_selected = id
 	_empty.hide()
 	for detail in _details.values(): detail.hide()
 	if not _details.has(id):
 		var detail = DetailScene.instantiate()
+		if _ui_style != null: detail.set_ui_style(_ui_style)
 		detail.setup(_controller,posts[0])
 		_details[id] = detail
 		_right.add_child(detail)
 	_details[id].show()
+	var position := int(_detail_scroll_positions.get(id, 0))
+	_details[id].scroll_vertical = position
+	_details[id].set_deferred('scroll_vertical', position)
 	_select_style()
 	var state: Dictionary = _controller.get_comments(id)
 	if not state.loaded and not state.busy: _controller.load_comments(id)
@@ -127,6 +156,8 @@ func _refresh() -> void:
 func _open_publisher() -> void:
 	if not is_instance_valid(_publisher):
 		_publisher = load("res://scenes/ui/publish_overlay.tscn").instantiate()
+		if _ui_style != null:
+			_ui_style.apply_view(_publisher, {"PublishButton":"action_send", "ClosePublish":"action_close", "CancelPublish":"action_close"})
 		_publisher.setup(_controller)
 		add_child(_publisher)
 		_publisher.published.connect(func(id):

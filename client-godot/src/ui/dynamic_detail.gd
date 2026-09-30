@@ -23,6 +23,28 @@ var _rows := {}
 var _writing := false
 var _refresh_failed := false
 var _initialized := false
+var _ui_style: RefCounted
+var _draft_style: StyleBoxFlat
+var _reply_style: StyleBoxFlat
+
+func set_ui_style(style: RefCounted) -> void:
+	if _ui_style != null and _ui_style.style_changed.is_connected(_apply_ui_style):
+		_ui_style.style_changed.disconnect(_apply_ui_style)
+	_ui_style = style
+	style.apply_view(self, {"Send":"action_send", "ReplySend":"action_send", "CancelReply":"action_close"})
+	_ui_style.style_changed.connect(_apply_ui_style)
+	if is_node_ready(): _apply_ui_style()
+
+func _apply_ui_style() -> void:
+	if _ui_style == null or not is_node_ready(): return
+	if _draft_style == null:
+		_draft_style = _draft.get_theme_stylebox('normal').duplicate() as StyleBoxFlat
+	if _reply_style == null:
+		_reply_style = _reply_draft.get_theme_stylebox('normal').duplicate() as StyleBoxFlat
+	_ui_style.apply_input_style(_draft_style)
+	_ui_style.apply_input_style(_reply_style)
+	_draft.add_theme_stylebox_override('normal', _draft_style)
+	_reply_draft.add_theme_stylebox_override('normal', _reply_style)
 
 func setup(controller: Node,post: Dictionary) -> void:
 	_controller = controller
@@ -70,6 +92,10 @@ func is_dirty() -> bool:
 
 func update_comments() -> void:
 	if not is_node_ready(): return
+	var scroll_bar := get_v_scroll_bar()
+	var previous_scroll := scroll_bar.value
+	var previous_max := scroll_bar.max_value
+	var preserve_reading_position := previous_scroll > 0 and previous_scroll < previous_max - 24
 	var state: Dictionary = _controller.get_comments(_post.id)
 	_load.visible = state.busy or state.has_more or not state.loaded or state.code not in ["","OK"]
 	_load.disabled = state.busy
@@ -95,6 +121,9 @@ func update_comments() -> void:
 			_comments.add_child(row)
 			_rows[item.id] = row
 		_comments.move_child(_rows[item.id],index)
+	if preserve_reading_position:
+		scroll_vertical = int(previous_scroll)
+		set_deferred('scroll_vertical', int(previous_scroll))
 
 func _place_reply() -> void:
 	var destination: Node = _column if _parent.is_empty() else _rows.get(_parent,_column)

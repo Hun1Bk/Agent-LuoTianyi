@@ -15,6 +15,7 @@ theme_override_constants/separation = 6
 [node name="Play" type="Button" parent="Row"]
 unique_name_in_owner = true
 theme_override_font_sizes/font_size = 12
+flat = true
 
 [node name="Wave" parent="Row" instance=ExtResource("3_wave")]
 unique_name_in_owner = true
@@ -28,6 +29,7 @@ theme_override_font_sizes/font_size = 11
 unique_name_in_owner = true
 text = "停止"
 theme_override_font_sizes/font_size = 12
+flat = true
 
 [node name="Error" type="Label" parent="."]
 unique_name_in_owner = true

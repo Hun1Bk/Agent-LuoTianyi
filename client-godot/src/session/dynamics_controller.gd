@@ -2,6 +2,7 @@ extends Node
 const ServerAddress = preload("res://src/domain/server_address.gd")
 signal changed
 signal unread_changed(count: int)
+signal latest_unread_changed(post: Dictionary)
 const Http = preload("res://src/network/json_request.gd")
 var _session := {}
 var _logger: RefCounted
@@ -13,6 +14,7 @@ var _posts: Array[Dictionary] = []
 var _comments := {}
 var _cursor := ""
 var _unread_busy := false
+var _latest_unread: Dictionary = {}
 var _writing := false
 var _state := {"phase":"idle","code":"","unread":0,"unread_code":"","has_more":false,"busy":false}
 
@@ -45,16 +47,21 @@ func stop() -> void:
 	_comments.clear()
 	_cursor = ""
 	_unread_busy = false
+	_latest_unread.clear()
 	_writing = false
 	_state = {"phase":"idle","code":"","unread":0,"unread_code":"","has_more":false,"busy":false}
 	changed.emit()
 	unread_changed.emit(0)
+	latest_unread_changed.emit({})
 
 func get_state() -> Dictionary:
 	return _state.duplicate()
 
 func get_posts() -> Array[Dictionary]:
 	return _posts.duplicate(true)
+
+func get_latest_unread() -> Dictionary:
+	return _latest_unread.duplicate(true)
 
 func get_comments(id: String) -> Dictionary:
 	return _comments.get(id,_empty_comments()).duplicate(true)
@@ -155,16 +162,49 @@ func refresh_unread() -> void:
 	var result := await _request("/dynamics/unread")
 	if generation != _generation:
 		return
-	_unread_busy = false
 	if result.ok:
 		var count: Variant = result.data.get("unread_count")
 		if (count is int or count is float) and is_finite(float(count)) and count >= 0 and count == floor(count):
 			_state.unread = int(count)
 		else:
 			result = _failure("INVALID_RESPONSE")
+	if result.ok:
+		var latest: Dictionary = {}
+		var dynamic_count: Variant = result.data.get("unread_dynamic_count", 0)
+		if (dynamic_count is int or dynamic_count is float) and is_finite(float(dynamic_count)) and dynamic_count > 0 and dynamic_count == floor(dynamic_count):
+			var last_read: Variant = result.data.get("last_read_dynamic_at")
+			var preview := await _load_latest_unread(generation, last_read if last_read is String else "")
+			if preview.ok:
+				latest = preview.post
+			else:
+				result.code = preview.code
+				if not _latest_unread.is_empty() and (not last_read is String or _latest_unread.created_at >= last_read):
+					latest = get_latest_unread()
+		if generation != _generation: return
+		_latest_unread = latest
+		latest_unread_changed.emit(get_latest_unread())
+	_unread_busy = false
 	_state.unread_code = result.code
 	unread_changed.emit(_state.unread)
 	_log("ready",result.code)
+
+func _load_latest_unread(generation: int, last_read: String) -> Dictionary:
+	var cursor := ""
+	var seen := {}
+	while generation == _generation:
+		seen[cursor] = true
+		var result := await _request("/dynamics", HTTPClient.METHOD_GET, {}, 10, cursor)
+		if generation != _generation: return _failure("CANCELLED")
+		if result.ok: result = _page(result.data, cursor, false)
+		if not result.ok: return result
+		for post in result.items:
+			if post.author_type == "user": continue
+			if not last_read.is_empty() and post.created_at < last_read: return {"ok":true, "post":{}}
+			return {"ok":true, "post":post.duplicate(true)}
+		if not result.has_more: return {"ok":true, "post":{}}
+		if seen.has(result.cursor): return _failure("INVALID_RESPONSE")
+		cursor = result.cursor
+	return _failure("CANCELLED")
 
 func mark_read() -> void:
 	if _session.is_empty() or _unread_busy:
@@ -179,6 +219,8 @@ func mark_read() -> void:
 		result = _failure("INVALID_RESPONSE")
 	if result.ok:
 		_state.unread = 0
+		_latest_unread.clear()
+		latest_unread_changed.emit({})
 	_state.unread_code = result.code
 	unread_changed.emit(_state.unread)
 	_log("ready",result.code)

@@ -19,6 +19,11 @@ var _restore_pending := false
 var _restore_queued := false
 var _pending_anchor: Dictionary = {}
 var _pending_follow := false
+var _ui_style: RefCounted
+
+func set_ui_style(style: RefCounted) -> void:
+	_ui_style = style
+	for bubble in _nodes.values(): bubble.set_ui_style(style)
 
 func _ready() -> void:
 	get_v_scroll_bar().value_changed.connect(func(_value):
@@ -105,7 +110,10 @@ func _process(_delta: float) -> void:
 	var follow := is_at_latest()
 	var changed := false
 	for id in _nodes:
-		var height: float = maxf(54,_nodes[id].get_combined_minimum_size().y)+17
+		var system_message: bool = _nodes[id].get_node("%System").visible
+		var minimum_height := 18.0 if system_message else 54.0
+		var spacing := 4.0 if system_message else 17.0
+		var height: float = maxf(minimum_height,_nodes[id].get_combined_minimum_size().y)+spacing
 		if absf(float(_heights.get(id,100))-height)>1:
 			_heights[id] = height
 			changed = true
@@ -171,6 +179,7 @@ func _render() -> void:
 			wanted[id] = true
 			if not _nodes.has(id):
 				var bubble = Bubble.instantiate()
+				if _ui_style != null: bubble.set_ui_style(_ui_style)
 				_canvas.add_child(bubble)
 				bubble.configure(message)
 				bubble.audio_action.connect(func(action): audio_action.emit(id,action))
@@ -179,7 +188,8 @@ func _render() -> void:
 				_nodes[id] = bubble
 			else:
 				_nodes[id].update_message(message)
-			var height := float(_heights.get(id,100))-17
+			var spacing := 4.0 if message.role == "system" else 17.0
+			var height := float(_heights.get(id,100))-spacing
 			_nodes[id].position = Vector2(0,_offsets[index])
 			_nodes[id].size = Vector2(maxf(1,size.x-16),height)
 			if _offsets[index]+height > scroll_vertical and _offsets[index]<scroll_vertical+size.y:

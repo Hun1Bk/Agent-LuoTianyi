@@ -10,6 +10,7 @@ var storage: RefCounted
 var log: RefCounted
 var settings: Resource
 var dynamics_settings: Resource
+var ui_style: RefCounted
 
 static func create_geometry(layout_path: String) -> Resource:
 	return preload("res://src/storage/window_geometry.gd").new(layout_path.get_base_dir().path_join("window-geometry.cfg"))
@@ -17,6 +18,8 @@ static func create_geometry(layout_path: String) -> Resource:
 func _init(layout_path: String, runtime: Resource) -> void:
 	settings = preload("res://src/storage/godot_settings_store.gd").new(layout_path)
 	dynamics_settings = preload("res://src/storage/godot_settings_store.gd").new(layout_path.get_base_dir().path_join("dynamics-window.cfg"))
+	ui_style = preload("res://src/application/ui_style.gd").new()
+	ui_style.configure(settings)
 	log = preload("res://src/storage/client_log.gd").new("user://logs" if layout_path == "user://window_layout.cfg" else layout_path.get_base_dir().path_join("logs"),2097152,runtime)
 
 func mount(host: Node, injected_account: Node, layout_path: String, encryption: Resource, secrets: Resource, decoder_factory: Resource) -> void:
@@ -43,11 +46,13 @@ func mount(host: Node, injected_account: Node, layout_path: String, encryption: 
 func create_settings() -> Dictionary:
 	var controller = preload("res://src/session/preferences_controller.gd").new(preload("res://src/network/json_request.gd").new(),log)
 	var window = preload("res://scenes/ui/settings_window.tscn").instantiate()
+	window.set_ui_style(ui_style)
 	window.setup(controller,models,executor,chat.clear_cache,storage,cache.get_directory())
 	return {"window":window,"start":func(): controller.start(account.get_session())}
 
 func create_dynamics() -> Dictionary:
 	var window = preload("res://scenes/ui/dynamics_window.tscn").instantiate()
+	window.set_ui_style(ui_style)
 	window.setup(dynamics,dynamics_settings)
 	return {"window":window,"start":Callable()}
 

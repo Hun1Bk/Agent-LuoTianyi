@@ -65,8 +65,7 @@ func _run() -> void:
 			windows[0].get_node("%ModelsTab" if item[0] == "models" else "%PreferencesTab").pressed.emit()
 		await capture(windows[0],"agentluo-011-"+item[2])
 		windows[0].hide()
-	var dynamics: Array = app.find_children("*","Button",true,false).filter(func(n): return n.text.begins_with("动态 ·"))
-	dynamics[0].pressed.emit()
+	app.get_node("%NavDynamics").pressed.emit()
 	await create_timer(.4).timeout
 	var window: Window = app.find_children("*","Window",true,false).filter(func(n): return n.title == "天依的动态")[0]
 	window.select_post("visual-post")

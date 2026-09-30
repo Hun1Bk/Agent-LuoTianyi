@@ -17,6 +17,15 @@ content_margin_top = 16.0
 content_margin_right = 16.0
 content_margin_bottom = 16.0
 bg_color = Color(0.960784316, 0.972549021, 0.984313726, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.84, 0.90, 0.95, 0.9)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_right"]
 content_margin_left = 0.0
@@ -24,10 +33,15 @@ content_margin_top = 0.0
 content_margin_right = 0.0
 content_margin_bottom = 0.0
 bg_color = Color(1, 1, 1, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.84, 0.90, 0.95, 0.9)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 
 [node name="DynamicsWindow" type="Window"]
@@ -53,7 +67,7 @@ grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Column" type="VBoxContainer" parent="Panel"]
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="Toolbar" type="HBoxContainer" parent="Panel/Column"]
 
@@ -94,7 +108,7 @@ horizontal_scroll_mode = 0
 [node name="List" type="VBoxContainer" parent="Panel/Column/Split/Left/ListScroll"]
 unique_name_in_owner = true
 size_flags_horizontal = 3
-theme_override_constants/separation = 5
+theme_override_constants/separation = 8
 
 [node name="More" type="Button" parent="Panel/Column/Split/Left"]
 unique_name_in_owner = true

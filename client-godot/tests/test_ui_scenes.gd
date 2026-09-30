@@ -40,7 +40,7 @@ const SCENES := {
 		"root":"VirtualMessageList","type":"ScrollContainer","setup":"","unique":["Canvas"]
 	},
 	"res://scenes/ui/chat_view.tscn": {
-		"root":"ChatView","type":"MarginContainer","setup":"setup","unique":["Margin","Status","HistoryStatus","HistoryRetry","HistorySkip","Scroll","Empty","Latest","Unread","Volume","StopVoice","Input","Send"]
+		"root":"ChatView","type":"MarginContainer","setup":"setup","unique":["Margin","Status","HistoryStatus","HistoryRetry","HistorySkip","Scroll","Empty","Latest","Unread","Volume","VolumeButton","VolumePopup","ImageButton","Input","Send"]
 	},
 	"res://scenes/ui/image_window.tscn": {
 		"root":"ImageWindow","type":"Window","setup":"","unique":["ImageScroll","Picture","ImageError","RetryImage","ZoomIn","ZoomOut","FitImage","OriginalSize","CloseImage","ConfirmImage","Chrome"]
@@ -71,7 +71,7 @@ const PROPERTIES := {
 	"preferences_page": {"%PersonalityField":{"wrap_mode":TextEdit.LINE_WRAPPING_BOUNDARY},"%CustomContextField":{"wrap_mode":TextEdit.LINE_WRAPPING_BOUNDARY},"%Reload":{"text":"重新加载"}},
 	"log_window": {"%Text":{"selection_enabled":true},"%Picker":{"file_mode":FileDialog.FILE_MODE_SAVE_FILE,"access":FileDialog.ACCESS_FILESYSTEM,"use_native_dialog":true}},
 	"message_bubble": {"%Text":{"fit_content":true,"selection_enabled":true,"scroll_active":false,"autowrap_mode":TextServer.AUTOWRAP_WORD_SMART}},
-	"chat_view": {"%HistoryRetry":{"text":"重试历史"},"%HistorySkip":{"text":"跳过本次"},"%StopVoice":{"text":"停止语音"},"%Input":{"wrap_mode":TextEdit.LINE_WRAPPING_BOUNDARY},"%Send":{"text":"发送  ↑"}},
+	"chat_view": {"%HistoryRetry":{"text":"重试历史"},"%HistorySkip":{"text":"跳过本次"},"%ImageButton":{"text":""},"%VolumeButton":{"text":"","tooltip_text":"语音音量"},"%Input":{"wrap_mode":TextEdit.LINE_WRAPPING_BOUNDARY},"%Send":{"text":"","tooltip_text":"发送消息"}},
 	"dynamics_window": {"%Publish":{"text":"发布动态"},"%Refresh":{"text":"刷新"},"%ReadAll":{"text":"全部已读"}},
 	"dynamic_comment_row": {"%Body":{"selection_enabled":true,"fit_content":true,"scroll_active":false},"%Reply":{"text":"回复"}},
 	"dynamic_detail": {"%Body":{"selection_enabled":true,"fit_content":true,"scroll_active":false},"%Notice":{"text":"此动态不可评论。"},"%CommentDraft":{"wrap_mode":TextEdit.LINE_WRAPPING_BOUNDARY},"%ReplyDraft":{"wrap_mode":TextEdit.LINE_WRAPPING_BOUNDARY},"%CancelReply":{"text":"取消回复对象"},"%Send":{"text":"发送评论"},"%ReplySend":{"text":"发送回复"}},

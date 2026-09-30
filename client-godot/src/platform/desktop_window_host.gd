@@ -7,6 +7,7 @@ var _normal := Rect2i()
 var _maximized := false
 var _last := {}
 var _quiet := 0.0
+var _saved_before_presentation := false
 
 func attach(window: Window, login: bool) -> void:
 	_window = window
@@ -17,7 +18,9 @@ func attach(window: Window, login: bool) -> void:
 	_normal = Rect2i(_window.position,_window.size)
 
 func set_login_mode(enabled: bool) -> void:
-	if login_mode != enabled: save()
+	if login_mode != enabled:
+		save()
+		_saved_before_presentation = true
 	login_mode = enabled
 	_apply_presentation()
 
@@ -36,7 +39,8 @@ func configure(store: RefCounted, key: String) -> void:
 	_restore(_window.size,_window.min_size)
 
 func select_layout(key: String, default_size: Vector2i, minimum: Vector2i) -> void:
-	save()
+	if not _saved_before_presentation: save()
+	_saved_before_presentation = false
 	_key = key
 	_restore(default_size,minimum)
 

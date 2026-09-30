@@ -26,7 +26,7 @@ func _run() -> void:
 	window.position = Vector2i(100,100)
 	await capture(window,"list")
 	var split: HSplitContainer = window.find_children("*","HSplitContainer",true,false)[0]
-	check(absf(split.get_child(0).size.x/split.size.x-.45)<.02,"default split 45:55")
+	check(absf(split.get_child(0).size.x/split.size.x-.35)<.02,"default split 35:65")
 	window.select_post("d0")
 	await create_timer(.3).timeout
 	await capture(window,"detail")

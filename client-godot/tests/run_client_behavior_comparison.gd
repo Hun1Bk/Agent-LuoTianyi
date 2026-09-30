@@ -65,15 +65,15 @@ func _run() -> void:
 
 
 func _run_http_sequence() -> bool:
-	var key := await _http_call("http.public_key", HTTPClient.METHOD_GET, "/auth/public_key")
+	var key: Variant = await _http_call("http.public_key", HTTPClient.METHOD_GET, "/auth/public_key")
 	if key == null:
 		return false
-	var registered := await _http_call("http.register", HTTPClient.METHOD_POST, "/auth/register", {
+	var registered: Variant = await _http_call("http.register", HTTPClient.METHOD_POST, "/auth/register", {
 		"username": _username, "password": PASSWORD, "invite_code": "local"
 	})
 	if registered == null:
 		return false
-	var login := await _http_call("http.login", HTTPClient.METHOD_POST, "/auth/login", {
+	var login: Variant = await _http_call("http.login", HTTPClient.METHOD_POST, "/auth/login", {
 		"username": _username, "password": PASSWORD, "request_token": false
 	})
 	if login == null:
@@ -115,7 +115,7 @@ func _run_http_sequence() -> bool:
 		"username": _username, "token": _message_token
 	}) == null:
 		return false
-	var created := await _http_call("http.dynamics_create", HTTPClient.METHOD_POST, "/dynamics", {
+	var created: Variant = await _http_call("http.dynamics_create", HTTPClient.METHOD_POST, "/dynamics", {
 		"username": _username, "token": _message_token, "content": "behavior test"
 	})
 	if created == null:
@@ -333,6 +333,6 @@ func _redact(value: Variant, key: String = "") -> Variant:
 		return result_array
 	if value is String and (normalized in ["password", "new_password", "token", "login_token", "message_token", "authorization", "public_key"]
 			or normalized.contains("token") or normalized.ends_with("_base64") or normalized == "audio"):
-		var digest := value.sha256_text().left(12)
+		var digest: String = value.sha256_text().left(12)
 		return "<redacted len=" + str(value.length()) + " sha256=" + digest + ">"
 	return value

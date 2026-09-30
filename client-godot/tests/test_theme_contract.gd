@@ -49,7 +49,7 @@ func run() -> void:
 	check_surface(theme, "CheckBox", "hover_pressed", 8)
 	for state in ["font_pressed_color", "font_hover_color", "font_hover_pressed_color", "font_focus_color"]:
 		check(theme.get_color(state, "CheckBox").is_equal_approx(INK), "legible toggle text: " + state)
-	check_surface(theme, "AppSurface", "panel", 12)
+	check_surface(theme, "AppSurface", "panel", 8)
 	var dynamic_normal := flat_style(theme, "DynamicsPost", "normal")
 	var dynamic_selected := flat_style(theme, "DynamicsPost", "selected")
 	if dynamic_normal != null and dynamic_selected != null:

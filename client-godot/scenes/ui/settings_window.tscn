@@ -5,6 +5,7 @@
 [ext_resource type="Theme" path="res://theme/app_theme.tres" id="theme"]
 [ext_resource type="PackedScene" path="res://scenes/ui/window_chrome.tscn" id="chrome"]
 [ext_resource type="PackedScene" path="res://scenes/ui/preferences_page.tscn" id="preferences"]
+[ext_resource type="PackedScene" path="res://scenes/ui/style_page.tscn" id="style_page"]
 [ext_resource type="PackedScene" path="res://scenes/ui/model_page.tscn" id="models"]
 [ext_resource type="PackedScene" path="res://scenes/ui/decision_dialog.tscn" id="Decision"]
 [ext_resource type="PackedScene" path="res://scenes/ui/audio_settings_page.tscn" id="audio"]
@@ -63,6 +64,12 @@ text = "语音缓存"
 toggle_mode = true
 custom_minimum_size = Vector2(0, 40)
 
+[node name="StyleTab" type="Button" parent="Body/Column/PagesArea/Pages/Sidebar"]
+unique_name_in_owner = true
+text = "风格外观"
+toggle_mode = true
+custom_minimum_size = Vector2(0, 40)
+
 [node name="Content" type="Control" parent="Body/Column/PagesArea/Pages"]
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -83,6 +90,14 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 
 [node name="AudioPage" parent="Body/Column/PagesArea/Pages/Content" instance=ExtResource("audio")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="StylePage" parent="Body/Column/PagesArea/Pages/Content" instance=ExtResource("style_page")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1

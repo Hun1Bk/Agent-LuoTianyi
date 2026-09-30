@@ -78,7 +78,7 @@ func _run() -> void:
 	button(app, "登录")
 	check(await until(func(): return not session.get_session().is_empty()), "real account login succeeds")
 	await process_frame
-	check(root.size == Vector2i(1200, 800) and root.min_size == Vector2i(960, 640), "successful login expands window")
+	check(root.size == Vector2i(1280, 800) and root.min_size == Vector2i(960, 640), "successful login expands window")
 	var composers: Array = app.find_children("*", "TextEdit", true, false)
 	check(composers.size() == 1 and composers[0].is_visible_in_tree(), "expanded window shows chat")
 	check(app.find_children("Driver", "", true, false).size() == 1, "expanded window renders avatar panel from scene")
@@ -90,6 +90,8 @@ func _run() -> void:
 		layout.load(folder + "/layout.cfg")
 		check(is_equal_approx(float(layout.get_value("audio","volume",0)),.35), "volume change persists in application settings")
 	root.size = Vector2i(1280, 820)
+	await process_frame
+	await process_frame
 	var windowed := root.mode == Window.MODE_WINDOWED
 	button(app, "退出登录")
 	await process_frame
@@ -99,7 +101,7 @@ func _run() -> void:
 	button(app, "登录")
 	await until(func(): return not session.get_session().is_empty())
 	if windowed:
-		check(root.size == Vector2i(1280, 820), "relogin restores expanded size from this run")
+		check(await until(func(): return root.size == Vector2i(1280, 820)), "relogin restores expanded size from this run: " + str(root.size))
 	else:
 		print("SKIP: native window size restoration requires windowed display")
 	button(app, "退出登录")

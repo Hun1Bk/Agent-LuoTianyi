@@ -13,22 +13,22 @@ content_margin_left = 16.0
 content_margin_top = 16.0
 content_margin_right = 16.0
 content_margin_bottom = 16.0
-bg_color = Color(0.874509811, 0.952941179, 1, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+bg_color = Color(0.80, 0.92, 1.0, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_other"]
 content_margin_left = 16.0
 content_margin_top = 16.0
 content_margin_right = 16.0
 content_margin_bottom = 16.0
-bg_color = Color(1, 1, 1, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+bg_color = Color(0.945, 0.969, 0.984, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [node name="MessageBubble" type="HBoxContainer"]
 size_flags_horizontal = 3
@@ -74,6 +74,7 @@ unique_name_in_owner = true
 
 [node name="Text" type="RichTextLabel" parent="Body/MessageColumn/Bubble/Content"]
 unique_name_in_owner = true
+theme_override_font_sizes/normal_font_size = 16
 fit_content = true
 selection_enabled = true
 scroll_active = false
@@ -81,6 +82,7 @@ autowrap_mode = 3
 
 [node name="HistoryPicture" type="TextureRect" parent="Body/MessageColumn/Bubble/Content"]
 unique_name_in_owner = true
+mouse_default_cursor_shape = 2
 visible = false
 size_flags_horizontal = 4
 expand_mode = 1

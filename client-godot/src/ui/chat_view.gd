@@ -16,11 +16,33 @@ var _attachment: Dictionary = {}
 @onready var _latest: Button = %Latest
 @onready var _unread: Button = %Unread
 @onready var _volume: HSlider = %Volume
-@onready var _stop_voice: Button = %StopVoice
 @onready var _input: TextEdit = %Input
 @onready var _send_button: Button = %Send
 var _session: Node
 var _initialized := false
+var _ui_style: RefCounted
+var _card_style: StyleBoxFlat
+var _composer_style: StyleBoxFlat
+var _input_style: StyleBoxFlat
+
+func set_ui_style(style: RefCounted) -> void:
+	if _ui_style != null and _ui_style.style_changed.is_connected(_apply_ui_style):
+		_ui_style.style_changed.disconnect(_apply_ui_style)
+	_ui_style = style
+	style.apply_view(self, {"ImageButton":"action_image", "Send":"action_send", "Latest":"action_arrow_down", "Unread":"action_arrow_down", "VolumeButton":"media_volume"})
+	get_node("%Scroll").set_ui_style(style)
+	_ui_style.style_changed.connect(_apply_ui_style)
+	if is_node_ready(): _apply_ui_style()
+
+func _apply_ui_style() -> void:
+	if _ui_style == null or not is_node_ready(): return
+	_ui_style.apply_surface_style(_card_style)
+	_card_style.bg_color = Color(1, 1, 1, 0.82 if _ui_style.is_crystal() else 1.0)
+	_composer_style.bg_color = Color(1, 1, 1, 0.45 if _ui_style.is_crystal() else 1.0)
+	_composer_style.set_corner_radius_all(12 if _ui_style.is_crystal() else 8)
+	_composer_style.corner_radius_top_left = 0
+	_composer_style.corner_radius_top_right = 0
+	_ui_style.apply_input_style(_input_style)
 
 func setup(session: Node) -> void:
 	_session = session
@@ -31,6 +53,25 @@ func is_dirty() -> bool:
 	return not _input.text.strip_edges().is_empty() or not _attachment.is_empty()
 
 func _ready() -> void:
+	%VolumeButton.pressed.connect(_show_volume)
+	_card_style = get_node("Background").get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	get_node("Background").add_theme_stylebox_override("panel", _card_style)
+	var composer := get_node("Margin/Column/ComposerSurface") as PanelContainer
+	_composer_style = composer.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	composer.add_theme_stylebox_override("panel", _composer_style)
+	_input_style = _input.get_theme_stylebox("normal").duplicate() as StyleBoxFlat
+	_input.add_theme_stylebox_override("normal", _input_style)
+	for button in [_latest, _unread]:
+		for state in ["normal", "hover", "pressed"]:
+			var button_style := button.get_theme_stylebox(state).duplicate() as StyleBoxFlat
+			button_style.content_margin_left = 8
+			button_style.content_margin_right = 8
+			button_style.content_margin_top = 4
+			button_style.content_margin_bottom = 4
+			button.add_theme_stylebox_override(state, button_style)
+	_apply_ui_style()
+	resized.connect(_update_density)
+	_update_density()
 	if _session == null:
 		return
 	_initialize()
@@ -64,10 +105,9 @@ func _initialize() -> void:
 		var lines: int = _input.get_line_count()
 		for line in _input.get_line_count():
 			lines += _input.get_line_wrap_count(line)
-		_input.custom_minimum_size.y = clampf(lines * 24 + 32, 96, 160))
+		_input.custom_minimum_size.y = clampf(lines * 24 + 24, 48, 128))
 	_volume.value = _session.get_audio_state().volume
 	_volume.value_changed.connect(func(value): _session.set_volume(value))
-	_stop_voice.pressed.connect(func(): _session.stop_voice())
 	_send_button.pressed.connect(_send)
 	_session.message_audio_changed.connect(_audio_changed)
 	_session.message_image_changed.connect(func(id,state): _scroll.set_image_state(id,state))
@@ -76,6 +116,13 @@ func _initialize() -> void:
 	_state_changed(_session.get_state())
 	_refresh()
 	get_window().focus_entered.connect(_report_reading)
+
+func _show_volume() -> void:
+	var popup: PopupPanel = %VolumePopup
+	var button: Button = %VolumeButton
+	var popup_position := button.get_global_rect().position if get_viewport().gui_embed_subwindows else button.get_screen_position()
+	popup_position.y -= popup.size.y + 8
+	popup.popup(Rect2i(Vector2i(popup_position), popup.size))
 
 func _send() -> void:
 	_session.note_read_interaction()
@@ -151,13 +198,13 @@ func _state_changed(state: Dictionary) -> void:
 		_history_status.text += " 原阅读位置已找不到，回到最新消息。"
 	elif reading.reason == "SAVE_FAILED":
 		_history_status.text += " 本机阅读位置未能保存。"
+	%HistoryRow.visible = not _history_status.text.is_empty() or _history_retry.visible or _history_skip.visible
 	_status.text = {"idle":"连接已关闭", "connecting":"正在连接…", "authenticating":"正在验证账户…",
 		"ready":"已连接", "reconnecting":"正在重新连接 · 可以继续输入", "auth_rejected":"聊天凭据已失效，请退出后重新登录。"}.get(state.phase, "")
 	if state.thinking:
 		_status.text = "天依正在想一想…"
 	if state.get("speaking", false):
 		_status.text += " · 正在播放语音"
-	_stop_voice.disabled = not state.get("speaking", false)
 	if state.code == "AUDIO_ERROR":
 		_status.text += " · 本条语音暂时无法播放，文字已保留。"
 	elif state.code == "CACHE_CLEAR_FAILED":
@@ -214,3 +261,10 @@ func _image_action(id: String, action: String) -> void:
 
 func _exit_tree() -> void:
 	files.cancel()
+
+func _update_density() -> void:
+	%CompanionHint.visible = size.x >= 600
+	_latest.text = "最新" if size.x < 520 else "回到最新"
+	_latest.tooltip_text = "回到最新消息"
+	_unread.text = "未读" if size.x < 520 else "定位未读"
+	_unread.tooltip_text = "定位未读消息"

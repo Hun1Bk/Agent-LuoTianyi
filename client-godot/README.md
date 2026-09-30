@@ -87,7 +87,7 @@ release.json 是版本单一来源，界面/诊断/目录/ZIP 使用同一版本
 
 应用持有聊天/模型/动态控制器，Window 仅展示和编辑；未来页面切换不重连。角色入口 `assets/live2d/character.json` 分离身份与模型资源，加载失败保留原模型；实际平台能力仍是 Windows。详细使用说明见 PREVIEW.md，实际验收记录见开发进度，不将预留移动端/换装/箱庭视为已交付。
 
-当前开发版的动态为独立任务栏窗口，45:55列表/详情分区，完整正文、平铺私人评论、行内回复和内嵌发布浮层；关闭聚合检查所有草稿。正式下拉共享稳定ID组件。原生验收：`tests/run_dynamics_tests.py --godot <exe> --gpu --script res://tests/capture_dynamics_ui.gd`；菜单GPU验收：Godot `--path client_godot --script res://tests/capture_dropdown_ui.gd`。这些测试验证真实HWND、缩放截图和本地接口，不验证公共服务或系统DPI切换。
+当前开发版的动态为独立任务栏窗口，35:65列表/详情分区，完整正文、平铺私人评论、行内回复和内嵌发布浮层；关闭聚合检查所有草稿。正式下拉共享稳定ID组件。原生验收：`tests/run_dynamics_tests.py --godot <exe> --gpu --script res://tests/capture_dynamics_ui.gd`；菜单GPU验收：Godot `--path client_godot --script res://tests/capture_dropdown_ui.gd`。这些测试验证真实HWND、缩放截图和本地接口，不验证公共服务或系统DPI切换。
 
 
 ## 窗口重设计（当前开发分支）
@@ -115,8 +115,12 @@ GPU原生窗框截图需要安装`tests/requirements-visual.txt`中的Pillow及�
 
 0.1.3登录与气泡契约见[interface](../docs/项目说明/项目架构与接口（spec）/接口文档/client_godot/release-013.md)，实际验证与包信息见[进度](../docs/开发进程文档/开发进度/Godot-0.1.3登录与气泡.md)。登录GPU验收使用`run_feature_tests.py --godot <exe> --script res://tests/ui/test_login_presentation.gd --gpu`；气泡使用`--script res://tests/ui/test_bubble_sizing.gd`与`test_image_bubble_sizing.gd`，可独立headless/GPU运行。
 
+## 聊天审阅图落地
+
+聊天页按已审阅的 HTML 方案落地到真实 Godot 场景：80px 导航栏，聊天/动态/设置为 64×64 的方形按钮，图标在上、文字在下；移除导航栏上下头像。内容区 16px 外边距及可拖动分栏，角色区取消底栏与常驻手势提示，重置位置改为右下角悬浮按钮。输入区上方保留图片和音量图标，移除停止语音按钮；音量点击展开滑条，48px 起始输入框右侧是方形发送图标，快捷键提示在下方靠右。正常发送、排队与发送中不展示状态或保留占位；失败与无法确认送达时保留异常提醒，避免重复发送。角色顶部卡片只显示最新一条未读动态，评论未读不触发；读取卡片不标记已读。默认展开画布为 1280×800，保留既有窗口几何与分栏比例设置。角色仍是实际 Live2D；原型“静态占位”说明不进入产品。扁平默认、清透独立，继续复用原 SVG/emoji 与聊天头像；不增加清空输入或业务功能。真实节点截图与定向回归入口见 `tests/README.md` 的聊天审阅图专项验收；上述修正随本轮0.1.4重新打包交付，同版本旧包保留于 `artifacts/archive/` 下。
+
 ## 平台隔离与扩展
 
 [当前接口索引](../docs/项目说明/项目架构与接口（spec）/接口文档/client_godot/README.md)区分现行契约与历史迁移快照。普通UI/业务只使用能力接口，composition负责构造，application负责账号/窗口生命周期；平台实现位于platform及各存储实现中。共享输入框和气泡现在位于src/ui，两个预览入口保留。
 
-三个extensions接口默认NOT_IMPLEMENTED，无产品入口，不表示已经支持换装、箱庭或设备互联。Android仍需实现安全/模型/音频等后端、移动宿主与权限，不能用桌面验证代替手机验收。本轮版本保持0.1.3，只有源码修改，不生成或覆盖ZIP。
+三个extensions接口默认NOT_IMPLEMENTED，无产品入口，不表示已经支持换装、箱庭或设备互联。Android仍需实现安全/模型/音频等后端、移动宿主与权限，不能用桌面验证代替手机验收。本轮交付版本为0.1.4，使用 `scripts/build.ps1 -Package` 生成独立的 Windows x64 便携目录与ZIP，不覆盖0.1.3旧包。版本同步到release.json、项目配置与EXE原生版本字段；已知验证限制随包记录在PREVIEW.md中。

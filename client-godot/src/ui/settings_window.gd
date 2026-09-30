@@ -13,8 +13,15 @@ var _saving := false
 var _close_after_save := false
 var _hidden_by_main := false
 var _result_kind := ""
+var _ui_style: RefCounted
 @onready var _preferences_page = %PreferencesPage
 @onready var _model_page = %ModelPage
+
+## Inject the UI style service before the window is shown. Preferences page
+## reads it during setup; dirty/save are folded into the shared summaries.
+func set_ui_style(ui_style: RefCounted) -> void:
+	_ui_style = ui_style
+	if is_node_ready() and _ui_style != null: %StylePage.set_ui_style(_ui_style)
 
 func setup(preferences: Node, models: Node, executor: Node = null, clear_cache: Callable = Callable(), storage_service: StorageService = null, cache_directory: String = "") -> void:
 	_preferences = preferences
@@ -27,9 +34,12 @@ func setup(preferences: Node, models: Node, executor: Node = null, clear_cache: 
 func _ready() -> void:
 	_preferences_page.setup(_preferences)
 	_model_page.setup(_models,_executor)
+	if _ui_style != null: %StylePage.set_ui_style(_ui_style)
 	%AudioPage.setup(_clear_cache, _storage_service, _cache_directory)
 	%AudioTab.disabled = not _clear_cache.is_valid()
 	%AudioTab.pressed.connect(func(): select_page("audio"))
+	%StyleTab.disabled = _ui_style == null
+	%StyleTab.pressed.connect(func(): select_page("style"))
 	%PreferencesTab.disabled = _preferences == null
 	%ModelsTab.disabled = _models == null
 	%PreferencesTab.pressed.connect(func(): select_page("preferences"))
@@ -44,13 +54,15 @@ func _ready() -> void:
 			%UnsavedDialog.hide()
 			_close_after_save = true
 			save_changes())
-	select_page("preferences" if _preferences != null else "models")
+	select_page("preferences" if _preferences != null or _ui_style != null else "models")
 
 func select_page(page: String) -> void:
 	_preferences_page.visible = page == "preferences"
 	_model_page.visible = page == "models"
 	%AudioPage.visible = page == "audio"
+	%StylePage.visible = page == "style"
 	%AudioTab.button_pressed = page == "audio"
+	%StyleTab.button_pressed = page == "style"
 	%PreferencesTab.button_pressed = page == "preferences"
 	%ModelsTab.button_pressed = page == "models"
 
@@ -71,7 +83,8 @@ func _process(_delta: float) -> void:
 		show()
 
 func is_dirty() -> bool:
-	return _saving or _preferences_page.is_dirty() or _model_page.is_dirty()
+	if _saving or _preferences_page.is_dirty() or _model_page.is_dirty(): return true
+	return _ui_style != null and %StylePage.ui_style_dirty()
 
 func is_saving() -> bool:
 	return _saving
@@ -100,8 +113,10 @@ func save_changes() -> Dictionary:
 	_set_result("正在保存全部修改…", "saving")
 	var model_result: Dictionary = await _model_page.save_changes()
 	var preference_result: Dictionary = await _preferences_page.save_changes()
-	var results: Array = model_result.results + preference_result.results
-	var ok: bool = model_result.ok and preference_result.ok
+	var ui_style_result := {"ok":true,"results":[]}
+	if _ui_style != null: ui_style_result = await %StylePage.save_ui_style()
+	var results: Array = model_result.results + preference_result.results + ui_style_result.results
+	var ok: bool = model_result.ok and preference_result.ok and ui_style_result.ok
 	_saving = false
 	%SaveAll.disabled = false
 	%BusyBlocker.hide()

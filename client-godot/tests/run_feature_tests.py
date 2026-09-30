@@ -5,6 +5,7 @@ from pathlib import Path
 PROJECT=Path(__file__).resolve().parents[1]
 def run(godot,script,gpu=False):
     reads, writes, errors = {}, {}, []
+    dynamics_read = [False]
     provider_calls=[]
     delegated=[]
     from support.interop_crypto import server_crypto
@@ -21,7 +22,7 @@ def run(godot,script,gpu=False):
             if self.path == '/slow/auth/public_key':
                 time.sleep(.5)
                 self.reply(200,{'public_key':crypto.get_public_key_pem()}); return
-            if self.path.startswith('/dynamics/unread?'): self.reply(200,{'unread_count':123}); return
+            if self.path.startswith('/dynamics/unread?'): self.reply(200,{'unread_count':0 if dynamics_read[0] else 123,'has_unread':not dynamics_read[0],'unread_dynamic_count':0 if dynamics_read[0] else 1,'unread_comment_count':0 if dynamics_read[0] else 122,'last_read_dynamic_at':None,'last_read_comment_at':None}); return
             if self.path.startswith('/dynamics?'):
                 self.reply(200,{'items':[{'id':'visual-post','author_type':'agent','author_name':'洛天依','content':'今天也一起慢慢来吧。\n忙完以后，记得留一点时间给自己。','created_at':'2026-09-19 18:30:00','allow_comment':True,'comment_count':1,'visibility':'private'}],'has_more':False,'next_cursor':None}); return
             if self.path.startswith('/dynamics/visual-post/comments?'):
@@ -87,6 +88,7 @@ def run(godot,script,gpu=False):
                 self.reply(200,{'user_id':'ui-uuid','login_token':'login-rotated','message_token':'message-test'}); return
             user=data.get('username')
             if data.get('token')!='message-test': errors.append('wrong preference token'); self.reply(401,{}); return
+            if self.path=='/dynamics/read': dynamics_read[0]=True; self.reply(200,{'ok':True}); return
             if self.path=='/preference/get':
                 reads[user]=reads.get(user,0)+1
                 if user=='ui_retry':
