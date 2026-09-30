@@ -11,6 +11,7 @@ from src.agent import Agent
 from src.agent.handlers.stimulus.chat import ChatPreprocessingHandler
 from src.agent.handlers.stimulus.router import StimulusRouter
 from src.agent.skills.cognitive import ImageUnderstandingSkill, TextPreprocessingSkill
+from src.agent.skills.cognitive.song_entity_linker import SongEntityLinker
 from src.infrastructure.media import MediaResolutionError, ResolvedMedia
 
 
@@ -118,7 +119,7 @@ async def test_text_message_is_persisted_before_ready_and_not_consumed():
     assert entry.content.terms == ("《歌》是一首歌",)
     assert isinstance(entry.timestamp, datetime) and entry.timestamp.tzinfo is None
     assert entry.timestamp == (
-        request().interaction.now.replace(tzinfo=None)
+        request().interaction.now.astimezone().replace(tzinfo=None)
         + timedelta(microseconds=request().interaction.interaction_revision * 10)
     )
     assert report.preprocessed_input.stimulus_id == "m2"
@@ -161,6 +162,10 @@ async def test_image_is_one_user_conversation_with_agent_only_description_text()
     assert media_entry.content.media_id == "image"
     assert media_entry.content.mime_type == "image/png"
     assert media_entry.content.terms == ("白猫",)
+    assert media_entry.timestamp == (
+        image_request().interaction.now.astimezone().replace(tzinfo=None)
+        + timedelta(microseconds=image_request().interaction.interaction_revision * 10)
+    )
     assert report.preprocessed_input.text == "[图片理解]: [一张图片]:一只白猫"
     assert report.preprocessed_input.conversation_entry_ids == (media_entry.entry_id,)
     assert report.consumed_pending_stimulus_ids == ()
@@ -198,8 +203,9 @@ async def test_illegal_media_stops_before_image_understanding(error):
 
 def test_text_preprocessing_skill_returns_terms(monkeypatch):
     class _Linker:
-        def __init__(self, config):
+        def __init__(self, config, *, song_names=()):
             self.config = config
+            self.song_names = tuple(song_names)
 
         def extract_and_verify(self, text):
             return ["《歌》是一首歌"] if "歌" in text else []
@@ -210,3 +216,23 @@ def test_text_preprocessing_skill_returns_terms(monkeypatch):
     assert skill.extract_terms("随便聊聊") == ()
     with pytest.raises(TypeError):
         skill.extract_terms(None)
+
+
+def test_song_entity_linker_prefers_complete_quoted_title_over_keyword_substring(tmp_path):
+    song_names = tmp_path / "song_names.txt"
+    lyrics = tmp_path / "lyrics.txt"
+    song_names.write_text("别\n", encoding="utf-8")
+    lyrics.write_text("", encoding="utf-8")
+    linker = SongEntityLinker({}, str(song_names), str(lyrics))
+
+    assert linker.extract_and_verify("请你现在唱《死别》给我听") == ["《死别》是一首歌"]
+
+
+def test_song_entity_linker_uses_singing_catalog_for_unquoted_song_title(tmp_path):
+    song_names = tmp_path / "song_names.txt"
+    lyrics = tmp_path / "lyrics.txt"
+    song_names.write_text("别\n", encoding="utf-8")
+    lyrics.write_text("", encoding="utf-8")
+    linker = SongEntityLinker({}, str(song_names), str(lyrics), song_names=("死别",))
+
+    assert linker.extract_and_verify("请唱死别") == ["《死别》是一首歌"]

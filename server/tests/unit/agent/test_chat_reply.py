@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 from support.routing_support import Sink, request
+from support.skill_support import invocation
 
 import src.domain.agent as d
 from src.agent import Agent
@@ -18,7 +19,6 @@ from src.agent.skills.cognitive import (
     ReplyDraft,
     ResponseCompositionSkill,
 )
-from support.skill_support import invocation
 
 
 class _Conversation:
@@ -106,6 +106,7 @@ async def test_batch_reply_emits_ordered_actions_persists_and_consumes():
     assert plan.actions[0].tone.value == "happy"
     assert plan.actions[0].expression.expression_id == "开心"
     assert plan.actions[1].song_id == "歌" and plan.actions[1].segment_id == "副歌"
+    assert plan.actions[1].content == "唱了《歌》"
     assert plan.source_stimulus_ids == ("m2", "m1")
     assert reflection.plan_ordinal == 2
     assert isinstance(reflection.actions[0], d.Reflection)
@@ -115,10 +116,32 @@ async def test_batch_reply_emits_ordered_actions_persists_and_consumes():
     assert ctx.conversation.entries[0].content.text == "你好呀"
     assert isinstance(ctx.conversation.entries[1].content, SongContent)
     assert ctx.conversation.entries[1].content.song == "歌"
+    assert [action.message_id for action in plan.actions] == [
+        entry.entry_id for entry in ctx.conversation.entries
+    ]
     assert report.consumed_pending_stimulus_ids == ("m2", "m1")
     assert report.retained_pending_stimulus_ids == ()
     assert composer.calls[0]["reply_topic"] == "你好"
     assert composer.calls[0]["invocation"].user_id == "u"
+
+
+@pytest.mark.asyncio
+async def test_undeliverable_drafts_do_not_block_valid_reply_or_enter_history():
+    composer = Composer(
+        (
+            ReplyDraft(content="（挥手）", sound_content="", tone="normal", expression="开心"),
+            ReplyDraft(content="唱了《未知歌曲》", sound_content="", tone="", expression=None, sing=("未知歌曲", "")),
+            ReplyDraft(content="你好呀", sound_content="你好呀", tone="normal", expression="开心"),
+        )
+    )
+    ctx = context()
+    sink = Sink()
+
+    report = await agent(composer).handle_stimulus(deadline_request(), sink, context=ctx)
+
+    assert report.request_status is d.HandlingRequestStatus.COMPLETED
+    assert [action.kind for action in sink.values[1].actions] == [d.ActionKind.SAY]
+    assert [entry.content.text for entry in ctx.conversation.entries] == ["你好呀"]
 
 
 @pytest.mark.asyncio
