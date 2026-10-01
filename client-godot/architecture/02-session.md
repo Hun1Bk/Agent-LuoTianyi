@@ -1,6 +1,6 @@
 > **系列文档**：[总览](ARCHITECTURE.md) · [01 组装根](01-application.md) · **02 session** · [03 network](03-network.md) · [04 storage](04-storage.md) · [05 media](05-media.md) · [06 avatar](06-avatar.md) · [07 ui](07-ui.md) · [08 preview](08-preview.md) · [09 构建与交付](09-build-and-release.md) · [10 测试与验证](10-testing.md)
 > **基线**：分支 `feat/agentluo-0.1.1` @ `42b5b1c` · 撰写日期 2026-09-20 · 只读现状分析（as-built）；除本系列 `.md` 与 `export_presets.cfg` 的导出排除项外不改动任何文件
-> **路径与行号口径**：无前缀路径相对 `client_godot/`，`client_godot/…` 相对仓库根；`file:line` 为撰写时工作树行号
+> **路径与行号口径**：无前缀路径相对 `client-godot/`，`client-godot/…` 相对仓库根；`file:line` 为撰写时工作树行号
 
 # src/session：流程与状态
 
@@ -144,9 +144,11 @@ sequenceDiagram
 
 ## 扩展点与已知坑
 
+本节保留历史分析；音频错误重复报告已在第四轮整改中修复，现行为与验证见 [客户端现行架构](../docs/architecture.md) 和 [整改证据](../docs/review-186.md)，旧快照的重复提示不是当前预期。
+
 - **`replies` 字典在遍历中删除**：`_present_replies()` 用 `_replies.keys()` 取快照再删（`src/session/chat_session.gd:219`、`:239`），所以在 `play_reply` 期间新到的分片不会被漏掉；但反过来，同一次遍历里改到 `reply` 字典（`:227`、`:232`）是就地修改，`hidden/display` 语义依赖这一点。
 - **`expression` 只在 `_present_replies()` 里被消费一次**：读走后立即清空（`:230` 到 `:232`），因此界面错过这一帧就丢了这次表情指令；没有重发表。
-- **`AUDIO_ERROR` 会被报两次**：`_audio_finished` 里报一次（`:215`），`_present_replies` 里只要 `reply.audio_error` 为真又报一次（`:233` 到 `:234`），日志里会出现连续两条同码事件。
+- **历史快照：`AUDIO_ERROR` 重复报告（本轮已修复）**：`_audio_finished` 里报一次（`:215`），`_present_replies` 里只要 `reply.audio_error` 为真又报一次（`:233` 到 `:234`），日志里会出现连续两条同码事件。
 - **`_media.set_scope("","")` 是清空作用域**：`stop()`（`:133`）和 `start()` 成功路径（`:70`）都用它；作用域切错会让语音缓存的读写命中别的账号目录（存储细节见 04 篇）。
 - **`_pending_history` 只有一条出路**：屏障期内 `stop()` 会直接清空这支队列（`:126`），此时消息状态仍留在 `_messages` 里，界面看不到任何「已被丢弃」的提示。
 - **`send_text` 的判空是 `strip_edges()`**：只有空白字符的输入被当成空（`:78`），因此全角空格以外的前后空白都会被裁掉再发送。

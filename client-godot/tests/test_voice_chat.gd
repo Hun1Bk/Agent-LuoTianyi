@@ -94,9 +94,10 @@ func _run() -> void:
 		check(is_equal_approx(session.get_audio_state().volume,.35), "volume UI calls public controller")
 	session.send_text("stop")
 	check(await until(func(): return session.get_state().speaking), "stop test begins real voice")
-	_press_stop_button(view)
+	check(view.find_children("StopVoice", "Button", true, false).is_empty(), "chat retains reviewed layout without input stop button")
+	session.stop_voice()
 	await process_frame
-	_check_stop_button_silences_and_restores_mouth(session)
+	_check_stop_api_silences_and_restores_mouth(session)
 	check(not session.get_messages().any(func(message): return message.text == "stop-next"), "stop before terminal does not advance next reply")
 	session.send_text("continue")
 	check(await until(func(): return session.get_messages().any(func(message): return message.text == "stop-final")), "stop still accepts final text update")
@@ -150,8 +151,8 @@ func _check_chat_forwards_actual_mouth_progress_and_restoration() -> void:
 func _check_hidden_audio_has_output_without_bubble(session: Variant) -> void:
 	check(peak > .05 and session.get_messages().size() == 4, "hidden audio has output without bubble")
 
-func _check_stop_button_silences_and_restores_mouth(session: Variant) -> void:
-	check(not session.get_state().speaking and mouth == -1.0, "stop button silences and restores mouth")
+func _check_stop_api_silences_and_restores_mouth(session: Variant) -> void:
+	check(not session.get_state().speaking and mouth == -1.0, "public stop API silences and restores mouth")
 
 func _check_disconnect_releases_streams_and_mouth(session: Variant) -> void:
 	check(mouth == -1.0 and session.get_audio_state().queued == 0, "disconnect releases streams and mouth")
@@ -195,8 +196,3 @@ func _remove_test_files(directory: String) -> void:
 		for scope in DirAccess.get_directories_at(directory + "/audio"):
 			DirAccess.remove_absolute(directory + "/audio/" + scope)
 		DirAccess.remove_absolute(directory + "/audio")
-
-func _press_stop_button(view: Node) -> void:
-	for button in view.find_children("*", "Button",true,false):
-		if button.text == "停止语音":
-			button.pressed.emit()

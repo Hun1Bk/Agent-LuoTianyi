@@ -1,6 +1,6 @@
 > **系列文档**：[总览](ARCHITECTURE.md) · [01 组装根](01-application.md) · [02 session](02-session.md) · [03 network](03-network.md) · [04 storage](04-storage.md) · [05 media](05-media.md) · [06 avatar](06-avatar.md) · [07 ui](07-ui.md) · [08 preview](08-preview.md) · [09 构建与交付](09-build-and-release.md) · **10 测试与验证**
 > **基线**：分支 `feat/agentluo-0.1.1` @ `42b5b1c` · 撰写日期 2026-09-20 · 只读现状分析（as-built）；除本系列 `.md` 与 `export_presets.cfg` 的导出排除项外不改动任何文件
-> **路径与行号口径**：无前缀路径相对 `client_godot/`，`client_godot/…` 相对仓库根；`file:line` 为撰写时工作树行号
+> **路径与行号口径**：无前缀路径相对 `client-godot/`，`client-godot/…` 相对仓库根；`file:line` 为撰写时工作树行号
 
 # 测试与验证体系
 
@@ -57,7 +57,7 @@
 
 | 方式 | 形态 | 适用面 |
 | --- | --- | --- |
-| 直接跑单个 GDScript | `<godot> --headless --path client_godot --script res://tests/xxx.gd` | 纯脚本级用例（无网络、无第三方依赖） |
+| 直接跑单个 GDScript | `<godot> --headless --path client-godot --script res://tests/xxx.gd` | 纯脚本级用例（无网络、无第三方依赖） |
 | Python runner 驱动 | `<python> tests/run_xxx.py --godot <exe> --script res://tests/xxx.gd [--gpu]` | 需要假服务端或需要额外协议校验的用例 |
 | PowerShell 编排 | `scripts/check.ps1` / `check_features.ps1` / `check_network.ps1` / `check_accounts.ps1` | 日常回归与分主题回归 |
 
@@ -85,12 +85,12 @@ Godot 侧读取点覆盖了账户、聊天、历史、动态、模型、偏好�
 - `scripts/check_accounts.ps1` 先跑互操作（`:4` 到 `:5`），再对四个账户用例循环（`:6` 到 `:9`）：`test_account_api.gd`、`test_account_session.gd`、`test_account_view.gd`、`test_application_window.gd`。
 - `scripts/check_network.ps1` 三次调用 `run_websocket_tests.py`：默认（`:5`）、`test_live_chat.gd`（`:7`）、`test_voice_chat.gd`（`:9`）；外加先用第一种方式直跑一次 `test_reliable_outbox.gd`（`:4`）。
 
-### `contracts/chat/reply_events.json` 的消费方
+### `tests/fixtures/chat/reply_events.json` 的消费方
 
-这份样本位于**仓库根**的 `contracts/chat/`（不在 `client_godot/` 内），1 426 字节、9 条事件，覆盖 `agent_state_changed` 的 `thinking` / `waiting` 两端，以及 `agent_message` 的分片、空文本、`display_in_chat=false` + `is_ephemeral=true`、`audio_error` + `error_code`、无 `error_code` 的音频错误、临时可见消息等分支。
+历史样本原位于仓库根 `contracts/chat/`；第四轮整改将原始 9 条事件迁入 `client-godot/tests/fixtures/chat/reply_events.json`，不恢复已删除的根目录文件。覆盖 `agent_state_changed` 的 `thinking` / `waiting` 两端，以及 `agent_message` 的分片、空文本、`display_in_chat=false` + `is_ephemeral=true`、`audio_error` + `error_code`、无 `error_code` 的音频错误、临时可见消息等分支。
 
 - **旧端解析器**：`tests/run_websocket_tests.py:35` 读入后，从 `client/src/network/event_types.py` 动态加载旧 Python 客户端的 `parse_server_message`（`:37` 到 `:40`）逐条解析（`:41` 起），断言每条都能得到非空 `event_type`。
-- **新端收包链路**：同一个 runner 把这份序列当作假服务端的回复脚本喂给真实 Godot WebSocket 链路（`test_live_chat.gd` / `test_voice_chat.gd`），因此「同一条 wire 数据同时被新端与旧端解析」是被实际执行的，而不是文档承诺。
+- **新端收包链路**：同一个 runner 在 conversation 场景把这份序列喂给真实 Godot WebSocket 链路（`test_live_chat.gd`），因此同一份样例被新端与旧端解析。`test_voice_chat.gd` 的 audio 场景使用 runner 单独合成的 WAV，不声称它消费该 JSON 样例。
 
 ## 依赖与数据流
 
@@ -109,7 +109,7 @@ flowchart TD
   Cases --> Worker["被测算法的脚本"]
   Runners --> Judge["判定 退出码 + PASS + 无 FAIL/ERROR + 夹具记录"]
   Cases --> Judge
-  Contracts["contracts/chat/reply_events.json"] --> Runners
+  Contracts["tests/fixtures/chat/reply_events.json"] --> Runners
   Contracts --> PythonParser["旧端 event_types.py"]
   Captures["capture_*.gd"] --> Artifacts["artifacts/*.png"]
   Verifiers["verify_*.py"] --> Artifacts

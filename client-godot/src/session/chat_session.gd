@@ -249,9 +249,12 @@ func _delivery_changed(id: String, status: String, code: String) -> void:
 		_by_id[id].code = code
 		changed.emit()
 
-func _system_error(code: String) -> void:
+func _system_error(code: String, reply_id: String = "") -> void:
 	if _logger != null:
-		_logger.record("system_error", {"code":code})
+		var fields := {"code":code}
+		if not reply_id.is_empty():
+			fields.reply_id = reply_id
+		_logger.record("system_error", fields)
 	_state.code = code
 	state_changed.emit(get_state())
 
@@ -289,7 +292,7 @@ func _audio_finished(id: String, code: String) -> void:
 	_replies[id].played = true
 	if not code.is_empty() and code != "STOPPED":
 		_replies[id].audio_error = true
-		_system_error("AUDIO_ERROR")
+		_replies[id].audio_code = "REMOTE_AUDIO_ERROR" if code == "REMOTE_AUDIO_ERROR" else "AUDIO_ERROR"
 	_present_replies.call_deferred()
 
 func _present_replies() -> void:
@@ -307,13 +310,18 @@ func _present_replies() -> void:
 		if not reply.expression.is_empty():
 			expression_requested.emit(reply.expression)
 			reply.expression = ""
-		if reply.audio_error:
-			_system_error("AUDIO_ERROR")
+		_report_reply_audio_error(id, reply)
 		if not reply.played:
 			_media.play_reply(id)
 			break
 		_finished[id] = true
 		_replies.erase(id)
+
+func _report_reply_audio_error(id: String, reply: Dictionary) -> void:
+	if not reply.audio_error or reply.get("error_reported", false):
+		return
+	reply.error_reported = true
+	_system_error(reply.get("audio_code", "AUDIO_ERROR"), id)
 
 func _reply_timestamp(raw: Variant) -> float:
 	if (raw is int or raw is float) and is_finite(float(raw)) and raw > 0:
@@ -425,9 +433,12 @@ func _model_types() -> Array:
 
 func _log_reply(id: String, payload: Dictionary) -> void:
 	if _logger != null:
-		_logger.record("reply_received", {"reply_id":id, "has_audio":payload.get("audio") is String and not payload.audio.is_empty(),
+		var fields := {"reply_id":id, "has_audio":payload.get("audio") is String and not payload.audio.is_empty(),
 			"audio_chars":payload.audio.length() if payload.get("audio") is String else 0,
-			"final":payload.get("is_final_package", true), "audio_error":payload.get("audio_error", false)})
+			"final":payload.get("is_final_package", true), "audio_error":payload.get("audio_error", false)}
+		if payload.get("audio_error", false) == true:
+			fields.code = payload.error_code if payload.get("error_code") in ["TTS_EMPTY", "TTS_STREAM_ERROR", "TTS_CANCELLED"] else "REMOTE_AUDIO_ERROR"
+		_logger.record("reply_received", fields)
 
 func _update_reply(reply: Dictionary, payload: Dictionary) -> void:
 	if payload.get("text") is String and not payload.text.is_empty():
@@ -437,4 +448,6 @@ func _update_reply(reply: Dictionary, payload: Dictionary) -> void:
 	if payload.get("display_in_chat", true) == false:
 		reply.display = false
 	reply.audio_error = reply.audio_error or payload.get("audio_error", false) == true
+	if payload.get("audio_error", false) == true:
+		reply.audio_code = "REMOTE_AUDIO_ERROR"
 	reply.final = reply.final or payload.get("is_final_package", true) == true or reply.audio_error

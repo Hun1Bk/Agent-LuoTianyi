@@ -170,4 +170,4 @@ func _check_mixer_has_nonzero_audio_and_mouth_restores() -> void:
 	check(peak > .05 and mouth_max > .05 and mouth == -1.0, "mixer has nonzero audio and mouth restores")
 
 func _check_terminal_error_codes_distinguish_no_audio() -> void:
-	check(codes.get("empty") == "" and codes.get("bad") == "INVALID_BASE64" and codes.get("error") == "AUDIO_ERROR", "terminal error codes distinguish no audio")
+	check(codes.get("empty") == "" and codes.get("bad") == "INVALID_BASE64" and codes.get("error") == "REMOTE_AUDIO_ERROR", "terminal error codes distinguish no audio and remote failure")

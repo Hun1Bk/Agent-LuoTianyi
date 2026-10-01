@@ -44,7 +44,7 @@ func _initialize() -> void:
 	check(Attachment.from_bytes("not an image".to_utf8_buffer(),"image/png").code == "IMAGE_FORMAT", "unknown image content is rejected")
 	var jpeg := image.save_jpg_to_buffer()
 	check(Attachment.from_bytes(jpeg,"image/png").ok and Attachment.from_bytes(jpeg,"image/png").mime == "image/jpeg", "JPEG header corrects PNG declaration")
-	var bmp := image.save_bmp_to_buffer()
+	var bmp := Marshalls.base64_to_raw("Qk1GAAAAAAAAADYAAAAoAAAAAgAAAAIAAAABABgAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAA/8xmAAD/AAD///8AAAAAAA==")
 	var normalized_bmp := Attachment.from_bytes(bmp,"image/png")
 	_check_bmp_is_normalized_to_png_before_sending(normalized_bmp)
 	print("Image attachment validation: ", "PASS" if failures.is_empty() else "FAIL")
@@ -52,3 +52,10 @@ func _initialize() -> void:
 
 func _check_bmp_is_normalized_to_png_before_sending(normalized_bmp: Variant) -> void:
 	check(normalized_bmp.ok and normalized_bmp.mime == "image/png" and normalized_bmp.bytes.slice(0,8).hex_encode() == "89504e470d0a1a0a", "BMP is normalized to PNG before sending")
+	if not normalized_bmp.ok: return
+	var decoded := Image.new()
+	check(decoded.load_png_from_buffer(normalized_bmp.bytes) == OK, "normalized BMP is decodable PNG")
+	check(decoded.get_size() == Vector2i(2,2), "BMP dimensions survive normalization")
+	check(decoded.get_pixel(0,0).is_equal_approx(Color.WHITE), "BMP top row survives normalization")
+	check(decoded.get_pixel(1,0).is_equal_approx(Color.BLACK), "BMP pixel padding is decoded correctly")
+	check(decoded.get_pixel(0,1).is_equal_approx(Color(102.0/255.0,204.0/255.0,1.0)), "BMP BGR color survives normalization")

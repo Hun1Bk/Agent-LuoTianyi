@@ -52,7 +52,7 @@ def run(godot, script="res://tests/test_websocket_transport.gd", gpu=False):
     rejected_connections = []
     typing_lengths = []
     lock = threading.Lock()
-    replies = json.loads((PROJECT.parent / "contracts/chat/reply_events.json").read_text(encoding="utf-8"))
+    replies = json.loads((PROJECT / "tests/fixtures/chat/reply_events.json").read_text(encoding="utf-8"))
     check_reply_fixtures(replies)
 
     def validate_auth(auth):

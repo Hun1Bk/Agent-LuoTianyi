@@ -26,10 +26,8 @@ func _run() -> void:
 	await process_frame
 	check(app.get_node_or_null("%AccountMenu") == null,"main navigation no longer owns account actions")
 	var dynamics = app.get_node("%NavDynamics")
-	for tick in 200:
-		if dynamics.text == "动态 · 99+": break
-		await create_timer(.01).timeout
-	check(dynamics.text == "动态 · 99+","navigation shows capped unread")
+	var unread: Control = app.get_node("%DynamicsUnread")
+	await _check_navigation_unread(dynamics, unread)
 	dynamics.pressed.emit()
 	await process_frame
 	app.find_child("DynamicsWindow",true,false).get_node("%Publish").pressed.emit()
@@ -125,6 +123,12 @@ func _check_logout_closes_business_windows_but_preserves_logs(window: Variant, l
 
 func _check_save_exposes_processing_feedback(window: Variant) -> void:
 	check(window.is_saving() and window.get_node("%Result").visible,"save exposes processing feedback")
+
+func _check_navigation_unread(dynamics: Button, unread: Control) -> void:
+	var deadline := Time.get_ticks_msec() + 5000
+	while dynamics.tooltip_text != "动态 · 123 条未读" and Time.get_ticks_msec() < deadline:
+		await process_frame
+	check(unread.visible and dynamics.text == "动态" and dynamics.tooltip_text == "动态 · 123 条未读", "navigation shows unread dot and exact count without changing reviewed label")
 
 func _wait_editable(input: TextEdit, deadline: int) -> void:
 	while not input.editable and Time.get_ticks_msec()<deadline: await process_frame

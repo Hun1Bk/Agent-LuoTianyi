@@ -92,7 +92,7 @@ func select_post(id: String) -> bool:
 		_refresh_selected_comments(id)
 		return true
 	if not _selected.is_empty() and _details.has(_selected):
-		_detail_scroll_positions[_selected] = _details[_selected].scroll_vertical
+		_detail_scroll_positions[_selected] = _details[_selected].get_reading_position()
 	_selected = id
 	_empty.hide()
 	for detail in _details.values(): detail.hide()
@@ -104,8 +104,7 @@ func select_post(id: String) -> bool:
 		_right.add_child(detail)
 	_details[id].show()
 	var position := int(_detail_scroll_positions.get(id, 0))
-	_details[id].scroll_vertical = position
-	_details[id].set_deferred('scroll_vertical', position)
+	_details[id].restore_reading_position(position)
 	_select_style()
 	_refresh_selected_comments(id)
 	return true

@@ -1,4 +1,4 @@
-param([string]$Godot, [switch]$ImportOnly, [switch]$SkipImport)
+param([string]$Godot, [switch]$ImportOnly, [switch]$SkipImport, [string]$Python = 'python')
 . (Join-Path $PSScriptRoot 'common.ps1')
 $engine = Resolve-Godot $Godot
 # Keep the cold-cache import as its own process and log.  A successful import
@@ -22,7 +22,12 @@ if (-not $SkipImport) {
     Write-Host 'Cold import passed.'
 }
 if ($ImportOnly) { exit 0 }
+& $Python (Join-Path $ProjectRoot 'scripts/check_complexity.py')
+if ($LASTEXITCODE -ne 0) {
+    throw 'Complexity gate failed. Use -Python with tests/requirements-complexity.txt installed; dependency and parse errors are failures.'
+}
 Write-Host 'Starting isolated contract checks.'
+Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/session/test_reply_audio_errors.gd') 'reply-audio-errors' -RequirePass
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--quit-after', '3') 'startup'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_theme_contract.gd') 'theme-contract'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_ui_scenes.gd') 'ui-scenes'

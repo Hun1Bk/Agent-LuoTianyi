@@ -2,39 +2,39 @@
 
 测试包括四组headless检查以及显式图形/原生窗口验收；各组脚本清单以对应check脚本为准。另有capture视觉入口。目录表示模块职责，GPU能力由运行方式区分；未列入默认组不代表过时。
 
-完整契约及旧脚本迁移对照见[测试契约](../../docs/项目说明/项目架构与接口（spec）/接口文档/client_godot/testing.md)，完成事实见[进度](../../docs/开发进程文档/开发进度/Godot测试精简与解耦.md)。历史文档中的旧文件名不再作为当前运行入口。
+现行约束与门禁见 [测试说明](../docs/testing.md)，当前整改证据见 [PR #186 整改记录](../docs/review-186.md)。历史快照中的旧文件名不再作为当前运行入口。
 
 ## 默认回归
 
-在仓库根目录运行，使用锁定的Godot 4.7.1控制台版本；Python依赖沿用requirements-auth/websocket/features/visual.txt。建议通过单独APPDATA目录隔离验收数据，并保留Python依赖所在路径。
+在仓库根目录运行，使用锁定的 Godot 4.7.1 可执行文件；Python 依赖按 requirements-complexity/auth/websocket/features/visual.txt 安装到独立环境。建议通过单独APPDATA目录隔离验收数据，并保留Python依赖所在路径。
 
 ```powershell
 $engine = '<Godot控制台exe绝对路径>'
 $python = '<已安装测试依赖的python.exe>'
-& ./client_godot/scripts/check.ps1 -Godot $engine
-& ./client_godot/scripts/check_accounts.ps1 -Godot $engine -Python $python
-& ./client_godot/scripts/check_network.ps1 -Godot $engine -Python $python
-& ./client_godot/scripts/check_features.ps1 -Godot $engine -Python $python
+& ./client-godot/scripts/check.ps1 -Godot $engine -Python $python
+& ./client-godot/scripts/check_accounts.ps1 -Godot $engine -Python $python
+& ./client-godot/scripts/check_network.ps1 -Godot $engine -Python $python
+& ./client-godot/scripts/check_features.ps1 -Godot $engine -Python $python
 ```
 
 | 分组 | 当前内容 |
 | --- | --- |
-| check | 导入、启动、离线样板及Godot模块测试；无需Python，包含可靠队列与凭据基础检查 |
+| check | 导入、强制复杂度门禁、启动、离线样板及 Godot 模块测试，含语音错误来源/去重/恢复专项；正式检查需要 Python，ImportOnly 不需要 |
 | accounts | 原服务端加密互操作及6个账户协议/会话/历史/UI/Application测试；整应用用完整HTTP/WebSocket夹具 |
 | network | 4个WebSocket/真实聊天/语音/触摸上报测试；不重复直接执行可靠队列测试 |
-| features | 3个历史/图片、8个设置/退出/模型、3个动态测试，及扩展契约测试 |
+| features | 历史/图片、设置/退出/模型、动态及扩展契约测试，含确定性阅读位置专项；清单以 check_features.ps1 为准 |
 
 各组可独立运行，不依赖前一组生成状态；首次使用新检出应先完成Godot资源导入。`check.ps1`把冷缓存导入作为独立阶段，随后才开始契约检查；`scripts/common.ps1`和各Python runner要求退出码为0、输出明确 `: PASS` 且不含 `FAIL:`/错误。每个runner为Godot进程创建一次性隔离的 `APPDATA` 与 `LOCALAPPDATA`，进程结束后清理，不能仅根据生成截图认定通过。
 
-需要单独采集冷导入证据时运行 `check.ps1 -ImportOnly`；已有独立导入证据可用 `check.ps1 -SkipImport` 直接运行检查。
+需要单独采集冷导入证据时运行 `check.ps1 -ImportOnly`；已有独立导入证据可用 `check.ps1 -SkipImport -Python <python.exe>` 直接运行检查；SkipImport 不跳过复杂度门禁。
 
 合并目标可单独执行：
 
 ```powershell
-& $engine --headless --path client_godot --script res://tests/media/test_reply_audio.gd
-& $engine --headless --path client_godot --script res://tests/storage/test_audio_cache.gd
-& $python client_godot/tests/run_dynamics_tests.py --godot $engine --script res://tests/test_dynamics.gd
-& $python client_godot/tests/run_dynamics_tests.py --godot $engine --script res://tests/test_dynamics_detail.gd
+& $engine --headless --path client-godot --script res://tests/media/test_reply_audio.gd
+& $engine --headless --path client-godot --script res://tests/storage/test_audio_cache.gd
+& $python client-godot/tests/run_dynamics_tests.py --godot $engine --script res://tests/test_dynamics.gd
+& $python client-godot/tests/run_dynamics_tests.py --godot $engine --script res://tests/test_dynamics_detail.gd
 ```
 
 ## GPU与原生验收
@@ -94,9 +94,9 @@ python client-godot/tests/run_feature_tests.py --godot 'D:/godot/godot4.7.1/godo
 | ui/test_decision_layout.gd | 直接Godot --script，不加--headless | 内嵌确认框可见范围与Esc取消 |
 | ui/test_native_window_controls.gd | 直接Godot --script，并设置GODOT_TEST_PYTHON | 操作其创建的测试窗口，验证系统拖拽/缩放/三键与Alt+F4 |
 
-Python runner入口统一带`--godot $engine --script res://tests/<脚本> --gpu`。下拉示例：`& $engine --path client_godot --script res://tests/capture_dropdown_ui.gd`。原生驱动的Python路径：`$env:GODOT_TEST_PYTHON = $python`。
+Python runner入口统一带`--godot $engine --script res://tests/<脚本> --gpu`。下拉示例：`& $engine --path client-godot --script res://tests/capture_dropdown_ui.gd`。原生驱动的Python路径：`$env:GODOT_TEST_PYTHON = $python`。
 
-显式Windows音频驱动：`& $engine --headless --audio-driver WASAPI --path client_godot --script res://tests/media/test_reply_audio.gd`。它播放合成声音并检查真实混音，不代表主观听感或公共TTS服务验收。
+显式Windows音频驱动：`& $engine --headless --audio-driver WASAPI --path client-godot --script res://tests/media/test_reply_audio.gd`。它播放合成声音并检查真实混音，不代表主观听感或公共TTS服务验收。
 
 ## 解耦与覆盖维护
 
@@ -119,6 +119,8 @@ Python runner入口统一带`--godot $engine --script res://tests/<脚本> --gpu
 
 ## 严格圈复杂度检查
 
+正式 `scripts/check.ps1` 在行为检查前强制执行本工具，支持 `-Python`，默认 `python`。非零退出、缺依赖、版本不符与解析错误均使入口失败；不自动安装或跳过。`-ImportOnly` 仅导入，不执行门禁。
+
 在 `client-godot` 目录使用独立 Python 环境安装固定依赖后运行（入口拒绝不匹配的解析器版本）：
 
 ```powershell
@@ -127,6 +129,8 @@ python scripts/check_complexity.py
 python scripts/check_complexity.py --format json
 python tests/test_complexity_check.py
 python tests/test_build_prompt.py
+python tests/test_check_gate.py
+python tests/test_review_documentation.py
 ```
 
 阈值固定为 10，等于 10 合法。超限或分析失败退出码为 1；JSON 含全部单元、超限项和错误，不能用解析失败跳过文件。

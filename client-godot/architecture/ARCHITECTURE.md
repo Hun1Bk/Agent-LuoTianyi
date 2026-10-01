@@ -1,18 +1,18 @@
 # agentluo Godot 客户端架构分析（总览）
 
-> **历史快照说明（2026-09-20 场景化后）**：本文及本目录 01–10 篇描述的是 `42b5b1c`，作为迁移前架构背景保留。以下行号、脚本构造视图、三个薄场景与 preview_style.gd 的描述不代表当前实现。现行 UI 契约见 [客户端 interface](../../docs/项目说明/项目架构与接口（spec）/接口文档/client_godot/README.md) 中的场景化收尾条目；实际交付与验证见 [进度](../../docs/开发进程文档/开发进度/Godot-Windows客户端.md)。
+> **历史快照说明（2026-09-20 场景化后）**：本文及本目录 01–10 篇描述的是 `42b5b1c`，作为迁移前架构背景保留。以下行号、脚本构造视图、三个薄场景与 preview_style.gd 的描述不代表当前实现。当前行为见 [现行架构](../docs/architecture.md)，最新验证见 [整改记录](../docs/review-186.md)。历史源码目录原名为 `client_godot/`，本文执行命令已更新为当前 `client-godot/`。
 
-当前 UI 由 `scenes/main.tscn`、`scenes/ui/`、`scenes/avatar/`、`scenes/preview/` 的节点树承载，行为脚本以唯一节点名绑定；业务依赖通过 `instantiate() → setup() → add_child()` 注入，主场景无注入时保留用户目录默认值。主题唯一来源是 `theme/app_theme.tres`，旧 `preview_style.gd` 已删除。固定子视图内嵌，数据驱动的气泡、动态行、菜单项实例化对应场景；所有确认框和波形也已改为控件场景；仅非 UI 的 Live2D 模型/特效仍在运行期创建。当前窗口关系与关闭契约见 [窗口重设计 interface](../../docs/项目说明/项目架构与接口（spec）/接口文档/client_godot/window-redesign.md)。
+当前 UI 由 `scenes/main.tscn`、`scenes/ui/`、`scenes/avatar/`、`scenes/preview/` 的节点树承载，行为脚本以唯一节点名绑定；业务依赖通过 `instantiate() → setup() → add_child()` 注入，主场景无注入时保留用户目录默认值。主题唯一来源是 `theme/app_theme.tres`，旧 `preview_style.gd` 已删除。固定子视图内嵌，数据驱动的气泡、动态行、菜单项实例化对应场景；所有确认框和波形也已改为控件场景；仅非 UI 的 Live2D 模型/特效仍在运行期创建。当前窗口关系与关闭行为见 [现行架构](../docs/architecture.md)。
 
 | 项 | 内容 |
 | --- | --- |
-| 分析对象 | `client_godot/`（Godot 4.7.1 Windows x64 客户端） |
+| 分析对象 | `client-godot/`（Godot 4.7.1 Windows x64 客户端） |
 | 基线 | 分支 `feat/agentluo-0.1.1` @ `42b5b1c35ad0006818a654575caaca10279a0ad2` |
 | 撰写日期 | 2026-09-20 |
 | 性质 | 只读现状分析（as-built）。除本系列 `.md` 与 `export_presets.cfg` 的导出排除项外不改动任何文件 |
-| 行号口径 | `file:line` 为撰写时工作树行号；无前缀路径相对 `client_godot/` |
-| 契约权威顺序 | `../../docs/项目说明/项目架构与接口（spec）/Godot客户端总体设计.md` → `../../docs/项目说明/项目架构与接口（spec）/接口文档/client_godot/README.md` |
-| 交付事实权威 | `../../docs/开发进程文档/开发进度/Godot-Windows客户端.md` |
+| 行号口径 | `file:line` 为撰写时工作树行号；无前缀路径相对 `client-godot/` |
+| 契约权威顺序 | [现行架构](../docs/architecture.md) 与对应源码/测试；原快照所引用的接口文档已随上游重组移除 |
+| 交付事实权威 | [当前整改证据](../docs/review-186.md)；不重建不可核验的历史阶段记录 |
 
 本文只描述工程实现现状与风险，不复述行为契约。契约内容一律以上表两份文档为准。
 
@@ -73,7 +73,7 @@
 
 ### 1.4 导出与交付
 
-- 预设只有一个：`Windows Desktop`，`export_filter="all_resources"`，`include_filter="*.json,*.moc3"`，`exclude_filter="scripts/*,tests/*,architecture/*,artifacts/*,dist/*,native/*"`（`:10`，其中 `architecture/*` 为本次新增的防御性声明，见 09 篇），外置 PCK（`export_presets.cfg:1` 到 `:11`）。
+- 预设只有一个：`Windows Desktop`，`export_filter="all_resources"`，`include_filter="*.json,*.moc3"`，`exclude_filter="scripts/*,tests/*,architecture/*,artifacts/*,dist/*,native/*"`（`:10`，其中 `architecture/*` 为历史快照新增的防御性声明；现行另含 `docs/*`，见 09 篇），外置 PCK（`export_presets.cfg:1` 到 `:11`）。
 - 脚本侧另有 `scripts/build_cubism.py`、`scripts/build_security.py` 用于重建两个插件，二者都会先比对 `dependencies.lock.json` 里的 commit 与 SCons 版本再动手（`scripts/build_security.py:17`、`scripts/build_cubism.py:8`），失败即中止，不允许无声替换二进制。
 
 ## 2. 全局架构总览
@@ -245,12 +245,12 @@ chat_session._receive_reply → media.append_reply_audio(id, base64, final, audi
 ### 6.1 `native/`：自有 C++ 与 vendored 依赖
 
 - 自有源码只有三个文件：`native/windows_security.cpp`（6138 B）、`native/pcm_stream_decoder.h` / `.cpp`、构建脚本 `native/SConstruct`。
-- `native/godot-cpp/` 是 vendored 的 godot-cpp，已被 `.gitignore` 排除（`client_godot/.gitignore:6`），只在重建插件时需要，且必须检出 lock 里记录的 commit。
-- 两个 obj 与 `.sconsign.dblite` 也在忽略列表里（`client_godot/.gitignore:4`、`:5`、`:7`）。
+- `native/godot-cpp/` 是 vendored 的 godot-cpp，已被 `.gitignore` 排除（`client-godot/.gitignore:6`），只在重建插件时需要，且必须检出 lock 里记录的 commit。
+- 两个 obj 与 `.sconsign.dblite` 也在忽略列表里（`client-godot/.gitignore:4`、`:5`、`:7`）。
 
 ### 6.2 `addons/`：两个 GDExtension
 
-- `addons/windows_security/` 只有 `.gdextension` 与 DLL；`.lib` / `.exp` 是编译副产物，被忽略（`client_godot/.gitignore:8`、`:9`）。
+- `addons/windows_security/` 只有 `.gdextension` 与 DLL；`.lib` / `.exp` 是编译副产物，被忽略（`client-godot/.gitignore:8`、`:9`）。
 - `addons/gd_cubism/` 含 DLL 与 8 个遮罩/归一化 shader（`addons/gd_cubism/res/shader/`）。这些 shader 是必带资源，`export_filter="all_resources"` 会收进 PCK。
 
 ### 6.3 `scenes/`：三个薄场景
@@ -280,7 +280,7 @@ flowchart LR
 - 版本格式必须是三段数字（`scripts/build.ps1:6`），且构建不自动递增。
 - 打包用「先写临时名、逐条核对条目与长度、最后 Move 到正式名」的方式，避免留下残缺的正式包（`scripts/build.ps1:27` 到 `scripts/build.ps1:51`）。正式包已存在时直接拒绝（`scripts/build.ps1:9`）。
 - 交付目录必须整体分发：EXE、PCK、两个 DLL、`licenses/`、`PREVIEW.md`、`release.json`。`tests/verify_release_archive.py:11` 强制恰好 2 个 DLL，并逐字节比对。
-- **本次变更说明**：`exclude_filter` 增加了 `architecture/*`（改动前为 `scripts/*,tests/*,artifacts/*,dist/*,native/*`）。实测结论：改动前用 `--export-pack` 生成的 PCK 中检索 `architecture/`、`01-application`、`ARCHITECTURE` 命中均为 0，说明 `all_resources` 本来就不打包 `.md`。因此该项是**防御性声明**，不是修复了实际的资源泄漏。09 篇必须如实这样写。
+- **历史快照变更说明**：`exclude_filter` 增加了 `architecture/*`（改动前为 `scripts/*,tests/*,artifacts/*,dist/*,native/*`）。实测结论：改动前用 `--export-pack` 生成的 PCK 中检索 `architecture/`、`01-application`、`ARCHITECTURE` 命中均为 0，说明 `all_resources` 本来就不打包 `.md`。因此该项是**防御性声明**，不是修复了实际的资源泄漏。09 篇必须如实这样写。
 
 ## 8. 测试与验证体系
 
@@ -289,7 +289,7 @@ flowchart LR
 - 6 个 `run_*.py` loopback fixture：`run_account_tests.py`、`run_security_interop.py`、`run_websocket_tests.py`、`run_feature_tests.py`、`run_history_tests.py`、`run_dynamics_tests.py`。全部只监听随机端口的 127.0.0.1，不连公共服务；`run_dynamics_tests.py` 文件头明确写「no requests to the public server」。
 - 2 个 `verify_*.py` 做独立验证：`verify_release_archive.py` 校验交付 ZIP 的条目与逐字节一致性；`verify_native_dynamics.py` 用 Win32 API 校验动态窗口的 HWND 所有权、任务栏独立项与最小化独立性。
 - 编排由 `scripts/check*.ps1` 负责：`check.ps1` 覆盖导入、3 秒启动、16 个合约脚本与离线样板；`check_accounts.ps1` 覆盖原生互操作与 4 个账户脚本；`check_network.ps1` 覆盖投递队列与 3 个真实 socket 脚本；`check_features.ps1` 按 runner 分组覆盖历史、设置、动态共 9 个用例。
-- 共享 wire 契约样本 `contracts/chat/reply_events.json` 由新端收包链路与旧 Python 客户端解析器共同消费，避免只在新端自证。
+- 共享 wire 契约样本 `tests/fixtures/chat/reply_events.json` 由新端收包链路与旧 Python 客户端解析器共同消费，避免只在新端自证。
 
 ## 9. 上手索引表
 
@@ -304,7 +304,7 @@ flowchart LR
 | 查某条日志为什么没字段 | `src/storage/client_log.gd:5` 到 `:9` 的四张白名单表 |
 | 改角色表情或动作 | `assets/live2d/live2d_interface_config.json` + `src/avatar/avatar_driver.gd:87` |
 | 改语音播放或口型 | `src/media/reply_audio.gd:205` 的 `_process` |
-| 出包 | `client_godot/README.md` 的构建段，然后 `scripts/build.ps1` |
+| 出包 | `client-godot/README.md` 的构建段，然后 `scripts/build.ps1` |
 
 ## 10. 已知坑与脆弱点
 

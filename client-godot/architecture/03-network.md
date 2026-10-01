@@ -1,6 +1,6 @@
 > **系列文档**：[总览](ARCHITECTURE.md) · [01 组装根](01-application.md) · [02 session](02-session.md) · **03 network** · [04 storage](04-storage.md) · [05 media](05-media.md) · [06 avatar](06-avatar.md) · [07 ui](07-ui.md) · [08 preview](08-preview.md) · [09 构建与交付](09-build-and-release.md) · [10 测试与验证](10-testing.md)
 > **基线**：分支 `feat/agentluo-0.1.1` @ `42b5b1c` · 撰写日期 2026-09-20 · 只读现状分析（as-built）；除本系列 `.md` 与 `export_presets.cfg` 的导出排除项外不改动任何文件
-> **路径与行号口径**：无前缀路径相对 `client_godot/`，`client_godot/…` 相对仓库根；`file:line` 为撰写时工作树行号
+> **路径与行号口径**：无前缀路径相对 `client-godot/`，`client-godot/…` 相对仓库根；`file:line` 为撰写时工作树行号
 
 # src/network：协议与传输
 
@@ -121,7 +121,7 @@ sequenceDiagram
 - 传输：`tests/test_websocket_transport.gd`（经 `tests/run_websocket_tests.py` 拉起，`scripts/check_network.ps1:5`）；用例覆盖显式认证失败为终态、带认证策略关闭码（1008）与 close 帧同批到达时不误重连等行为（`tests/test_websocket_transport.gd:56`、`:59`、`:71`）。
 - 投递队列：`tests/test_reliable_outbox.gd`，两处入口——`scripts/check.ps1:15`（纯逻辑）与 `scripts/check_network.ps1:4`（网络场景下重跑）。
 - 账户协议：`tests/test_account_api.gd`（`scripts/check_accounts.ps1:6` 的四个用例之一，经 `tests/run_account_tests.py`）。
-- 端到端回环：`tests/test_live_chat.gd`（`scripts/check_network.ps1:7`）与 `tests/test_voice_chat.gd`（`scripts/check_network.ps1:9`）；fixture 由 `tests/run_websocket_tests.py` 起在 127.0.0.1 的随机端口上，并加载仓库根的共享契约样本 `contracts/chat/reply_events.json`（`tests/run_websocket_tests.py:35`）作为服务端回复序列，因此同一条链路同时被新端与旧端解析器消费。
+- 端到端回环：`tests/test_live_chat.gd`（`scripts/check_network.ps1:7`）与 `tests/test_voice_chat.gd`（`scripts/check_network.ps1:9`）；fixture 由 `tests/run_websocket_tests.py` 起在 127.0.0.1 的随机端口上，并加载客户端内的回归样例 `tests/fixtures/chat/reply_events.json`（`tests/run_websocket_tests.py:35`）作为服务端回复序列，因此同一条链路同时被新端与旧端解析器消费。
 
 ## 扩展点与已知坑
 

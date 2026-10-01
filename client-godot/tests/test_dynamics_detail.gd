@@ -38,7 +38,7 @@ func test_details() -> void:
 		return
 	check(window.get_selected_id().is_empty(),"opening has no selection")
 	check(window.select_post("d0"),"select known post")
-	await create_timer(.15).timeout
+	await _wait_comments(controller, "d0")
 	var draft = window.find_child("CommentDraft",true,false)
 	draft.text = "ordinary draft"
 	check(window.is_dirty(),"comment draft counted")
@@ -49,20 +49,24 @@ func test_details() -> void:
 	_check_switch_preserves_correct_draft(draft)
 	_check_unknown_selection_cannot_clear_current_detail(window)
 	var active = window.find_children("*","ScrollContainer",true,false).filter(func(n): return n.has_method("update_comments") and n.is_visible_in_tree())[0]
-	await process_frame
+	await _wait_comments(controller, "d0")
+	await _wait_until(func(): return active._pending_scroll < 0, "reading-position restore completes before setting scroll")
+	check(active.get_v_scroll_bar().max_value - active.get_v_scroll_bar().page >= 140, "loaded detail has real scroll range")
 	active.scroll_vertical = 140
 	await process_frame
+	check(active.scroll_vertical == 140, "reading position was set before switching")
 	window.select_post("d1")
 	await process_frame
 	window.select_post("d0")
-	await process_frame
+	await _wait_comments(controller, "d0")
+	await _wait_until(func(): return active._pending_scroll < 0, "per-post restore is actually applied")
 	check(active.scroll_vertical==140,"per-post reading position restored")
 	active.scroll_vertical = 100000
-	await create_timer(.15).timeout
+	await _wait_comments(controller, "d0")
 	check(controller.get_comments("d0").items.size()==22,"scrolling detail to bottom loads next comment page")
 	for scroll in window.find_children("*","ScrollContainer",true,false):
 		if not scroll.has_method("update_comments"): scroll.scroll_vertical = 100000
-	await create_timer(.15).timeout
+	await _wait_until(func(): return controller.get_posts().size() == 12, "feed pagination completes")
 	check(controller.get_posts().size()==12,"scrolling feed to bottom loads next post page")
 	var replies = window.find_children("*","Button",true,false).filter(func(b): return b.text == "回复" and b.is_visible_in_tree())
 	check(not replies.is_empty(),"explicit inline reply actions")
@@ -78,7 +82,7 @@ func test_details() -> void:
 	var publish = window.find_child("PublishDraft",true,false)
 	publish.text = "new post"
 	window.find_child("PublishButton",true,false).pressed.emit()
-	await create_timer(.2).timeout
+	await _wait_until(func(): return window.get_selected_id() == "d99", "publication completes")
 	_check_publication_selects_returned_post_and_closes_publisher(window)
 	check(window.is_dirty(),"publication success preserves another post draft")
 	window.select_post("d0")
@@ -103,6 +107,18 @@ func test_details() -> void:
 	controller.queue_free()
 	await process_frame
 	DirAccess.remove_absolute(layout_path)
+func _wait_until(condition: Callable, label: String) -> void:
+	var deadline := Time.get_ticks_msec() + 5000
+	while not condition.call() and Time.get_ticks_msec() < deadline:
+		await process_frame
+	check(condition.call(), label)
+	for frame in 4: await process_frame
+
+func _wait_comments(controller: Node, id: String) -> void:
+	await _wait_until(func():
+		var state: Dictionary = controller.get_comments(id)
+		return state.loaded and not state.busy, "comments loaded before reading-position checks")
+
 func test_publish_failure() -> void:
 	var controller = load("res://src/session/dynamics_controller.gd").new()
 	root.add_child(controller)

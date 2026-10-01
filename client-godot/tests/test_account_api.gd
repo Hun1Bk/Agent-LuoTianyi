@@ -29,7 +29,7 @@ func run() -> void:
 	check(ServerAddress.normalize("https://[::1]:8443/") == "https://[::1]:8443", "IPv6 supported")
 	for invalid in ["", "ftp://host", "https://user:pass@host", "https://host?token=x", "https://host:99999", "https://host/a b", "https://999.1.1.1", "https://1.2.3.999", "https://1.2.3.4.5"]:
 		check(ServerAddress.normalize(invalid).is_empty(), "unsafe address rejected")
-	var api = Api.new(ClassDB.instantiate("WindowsSecurity"), 0.15)
+	var api = Api.new(ClassDB.instantiate("WindowsSecurity"))
 	root.add_child(api)
 	var login: Dictionary = await api.request("login", server, {"username":"test", "password":"synthetic-password", "request_token":true, "ignored":"field"})
 	check(login.ok and login.data.get("message_token") == "message-test", "encrypted password login succeeds")
@@ -42,9 +42,10 @@ func run() -> void:
 	for pair in [["reject", "AUTH_REJECTED"], ["empty_token", "INVALID_RESPONSE"], ["busy", "HTTP_ERROR"]]:
 		var response: Dictionary = await api.request("login", server, {"username":pair[0], "password":"synthetic-password"})
 		check(response.code == pair[1], "failure classification: " + pair[0])
-	for pair in [["/badkey", "ENCRYPTION_ERROR"], ["/badjson", "PUBLIC_KEY_ERROR"], ["/redirect", "PUBLIC_KEY_ERROR"], ["/slow", "TIMEOUT"]]:
+	for pair in [["/badkey", "ENCRYPTION_ERROR"], ["/badjson", "PUBLIC_KEY_ERROR"], ["/redirect", "PUBLIC_KEY_ERROR"]]:
 		var response: Dictionary = await api.request("login", server + pair[0], {"username":"test", "password":"synthetic-password"})
 		check(response.code == pair[1], "public key failure: " + pair[0])
+	await _check_request_timeout(server)
 	start_slow(api, server)
 	await create_timer(0.02).timeout
 	var parallel: Dictionary = await api.request("login", server, {"username":"test", "password":"synthetic-password"})
@@ -65,3 +66,11 @@ func run() -> void:
 	await process_frame
 	print("Account API: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+
+func _check_request_timeout(server: String) -> void:
+	var timeout_api = Api.new(ClassDB.instantiate("WindowsSecurity"), 0.15)
+	root.add_child(timeout_api)
+	var response: Dictionary = await timeout_api.request("login", server + "/slow", {"username":"test", "password":"synthetic-password"})
+	check(response.code == "TIMEOUT", "public key failure: /slow")
+	timeout_api.queue_free()
+	await process_frame

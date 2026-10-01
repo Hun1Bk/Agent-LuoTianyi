@@ -24,6 +24,9 @@ var _initialized := false
 var _ui_style: RefCounted
 var _draft_style: StyleBoxFlat
 var _reply_style: StyleBoxFlat
+var _pending_scroll := -1
+var _restore_frames := 0
+var _applying_scroll := false
 
 func set_ui_style(style: RefCounted) -> void:
 	if _ui_style != null and _ui_style.style_changed.is_connected(_apply_ui_style):
@@ -50,6 +53,7 @@ func setup(controller: Node,post: Dictionary) -> void:
 	if is_node_ready(): _initialize()
 
 func _ready() -> void:
+	set_process(false)
 	if _controller == null: return
 	_initialize()
 
@@ -65,6 +69,8 @@ func _initialize() -> void:
 		_place_reply())
 	_reply_send.pressed.connect(func(): _submit(true))
 	get_v_scroll_bar().value_changed.connect(func(_value): _at_bottom())
+	get_v_scroll_bar().gui_input.connect(_scroll_input)
+	_column.resized.connect(_queue_restore)
 	_controller.changed.connect(update_comments)
 	update_post(_post)
 	update_comments()
@@ -81,12 +87,52 @@ func update_post(post: Dictionary) -> void:
 func is_dirty() -> bool:
 	return _writing or not _draft.text.is_empty() or not _reply_draft.text.is_empty()
 
+func get_reading_position() -> int:
+	return _pending_scroll if _pending_scroll >= 0 else scroll_vertical
+
+func restore_reading_position(position: int) -> void:
+	_pending_scroll = maxi(0, position)
+	_queue_restore()
+	set_process(true)
+
+func _queue_restore() -> void:
+	if _pending_scroll >= 0: _restore_frames = 2
+
+func _process(_delta: float) -> void:
+	if not is_visible_in_tree(): return
+	if _restore_frames > 0:
+		_restore_frames -= 1
+		return
+	var state: Dictionary = _controller.get_comments(_post.id)
+	if state.busy: return
+	var bar := get_v_scroll_bar()
+	_applying_scroll = true
+	scroll_vertical = clampi(_pending_scroll, 0, maxi(0, int(bar.max_value - bar.page)))
+	_applying_scroll = false
+	_pending_scroll = -1
+	set_process(false)
+
+func _gui_input(event: InputEvent) -> void:
+	_scroll_input(event)
+
+func _scroll_input(event: InputEvent) -> void:
+	if not is_visible_in_tree() or not _is_scroll_input(event): return
+	_pending_scroll = -1
+	set_process(false)
+	_at_bottom.call_deferred()
+
+func _is_scroll_input(event: InputEvent) -> bool:
+	if event is InputEventPanGesture or event is InputEventScreenDrag: return true
+	if event is InputEventKey:
+		return event.pressed and event.keycode in [KEY_UP, KEY_DOWN, KEY_PAGEUP, KEY_PAGEDOWN, KEY_HOME, KEY_END]
+	if not event is InputEventMouseButton or not event.pressed: return false
+	if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]: return true
+	return event.button_index == MOUSE_BUTTON_LEFT and get_v_scroll_bar().get_global_rect().has_point(event.global_position)
+
 func update_comments() -> void:
 	if not is_node_ready(): return
 	var scroll_bar := get_v_scroll_bar()
 	var previous_scroll := scroll_bar.value
-	var previous_max := scroll_bar.max_value
-	var preserve_reading_position := previous_scroll > 0 and previous_scroll < previous_max - 24
 	var state: Dictionary = _controller.get_comments(_post.id)
 	_update_comment_status(state)
 	var names := {}
@@ -105,9 +151,10 @@ func update_comments() -> void:
 			_comments.add_child(row)
 			_rows[item.id] = row
 		_comments.move_child(_rows[item.id],index)
-	if preserve_reading_position:
-		scroll_vertical = int(previous_scroll)
-		set_deferred('scroll_vertical', int(previous_scroll))
+	if _pending_scroll >= 0:
+		_queue_restore()
+	elif previous_scroll > 0:
+		restore_reading_position(int(previous_scroll))
 func _place_reply() -> void:
 	var destination: Node = _column if _parent.is_empty() else _rows.get(_parent,_column)
 	if _reply_box.get_parent() != destination: _reply_box.reparent(destination)
@@ -145,7 +192,7 @@ func refresh_comments() -> void:
 	await _controller.refresh_comments(_post.id)
 
 func _at_bottom() -> void:
-	if not is_visible_in_tree(): return
+	if not is_visible_in_tree() or _applying_scroll or _pending_scroll >= 0: return
 	var bar := get_v_scroll_bar()
 	var state: Dictionary = _controller.get_comments(_post.id)
 	if bar.value+bar.page >= bar.max_value-24 and state.loaded and state.has_more and not state.busy and state.code in ["","OK"]:

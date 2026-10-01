@@ -58,7 +58,7 @@ func append_reply_audio(id: String, encoded: String, final: bool, audio_error: b
 		if _cache != null:
 			_cache.abort(id)
 	if audio_error:
-		_fail(id, "AUDIO_ERROR")
+		_fail(id, "REMOTE_AUDIO_ERROR")
 		return
 	if not encoded.is_empty():
 		if not _append_encoded(id, item, encoded):

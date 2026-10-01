@@ -193,7 +193,9 @@ func _state_changed(state: Dictionary) -> void:
 		_status.text = "天依正在想一想…"
 	if state.get("speaking", false):
 		_status.text += " · 正在播放语音"
-	if state.code == "AUDIO_ERROR":
+	if state.code == "REMOTE_AUDIO_ERROR":
+		_status.text += " · 服务端语音生成失败，可继续文字聊天。"
+	elif state.code == "AUDIO_ERROR":
 		_status.text += " · 本条语音暂时无法播放，文字已保留。"
 	elif state.code == "CACHE_CLEAR_FAILED":
 		_status.text += " · 部分语音未能清理，请关闭占用文件后重试。"

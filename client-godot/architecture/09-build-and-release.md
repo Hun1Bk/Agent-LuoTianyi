@@ -1,6 +1,6 @@
 > **系列文档**：[总览](ARCHITECTURE.md) · [01 组装根](01-application.md) · [02 session](02-session.md) · [03 network](03-network.md) · [04 storage](04-storage.md) · [05 media](05-media.md) · [06 avatar](06-avatar.md) · [07 ui](07-ui.md) · [08 preview](08-preview.md) · **09 构建与交付** · [10 测试与验证](10-testing.md)
 > **基线**：分支 `feat/agentluo-0.1.1` @ `42b5b1c` · 撰写日期 2026-09-20 · 只读现状分析（as-built）；除本系列 `.md` 与 `export_presets.cfg` 的导出排除项外不改动任何文件
-> **路径与行号口径**：无前缀路径相对 `client_godot/`，`client_godot/…` 相对仓库根；`file:line` 为撰写时工作树行号
+> **路径与行号口径**：无前缀路径相对 `client-godot/`，`client-godot/…` 相对仓库根；`file:line` 为撰写时工作树行号
 
 # 构建、版本化与交付
 
@@ -122,7 +122,7 @@
 | `:4` | `runnable` | `true`（编辑器里可直接运行） |
 | `:8` | `export_filter` | `all_resources`（导出全部资源） |
 | `:9` | `include_filter` | `*.json,*.moc3`——版本文件与 Live2D 模型必须显式纳入 |
-| `:10` | `exclude_filter` | `scripts/*,tests/*,architecture/*,artifacts/*,dist/*,native/*` |
+| `:10` | `exclude_filter` | `scripts/*,tests/*,architecture/*,artifacts/*,dist/*,native/*`（历史值；现行另含 `docs/*`） |
 | `:11` | `export_path` | `dist/AgentLuo.exe`（编辑器手动导出时的路径） |
 | `:14` 到 `:15` | `custom_template/*` | 空——使用本机安装的导出模板 |
 | `:16` | `debug/export_console_wrapper` | `0`（不生成控制台包装） |
@@ -131,7 +131,9 @@
 | `:19` 到 `:20` | `texture_format/bptc`、`s3tc` | 均 `true` |
 | `:21` 到 `:22` | `codesign/enable`、`application/modify_resources` | 均 `false` |
 
-**本次唯一的配置改动**
+**历史快照中的配置改动**
+
+第四轮整改另将现行客户端开发说明 `docs/*` 加入排除项；下面的 PCK 哈希及条目统计仅对应历史快照，本轮未重新导出，不以旧哈希证明当前产物。
 
 `exclude_filter`（`export_presets.cfg:10`）增加了 `architecture/*`。它的性质是**防御性声明**，不是在修复实际泄漏：实测当前工作树导出 PCK 后，包内 `architecture/` 条目与任意 `.md` 条目均为 0 条（`rg -a "architecture/"` 与 `.md` 文件名检索都无命中），且本次复测的 PCK SHA-256 为 `1D76FBF57B50545E7748053349B9AA82E441282C4B5129198CE7FC74C319C62A`、与改动前的记录值一致——说明这条排除项在当前导出配置下不改变产物字节。原因是 `export_filter="all_resources"` 本身就不收录 Markdown 这类非资源文件。
 
