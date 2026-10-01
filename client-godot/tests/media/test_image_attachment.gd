@@ -46,6 +46,9 @@ func _initialize() -> void:
 	check(Attachment.from_bytes(jpeg,"image/png").ok and Attachment.from_bytes(jpeg,"image/png").mime == "image/jpeg", "JPEG header corrects PNG declaration")
 	var bmp := image.save_bmp_to_buffer()
 	var normalized_bmp := Attachment.from_bytes(bmp,"image/png")
-	check(normalized_bmp.ok and normalized_bmp.mime == "image/png" and normalized_bmp.bytes.slice(0,8).hex_encode() == "89504e470d0a1a0a", "BMP is normalized to PNG before sending")
+	_check_bmp_is_normalized_to_png_before_sending(normalized_bmp)
 	print("Image attachment validation: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+
+func _check_bmp_is_normalized_to_png_before_sending(normalized_bmp: Variant) -> void:
+	check(normalized_bmp.ok and normalized_bmp.mime == "image/png" and normalized_bmp.bytes.slice(0,8).hex_encode() == "89504e470d0a1a0a", "BMP is normalized to PNG before sending")

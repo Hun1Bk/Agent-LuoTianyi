@@ -60,6 +60,18 @@ func _update(state: Dictionary) -> void:
 			_fields[key].text = value
 		_fields[key].editable = state.phase == "ready" and key not in ["relationship","speaking_style"]
 	_refreshing = false
+	_update_presets(state)
+	_reload.disabled = state.phase in ["loading","saving"] or state.dirty
+	_status.text = {"idle":"", "loading":"正在读取相处偏好…", "saving":"正在合并服务器最新设置并保存…", "error":"加载失败，请重试。加载成功前不能保存。", "ready":"有未保存的修改。" if state.dirty else "已从服务器读取。"}.get(state.phase,"")
+	if state.phase == "ready" and state.code != "OK":
+		_status.text = "保存失败，输入已保留（%s）。"%state.code
+func save_changes() -> Dictionary:
+	if not is_dirty(): return {"ok":true,"results":[]}
+	await _controller.save()
+	var state: Dictionary = _controller.get_state()
+	return {"ok":not state.dirty,"results":[{"section":"preferences","id":"相处模式","ok":not state.dirty,"code":state.code}]}
+
+func _update_presets(state: Dictionary) -> void:
 	for presets in _presets:
 		presets.disabled = state.phase != "ready"
 		var values: Dictionary = presets.get_meta("values")
@@ -67,13 +79,3 @@ func _update(state: Dictionary) -> void:
 		presets.clear_selection()
 		for id in values:
 			if values[id] == value: presets.set_selected_id(id)
-	_reload.disabled = state.phase in ["loading","saving"] or state.dirty
-	_status.text = {"idle":"", "loading":"正在读取相处偏好…", "saving":"正在合并服务器最新设置并保存…", "error":"加载失败，请重试。加载成功前不能保存。", "ready":"有未保存的修改。" if state.dirty else "已从服务器读取。"}.get(state.phase,"")
-	if state.phase == "ready" and state.code != "OK":
-		_status.text = "保存失败，输入已保留（%s）。"%state.code
-
-func save_changes() -> Dictionary:
-	if not is_dirty(): return {"ok":true,"results":[]}
-	await _controller.save()
-	var state: Dictionary = _controller.get_state()
-	return {"ok":not state.dirty,"results":[{"section":"preferences","id":"相处模式","ok":not state.dirty,"code":state.code}]}

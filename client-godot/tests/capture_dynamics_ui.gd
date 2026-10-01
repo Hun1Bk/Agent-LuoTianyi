@@ -30,15 +30,11 @@ func _run() -> void:
 	window.select_post("d0")
 	await create_timer(.3).timeout
 	await capture(window,"detail")
-	for button in window.find_children("*","Button",true,false):
-		if button.text == "回复" and button.is_visible_in_tree():
-			button.pressed.emit()
-			break
+	_open_reply(window)
 	window.find_child("ReplyDraft",true,false).text = "这段旋律很好听，期待你下次分享。"
 	await process_frame
 	# The selected detail's public scroll interface exposes the entire inline composer.
-	for scroll in window.find_children("*","ScrollContainer",true,false):
-		if scroll.has_method("update_comments") and scroll.is_visible_in_tree(): scroll.scroll_vertical = 260
+	_scroll_reply(window)
 	await capture(window,"reply")
 	for button in window.find_children("*","Button",true,false):
 		if button.text == "发布动态": button.pressed.emit()
@@ -77,3 +73,13 @@ func capture(window: Window,suffix: String) -> void:
 	await create_timer(.25).timeout
 	await RenderingServer.frame_post_draw
 	check(window.get_texture().get_image().save_png("res://artifacts/agentluo-011-dynamics-"+suffix+".png")==OK,"capture "+suffix)
+
+func _open_reply(window: Window) -> void:
+	for button in window.find_children("*","Button",true,false):
+		if button.text == "回复" and button.is_visible_in_tree():
+			button.pressed.emit()
+			break
+
+func _scroll_reply(window: Window) -> void:
+	for scroll in window.find_children("*","ScrollContainer",true,false):
+		if scroll.has_method("update_comments") and scroll.is_visible_in_tree(): scroll.scroll_vertical = 260

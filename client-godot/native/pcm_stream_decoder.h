@@ -23,6 +23,14 @@ class PcmStreamDecoder : public RefCounted {
     void fail(const char *reason);
     bool parse_format(const uint8_t *data, size_t size);
     bool decode(const uint8_t *data, size_t count);
+    bool supported_encoding() const;
+    bool parse_subtype(const uint8_t *data, size_t size);
+    bool validate_format();
+    bool decode_sample(const uint8_t *pointer, float &value);
+    bool advance_phase(size_t &offset);
+    bool consume_riff(const uint8_t *pointer, size_t available, size_t &offset);
+    bool consume_chunk(const uint8_t *pointer, size_t available, size_t &offset);
+    bool consume_data(const uint8_t *pointer, size_t available, size_t &offset);
 protected:
     static void _bind_methods();
 public:

@@ -35,7 +35,7 @@ func test_persistence() -> void:
 	check(not entry.is_empty(), "cache persists across instances and normalized server")
 	if not entry.is_empty():
 		check(FileAccess.get_file_as_bytes(entry.path) == bytes, "original bytes preserved")
-		check(is_equal_approx(entry.duration,.08) and entry.waveform.size() == 24, "duration and waveform restored")
+		_check_duration_and_waveform_restored(entry)
 	check(restored.begin("one") == ERR_ALREADY_EXISTS, "complete file never overwritten")
 	cache.begin("partial")
 	cache.append("partial",bytes)
@@ -56,7 +56,7 @@ func test_persistence() -> void:
 	restored.begin("one")
 	restored.append("one",bytes)
 	restored.commit("one",status,waveform)
-	check(cache.clear() == OK and cache.lookup("one").is_empty() and not restored.lookup("one").is_empty(), "manual clear only current account")
+	_check_manual_clear_only_current_account(cache, restored)
 	restored.set_scope("https://other.invalid", "B")
 	check(restored.lookup("one").is_empty(), "server isolation")
 	restored.set_scope("https://test.invalid", "B")
@@ -84,7 +84,7 @@ func test_persistence() -> void:
 		var file := FileAccess.open(obstacle,FileAccess.WRITE)
 		file.close()
 		var unwritable := Cache.new(obstacle + "/child")
-		check(unwritable.set_scope("https://test.invalid","A") != OK and unwritable.begin("x") != OK, "unwritable scope reports failure")
+		_check_unwritable_scope_reports_failure(unwritable)
 		DirAccess.remove_absolute(obstacle)
 	restored.clear()
 	var scope := root.path_join(JSON.stringify(["https://test.invalid","A"]).sha256_text())
@@ -104,7 +104,6 @@ func test_persistence() -> void:
 			DirAccess.remove_absolute(root.path_join(folder).path_join(file))
 		DirAccess.remove_absolute(root.path_join(folder))
 	DirAccess.remove_absolute(root)
-
 func test_retention() -> void:
 	var path := "user://cache-age-%s" % Time.get_ticks_usec()
 	var clock: Array[int] = [int(Time.get_unix_time_from_system()) + 60 * 86400]
@@ -164,3 +163,12 @@ func remove_folder(path: String) -> void:
 	for folder in DirAccess.get_directories_at(path): remove_folder(path.path_join(folder))
 	for file in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(file))
 	DirAccess.remove_absolute(path)
+
+func _check_manual_clear_only_current_account(cache: Variant, restored: Variant) -> void:
+	check(cache.clear() == OK and cache.lookup("one").is_empty() and not restored.lookup("one").is_empty(), "manual clear only current account")
+
+func _check_duration_and_waveform_restored(entry: Variant) -> void:
+	check(is_equal_approx(entry.duration,.08) and entry.waveform.size() == 24, "duration and waveform restored")
+
+func _check_unwritable_scope_reports_failure(unwritable: Variant) -> void:
+	check(unwritable.set_scope("https://test.invalid","A") != OK and unwritable.begin("x") != OK, "unwritable scope reports failure")

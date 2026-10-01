@@ -10,21 +10,18 @@
 
 using namespace godot;
 
-void StorageVolume::_bind_methods() {
-    ClassDB::bind_method(D_METHOD("query", "path"), &StorageVolume::query);
+namespace {
+bool valid_capacity(uint64_t total, uint64_t available) {
+    return total > 0 && total <= uint64_t(std::numeric_limits<int64_t>::max()) && available <= total;
 }
 
-Dictionary StorageVolume::query(const String &path) const {
-    Dictionary result;
-    result["total_bytes"] = int64_t(-1);
-    result["free_bytes"] = int64_t(-1);
-    if (path.is_empty()) return result;
+void query_capacity(const String &path, Dictionary &result) {
     constexpr uint64_t limit = uint64_t(std::numeric_limits<int64_t>::max());
 #ifdef _WIN32
     const Char16String wide = path.utf16();
     ULARGE_INTEGER available{}, total{}, free{};
     if (GetDiskFreeSpaceExW(reinterpret_cast<LPCWSTR>(wide.get_data()), &available, &total, &free) &&
-            total.QuadPart > 0 && total.QuadPart <= limit && available.QuadPart <= total.QuadPart) {
+            valid_capacity(total.QuadPart, available.QuadPart)) {
         result["total_bytes"] = int64_t(total.QuadPart);
         result["free_bytes"] = int64_t(available.QuadPart);
     }
@@ -37,5 +34,18 @@ Dictionary StorageVolume::query(const String &path) const {
         result["free_bytes"] = int64_t(uint64_t(info.f_bavail) * uint64_t(info.f_frsize));
     }
 #endif
+}
+}
+
+void StorageVolume::_bind_methods() {
+    ClassDB::bind_method(D_METHOD("query", "path"), &StorageVolume::query);
+}
+
+Dictionary StorageVolume::query(const String &path) const {
+    Dictionary result;
+    result["total_bytes"] = int64_t(-1);
+    result["free_bytes"] = int64_t(-1);
+    if (path.is_empty()) return result;
+    query_capacity(path, result);
     return result;
 }

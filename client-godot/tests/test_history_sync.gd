@@ -31,14 +31,15 @@ func _run() -> void:
 	chat.expression_requested.connect(func(_command): expressions+=1)
 	chat.start(credentials("normal"))
 	var id: String = chat.send_text("queued before initial boundary")
-	check(not id.is_empty() and chat.get_messages()[0].status == "waiting_history","local bubble appears immediately while send held")
+	_check_local_bubble_appears_immediately_while_send_held(id, chat)
 	check(await until(func(): return chat.get_state().phase == "ready"),"authentication works while history pending")
 	check(await until(func(): return chat.get_history_state().phase == "complete"),"loads entire fixed history")
 	check(await until(func(): return chat.get_messages().any(func(m): return m.id == id and m.status == "sent")),"queued message ACK retains stable local ID")
 	var messages: Array = chat.get_messages()
 	check(messages.size() == 121,"UUID merges live assistant without duplicate; local user is distinct")
-	check(messages[0].id == "history-0" and messages[119].id == "history-119","history is oldest first")
+	_check_history_is_oldest_first(messages)
 	check(messages[119].text == "live reply","live assistant text takes precedence")
+	check(messages[119].timestamp == 119.0, "history supplies the authoritative time without replacing live text")
 	check(expressions == 0 and not chat.get_audio_state().playing,"history does not trigger avatar or playback")
 	chat.start(credentials("first_fail"))
 	id = chat.send_text("retain this")
@@ -79,3 +80,8 @@ func _run() -> void:
 	await process_frame
 	print("History sync: ","PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+func _check_local_bubble_appears_immediately_while_send_held(id: Variant, chat: Variant) -> void:
+	check(not id.is_empty() and chat.get_messages()[0].status == "waiting_history","local bubble appears immediately while send held")
+
+func _check_history_is_oldest_first(messages: Variant) -> void:
+	check(messages[0].id == "history-0" and messages[119].id == "history-119","history is oldest first")

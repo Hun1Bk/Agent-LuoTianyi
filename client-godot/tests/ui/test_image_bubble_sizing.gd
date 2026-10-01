@@ -20,7 +20,7 @@ func run() -> void:
 		check(images.store_local(id,image.save_png_to_buffer()) == OK, "real image cache accepts fixture")
 		var state: Dictionary = images.get_state(id)
 		check(state.get("original_size",Vector2i.ZERO) == dimensions, "cache exposes original size independently of thumbnail")
-		check(state.texture.get_width() <= 480 and state.texture.get_height() <= 480, "thumbnail budget remains unchanged")
+		_check_thumbnail_budget_remains_unchanged(state)
 		var row: Control = Bubble.instantiate()
 		root.add_child(row)
 		row.size = Vector2(620,1)
@@ -38,7 +38,7 @@ func run() -> void:
 		check(picture.size.distance_to(expected) <= 1.5, "resizing recomputes proportional preview: " + id)
 		row.set_image_state({"status":"error","texture":null,"original_size":Vector2i.ZERO,"code":"NETWORK_ERROR"})
 		await settle()
-		check(not picture.visible and not row.get_node("%ImageButton").disabled and row.get_node("%ImageButton").text.contains("重试"), "failure retains a reachable retry action")
+		_check_failure_retains_a_reachable_retry_action(picture, row)
 		row.queue_free()
 		await process_frame
 	var direct: Control = Bubble.instantiate()
@@ -76,3 +76,9 @@ func remove_folder(path: String) -> void:
 	for folder in DirAccess.get_directories_at(path): remove_folder(path.path_join(folder))
 	for file in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(file))
 	DirAccess.remove_absolute(path)
+
+func _check_failure_retains_a_reachable_retry_action(picture: Variant, row: Variant) -> void:
+	check(not picture.visible and not row.get_node("%ImageButton").disabled and row.get_node("%ImageButton").text.contains("重试"), "failure retains a reachable retry action")
+
+func _check_thumbnail_budget_remains_unchanged(state: Variant) -> void:
+	check(state.texture.get_width() <= 480 and state.texture.get_height() <= 480, "thumbnail budget remains unchanged")

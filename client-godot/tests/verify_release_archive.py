@@ -22,6 +22,37 @@ def _lock_for(source: Path) -> dict:
             return json.loads(candidate.read_text(encoding="utf-8-sig"))
     raise AssertionError("dependency lock is required next to the project export")
 
+def _expected_files(source, prefix):
+    expected_names = {prefix + name for name in ("agentluo.exe", "agentluo.pck", "PREVIEW.md", "release.json")}
+    expected_names |= {prefix + "licenses/" + name for name in LICENSE_FILES}
+    expected_names |= {prefix + name for name in DLL_FILES}
+    expected = {}
+    for relative in sorted(name[len(prefix):] for name in expected_names):
+        path = source / Path(relative)
+        assert path.is_file(), f"required release file missing: {relative}"
+        expected[prefix + relative.replace("\\", "/")] = path
+    source_files = {prefix + p.relative_to(source).as_posix() for p in source.rglob("*") if p.is_file()}
+    assert source_files == expected_names, f"unexpected export files: {source_files.symmetric_difference(expected_names)}"
+    return expected_names, expected
+
+
+def _verify_zip(archive, expected_names, expected):
+    with zipfile.ZipFile(archive) as z:
+        assert z.testzip() is None, "CRC verification failed"
+        infos = [info for info in z.infolist() if not info.is_dir()]
+        entries = [info.filename for info in infos]
+        assert len(entries) == len(set(entries)), "duplicate archive entries"
+        assert set(entries) == expected_names, f"missing or extra package entries: {set(entries).symmetric_difference(expected_names)}"
+        for name, path in expected.items():
+            assert hashlib.sha256(z.read(name)).digest() == hashlib.sha256(path.read_bytes()).digest(), f"archive content mismatch: {name}"
+
+
+def _verify_dlls(source, lock):
+    for dll_name, lock_key in DLL_FILES.items():
+        digest = hashlib.sha256((source / dll_name).read_bytes()).hexdigest().lower()
+        expected_digest = lock[lock_key]["binary_sha256"].lower()
+        assert digest == expected_digest, f"{dll_name} SHA256 differs from dependency lock"
+
 
 def verify(archive: Path, source: Path):
     archive = archive.resolve()
@@ -34,30 +65,11 @@ def verify(archive: Path, source: Path):
     assert archive.name == prefix[:-1] + ".zip", "versioned archive name"
     lock = _lock_for(source)
 
-    expected_names = {prefix + name for name in ("agentluo.exe", "agentluo.pck", "PREVIEW.md", "release.json")}
-    expected_names |= {prefix + "licenses/" + name for name in LICENSE_FILES}
-    expected_names |= {prefix + name for name in DLL_FILES}
-    expected = {}
-    for relative in sorted(name[len(prefix):] for name in expected_names):
-        path = source / Path(relative)
-        assert path.is_file(), f"required release file missing: {relative}"
-        expected[prefix + relative.replace("\\", "/")] = path
-    source_files = {prefix + p.relative_to(source).as_posix() for p in source.rglob("*") if p.is_file()}
-    assert source_files == expected_names, f"unexpected export files: {source_files.symmetric_difference(expected_names)}"
+    expected_names, expected = _expected_files(source, prefix)
 
-    with zipfile.ZipFile(archive) as z:
-        assert z.testzip() is None, "CRC verification failed"
-        infos = [info for info in z.infolist() if not info.is_dir()]
-        entries = [info.filename for info in infos]
-        assert len(entries) == len(set(entries)), "duplicate archive entries"
-        assert set(entries) == expected_names, f"missing or extra package entries: {set(entries).symmetric_difference(expected_names)}"
-        for name, path in expected.items():
-            assert hashlib.sha256(z.read(name)).digest() == hashlib.sha256(path.read_bytes()).digest(), f"archive content mismatch: {name}"
+    _verify_zip(archive, expected_names, expected)
 
-    for dll_name, lock_key in DLL_FILES.items():
-        digest = hashlib.sha256((source / dll_name).read_bytes()).hexdigest().lower()
-        expected_digest = lock[lock_key]["binary_sha256"].lower()
-        assert digest == expected_digest, f"{dll_name} SHA256 differs from dependency lock"
+    _verify_dlls(source, lock)
     result = {
         "archive": str(archive),
         "bytes": archive.stat().st_size,

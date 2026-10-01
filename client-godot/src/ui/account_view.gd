@@ -152,12 +152,7 @@ func _options_changed(automatic_source: bool) -> void:
 func _send() -> void:
 	if _busy: return
 	var operation := _mode
-	for name in (["password"] if operation == "login" else ["password","confirm"]):
-		if not _ascii_password(_fields[name].text):
-			_status.text = PASSWORD_HINT
-			return
-	if operation != "login" and _fields.password.text != _fields.confirm.text:
-		_status.text = "两次输入的密码不一致。"
+	if not _validate_passwords(operation):
 		return
 	%FeedbackAddress.hide()
 	var response: Dictionary
@@ -168,15 +163,8 @@ func _send() -> void:
 		if operation == "register": fields.invite_code = _fields.invite.text
 		elif operation == "reset": fields = {"new_username":_fields.username.text,"new_password":_fields.password.text,"invite_code":_fields.invite.text}
 		response = await _session.perform(operation, _session.get_login_defaults().server, fields, _remember.button_pressed if operation == "login" else false, _automatic.button_pressed if operation == "login" else false)
-	if response.ok:
-		_clear_secrets()
-		if operation != "login":
-			select_mode("login")
-			_status.text = "注册成功，请登录。" if operation == "register" else "账号重置成功，请使用新账号登录。"
-	elif not response.storage_error:
-		_status.text = _error_text(response.code, response.get("status",0))
+	_present_response(operation, response)
 	_apply_mode()
-
 func _update_state(state: Dictionary) -> void:
 	_busy = state.phase == "busy"
 	for name in ["username","password","confirm","invite","server"]: _fields[name].editable = not _busy
@@ -298,3 +286,22 @@ static func _error_text(code: String, status: int = 0) -> String:
 		"INVALID_RESPONSE":"服务器返回的数据不完整，请稍后重试。", "CREDENTIAL_UNAVAILABLE":"无法读取自动登录凭据，请重新登录。",
 		"HTTP_ERROR":"服务器拒绝了请求（%s），请检查账户信息或邀请码。" % status,
 		"NO_SAVED_LOGIN":"请使用密码登录。", "SERVER_CHANGED":"服务器已更新。", "CHECKING_SERVER":"正在验证服务器…", "ACCOUNT_SELECTED":"", "ACCOUNT_REMOVED":"本机账号记录已移除。", "OPTIONS_CHANGED":"", "STORAGE_ERROR":"本地登录资料未能保存或清除，请检查权限后重试。", "BUSY":"正在处理上一次请求。"}.get(code, "账户操作未完成，请重试。")
+
+func _validate_passwords(operation: String) -> bool:
+	for name in (["password"] if operation == "login" else ["password","confirm"]):
+		if not _ascii_password(_fields[name].text):
+			_status.text = PASSWORD_HINT
+			return false
+	if operation != "login" and _fields.password.text != _fields.confirm.text:
+		_status.text = "两次输入的密码不一致。"
+		return false
+	return true
+
+func _present_response(operation: String, response: Dictionary) -> void:
+	if response.ok:
+		_clear_secrets()
+		if operation != "login":
+			select_mode("login")
+			_status.text = "注册成功，请登录。" if operation == "register" else "账号重置成功，请使用新账号登录。"
+	elif not response.storage_error:
+		_status.text = _error_text(response.code, response.get("status",0))

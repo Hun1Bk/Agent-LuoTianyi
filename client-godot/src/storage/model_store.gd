@@ -19,6 +19,25 @@ func read(type_id: String) -> Dictionary:
 		return {"ok":false,"code":"INVALID_CONFIG","config":{}}
 	var config: Dictionary = data.config.duplicate(true)
 	config.api_key = ""
+	return _read_key(type_id, data, config)
+func save(type_id: String,config: Dictionary,allow_plain: bool = false) -> Dictionary:
+	if _directory.is_empty() or type_id.is_empty() or not config.get("api_key") is String:
+		return {"ok":false,"code":"INVALID_CONFIG"}
+	var values := {}
+	for key in ["enabled","provider","base_url","model","model_kind","model_capabilities","params"]:
+		values[key] = config.get(key)
+	var data := {"version":1,"config":values}
+	var key_result := _protect_key(type_id, config, data, allow_plain)
+	if not key_result.ok:
+		return key_result
+	var error := _write_config(type_id, data)
+	if error != OK and FileAccess.file_exists(_path(type_id)+".tmp"):
+		DirAccess.remove_absolute(_path(type_id)+".tmp")
+	return {"ok":error == OK,"code":"OK" if error == OK else "SAVE_FAILED"}
+func _path(type_id: String) -> String:
+	return _directory.path_join(type_id.sha256_text()+".json")
+
+func _read_key(type_id: String, data: Dictionary, config: Dictionary) -> Dictionary:
 	if data.get("api_key_plain") is String:
 		config.api_key = data.api_key_plain
 	elif data.get("api_key_dpapi") is String and not data.api_key_dpapi.is_empty():
@@ -28,13 +47,8 @@ func read(type_id: String) -> Dictionary:
 			return {"ok":false,"code":"KEY_UNAVAILABLE","config":config}
 		config.api_key = plain.data.get_string_from_utf8()
 	return {"ok":true,"code":"OK","config":config}
-func save(type_id: String,config: Dictionary,allow_plain: bool = false) -> Dictionary:
-	if _directory.is_empty() or type_id.is_empty() or not config.get("api_key") is String:
-		return {"ok":false,"code":"INVALID_CONFIG"}
-	var values := {}
-	for key in ["enabled","provider","base_url","model","model_kind","model_capabilities","params"]:
-		values[key] = config.get(key)
-	var data := {"version":1,"config":values}
+
+func _protect_key(type_id: String, config: Dictionary, data: Dictionary, allow_plain: bool) -> Dictionary:
 	if not config.api_key.is_empty():
 		var protected: Dictionary = _security.protect_secret(config.api_key.to_utf8_buffer(),(_scope+"/"+type_id).to_utf8_buffer())
 		if protected.ok:
@@ -43,6 +57,9 @@ func save(type_id: String,config: Dictionary,allow_plain: bool = false) -> Dicti
 			return {"ok":false,"code":"PLAINTEXT_CONFIRMATION_REQUIRED"}
 		else:
 			data.api_key_plain = config.api_key
+	return {"ok":true}
+
+func _write_config(type_id: String, data: Dictionary) -> Error:
 	var error := DirAccess.make_dir_recursive_absolute(_directory)
 	if error == OK:
 		var file := FileAccess.open(_path(type_id)+".tmp",FileAccess.WRITE)
@@ -55,8 +72,4 @@ func save(type_id: String,config: Dictionary,allow_plain: bool = false) -> Dicti
 			file.close()
 			if error == OK:
 				error = DirAccess.rename_absolute(_path(type_id)+".tmp",_path(type_id))
-	if error != OK and FileAccess.file_exists(_path(type_id)+".tmp"):
-		DirAccess.remove_absolute(_path(type_id)+".tmp")
-	return {"ok":error == OK,"code":"OK" if error == OK else "SAVE_FAILED"}
-func _path(type_id: String) -> String:
-	return _directory.path_join(type_id.sha256_text()+".json")
+	return error

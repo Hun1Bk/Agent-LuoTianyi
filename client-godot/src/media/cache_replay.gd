@@ -79,15 +79,9 @@ func _process(_delta: float) -> void:
 	if status != "playing":
 		return
 	var decoded: Dictionary = _decoder.get_status()
-	if _file != null and decoded.queued_frames < maxi(4096,int(decoded.sample_rate)/2):
-		decoded = _decoder.append(_file.get_buffer(65536))
-		if _file.get_position() >= _file.get_length():
-			_file.close()
-			_file = null
-			decoded = _decoder.finish()
-		if not decoded.ok:
-			_end("REPLAY_FAILED")
-			return
+	decoded = _read_more(decoded)
+	if status != "playing":
+		return
 	if _playback == null:
 		if decoded.sample_rate == 0 or decoded.queued_frames == 0:
 			return
@@ -98,6 +92,27 @@ func _process(_delta: float) -> void:
 		_player.play()
 		_playback = _player.get_stream_playback()
 		_capacity = _playback.get_frames_available()
+	if not _pump_playback(decoded):
+		return
+	if Time.get_ticks_msec() >= _notify_at:
+		_notify_at = Time.get_ticks_msec() + 50
+		changed.emit()
+func _exit_tree() -> void:
+	stop()
+
+func _read_more(decoded: Dictionary) -> Dictionary:
+	if _file != null and decoded.queued_frames < maxi(4096,int(decoded.sample_rate)/2):
+		decoded = _decoder.append(_file.get_buffer(65536))
+		if _file.get_position() >= _file.get_length():
+			_file.close()
+			_file = null
+			decoded = _decoder.finish()
+		if not decoded.ok:
+			_end("REPLAY_FAILED")
+			return decoded
+	return decoded
+
+func _pump_playback(decoded: Dictionary) -> bool:
 	var available := _playback.get_frames_available()
 	var buffered := _capacity - available
 	var heard := maxi(0,_pushed - buffered - int(AudioServer.get_output_latency()*decoded.sample_rate))
@@ -108,7 +123,7 @@ func _process(_delta: float) -> void:
 		var frames: PackedVector2Array = _decoder.read_frames(count)
 		if not _playback.push_buffer(frames):
 			_end("REPLAY_FAILED")
-			return
+			return false
 		_pushed += frames.size()
 		_drain_at = 0
 	elif decoded.finished and buffered == 0:
@@ -116,10 +131,5 @@ func _process(_delta: float) -> void:
 			_drain_at = Time.get_ticks_msec() + ceili((AudioServer.get_output_latency()+AudioServer.get_time_to_next_mix())*1000) + 10
 		elif Time.get_ticks_msec() >= _drain_at:
 			_end("")
-			return
-	if Time.get_ticks_msec() >= _notify_at:
-		_notify_at = Time.get_ticks_msec() + 50
-		changed.emit()
-
-func _exit_tree() -> void:
-	stop()
+			return false
+	return true

@@ -19,11 +19,11 @@ func _initialize() -> void:
 		check(log.record("reply_received", {"reply_id":"synthetic-uuid", "frames":index,
 			"has_audio":true,"token":"SECRET-TOKEN", "text":"SECRET-TEXT", "code":"bad secret code"}) == OK, "record written")
 	var entries: Array = log.read_entries()
-	check(entries.size() == 121 and entries[0].event == "client_started", "no truncation of launch records")
+	_check_no_truncation_of_launch_records(entries)
 	var raw := JSON.stringify(entries)
-	check(not raw.contains("SECRET") and not raw.contains("bad secret code"), "secrets excluded")
+	_check_secrets_excluded(raw)
 	check(entries[1].reply_id == "synthetic-uuid".sha256_text().left(12), "correlation hashed")
-	check(entries[1].has_audio and entries[1].has("module") and entries[1].has("level"), "terminal metadata present")
+	_check_terminal_metadata_present(entries)
 	log.record("system_error", {"code":"SECRET_TOKEN", "phase":"SECRET_ACCOUNT"})
 	check(not JSON.stringify(log.read_entries()).contains("SECRET"), "code-shaped secrets are not logged")
 	var id: String = log.get_run_id()
@@ -93,3 +93,11 @@ func _initialize() -> void:
 	DirAccess.remove_absolute(byte_directory)
 	print("Client startup diagnostics: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+func _check_terminal_metadata_present(entries: Variant) -> void:
+	check(entries[1].has_audio and entries[1].has("module") and entries[1].has("level"), "terminal metadata present")
+
+func _check_no_truncation_of_launch_records(entries: Variant) -> void:
+	check(entries.size() == 121 and entries[0].event == "client_started", "no truncation of launch records")
+
+func _check_secrets_excluded(raw: Variant) -> void:
+	check(not raw.contains("SECRET") and not raw.contains("bad secret code"), "secrets excluded")

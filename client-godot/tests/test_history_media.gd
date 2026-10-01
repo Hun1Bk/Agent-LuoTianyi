@@ -64,7 +64,7 @@ func _run() -> void:
 	chat.start(scope)
 	check(await until(func(): return chat.get_history_state().phase == "complete"),"media messages restored from real history")
 	check(not JSON.stringify(chat.get_messages()).contains("old-device"),"old absolute image paths discarded")
-	check(chat.get_message_audio("history-119").available and not chat.get_message_audio("history-117").available,"history exposes only actual new-client voice cache")
+	_check_history_exposes_only_actual_new_client_voice_cache(chat)
 	check(not chat.get_audio_state().playing,"cached history never auto-plays")
 	root.size = Vector2i(1200,800)
 	check(ResourceLoader.exists(VIEW_SCENE),"chat view scene exists")
@@ -93,12 +93,7 @@ func _run() -> void:
 	await process_frame
 	cache.set_scope(scope.server,scope.username)
 	cache.clear()
-	for category in ["audio","chat_images"]:
-		for child in DirAccess.get_directories_at(directory+"/"+category):
-			for file in DirAccess.get_files_at(directory+"/"+category+"/"+child):
-				DirAccess.remove_absolute(directory+"/"+category+"/"+child+"/"+file)
-			DirAccess.remove_absolute(directory+"/"+category+"/"+child)
-		DirAccess.remove_absolute(directory+"/"+category)
+	_remove_media_files(directory)
 	for folder in DirAccess.get_directories_at(directory):
 		for file in DirAccess.get_files_at(directory.path_join(folder)):
 			DirAccess.remove_absolute(directory.path_join(folder).path_join(file))
@@ -106,3 +101,13 @@ func _run() -> void:
 	DirAccess.remove_absolute(directory)
 	print("History media: ","PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+func _check_history_exposes_only_actual_new_client_voice_cache(chat: Variant) -> void:
+	check(chat.get_message_audio("history-119").available and not chat.get_message_audio("history-117").available,"history exposes only actual new-client voice cache")
+
+func _remove_media_files(directory: String) -> void:
+	for category in ["audio","chat_images"]:
+		for child in DirAccess.get_directories_at(directory+"/"+category):
+			for file in DirAccess.get_files_at(directory+"/"+category+"/"+child):
+				DirAccess.remove_absolute(directory+"/"+category+"/"+child+"/"+file)
+			DirAccess.remove_absolute(directory+"/"+category+"/"+child)
+		DirAccess.remove_absolute(directory+"/"+category)

@@ -25,7 +25,7 @@ func _run() -> void:
 	check(controller.get_state().dirty and controller.get_state().can_save,"editing loaded form enables save")
 	await controller.save()
 	state = controller.get_state()
-	check(state.code == "OK" and not state.dirty and state.fields.speaking_style == "文静恬淡","merge preserves latest unedited fields")
+	_check_merge_preserves_latest_unedited_fields(state)
 	await controller.start(scope("legacy"))
 	check(controller.get_state().fields.personality_text == "开朗，认真","legacy trait field remains readable")
 	await controller.start(scope("fail_load"))
@@ -49,10 +49,10 @@ func _run() -> void:
 		window.open()
 		window.close_requested.emit()
 		var dialogs: Array = window.find_children("*Dialog","Window",true,false).filter(func(n): return n.visible)
-		check(not dialogs.is_empty() and dialogs[0].visible,"dirty window asks before closing")
+		_check_dirty_window_asks_before_closing(dialogs)
 		if not dialogs.is_empty():
 			dialogs[0].canceled.emit()
-			check(is_instance_valid(window) and window_controller.get_state().dirty,"cancel keeps window draft")
+			_check_cancel_keeps_window_draft(window, window_controller)
 		window.queue_free()
 		await process_frame
 	controller.stop()
@@ -61,3 +61,11 @@ func _run() -> void:
 	await process_frame
 	print("Preferences: ","PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+func _check_merge_preserves_latest_unedited_fields(state: Variant) -> void:
+	check(state.code == "OK" and not state.dirty and state.fields.speaking_style == "文静恬淡","merge preserves latest unedited fields")
+
+func _check_cancel_keeps_window_draft(window: Variant, window_controller: Variant) -> void:
+	check(is_instance_valid(window) and window_controller.get_state().dirty,"cancel keeps window draft")
+
+func _check_dirty_window_asks_before_closing(dialogs: Variant) -> void:
+	check(not dialogs.is_empty() and dialogs[0].visible,"dirty window asks before closing")

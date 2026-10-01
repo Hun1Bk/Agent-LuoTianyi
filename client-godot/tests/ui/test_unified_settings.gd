@@ -36,7 +36,7 @@ func run() -> void:
 	params.text_changed.emit()
 	var result: Dictionary = await window.save_changes()
 	check(window.get_node("%Result").visible,"validation failures remain visible")
-	check(not result.ok and models.get_config("text-purpose").model != name.text and prefs.get_state().dirty,"invalid model prevents every write")
+	_check_invalid_model_prevents_every_write(result, models, name, prefs)
 	window.select_page("preferences")
 	check(context.text == "保留跨页的草稿","switching pages preserves drafts")
 	params.text = "{}"
@@ -76,3 +76,6 @@ func remove_folder(path: String) -> void:
 	for folder in DirAccess.get_directories_at(path): remove_folder(path.path_join(folder))
 	for file in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(file))
 	DirAccess.remove_absolute(path)
+
+func _check_invalid_model_prevents_every_write(result: Variant, models: Variant, name: Variant, prefs: Variant) -> void:
+	check(not result.ok and models.get_config("text-purpose").model != name.text and prefs.get_state().dirty,"invalid model prevents every write")

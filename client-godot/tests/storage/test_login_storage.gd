@@ -22,7 +22,7 @@ func run() -> void:
 	var profile := {"version":2,"server":"https://example.test","username":"alice","accounts":[]}
 	check(service.write_login_profile(profile) == OK, "profile writes atomically")
 	var restored: Dictionary = service.read_login_profile().data
-	check(int(restored.get("version", 0)) == 2 and restored.get("server") == profile.server and restored.get("username") == "alice" and restored.get("accounts") == [], "profile round trip")
+	_check_profile_round_trip(restored, profile)
 	check(service.save_login_token(profile.server, "alice", "PRIVATE_TOKEN") == OK, "protected credential saves")
 	check(service.save_login_token(profile.server, "bob", "OTHER_TOKEN") == OK, "other account saves independently")
 	check(service.read_login_token(profile.server, "alice").token == "PRIVATE_TOKEN", "protected credential restores")
@@ -46,8 +46,10 @@ func run() -> void:
 	remove_folder(path)
 	print("Login storage: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
-
 func remove_folder(path: String) -> void:
 	for directory in DirAccess.get_directories_at(path): remove_folder(path.path_join(directory))
 	for file in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(file))
 	DirAccess.remove_absolute(path)
+
+func _check_profile_round_trip(restored: Variant, profile: Variant) -> void:
+	check(int(restored.get("version", 0)) == 2 and restored.get("server") == profile.server and restored.get("username") == "alice" and restored.get("accounts") == [], "profile round trip")

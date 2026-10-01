@@ -65,14 +65,7 @@ func run() -> void:
 	motion.global_position = reset_point
 	Input.parse_input_event(motion)
 	await process_frame
-	for pressed in [true, false]:
-		var click := InputEventMouseButton.new()
-		click.position = reset_point
-		click.global_position = reset_point
-		click.button_index = MOUSE_BUTTON_LEFT
-		click.pressed = pressed
-		Input.parse_input_event(click)
-		await process_frame
+	await _click_reset(reset_point)
 	check(app._avatar.avatar.transform.is_equal_approx(default_framing), "clicking floating reset restores original framing")
 	chat.get_node("%Input").text = "今天忙了一整天，有点累了。"
 	chat.get_node("%Send").pressed.emit()
@@ -80,46 +73,7 @@ func run() -> void:
 	app._chat.stop_voice()
 	chat.get_node("%Input").text = "切换风格后仍然保留的草稿"
 	chat.get_node("%Input").text_changed.emit()
-	for dimensions in [Vector2i(1280, 800), Vector2i(960, 640)]:
-		root.size = dimensions
-		await process_frame
-		await process_frame
-		chat.get_node("%Latest").show()
-		chat.get_node("%Unread").show()
-		for pair in [["flat", "svg"], ["crystal", "svg"]]:
-			var offset: int = split.split_offset
-			var anchor: Dictionary = chat.get_node("%Scroll").get_reading_anchor()
-			check(app._services.ui_style.save_preferences(pair[0], pair[1]) == OK, "appearance saves " + str(pair))
-			await create_timer(0.15).timeout
-			check(split.split_offset == offset, "theme switch preserves split ratio")
-			check(chat.get_node("%Scroll").get_reading_anchor().get("id") == anchor.get("id"), "theme switch preserves reading message")
-			check(chat.get_node("%Input").text == "切换风格后仍然保留的草稿", "theme switch preserves input")
-			var label: String = "%s-%s-%sx%s" % [pair[0], pair[1], dimensions.x, dimensions.y]
-			await capture(app, chat, label)
-		check(app._services.ui_style.save_preferences("crystal", "emoji") == OK, "emoji switch saves")
-		check(chat.get_node("%Send").icon.resource_path.ends_with("action_send_emoji.png"), "original emoji icon applied")
-		check(chat.get_node("%VolumeButton").icon.resource_path.ends_with("media_volume_emoji.png"), "original volume emoji applied")
-		check(chat.get_node("%Input").text == "切换风格后仍然保留的草稿", "emoji switch preserves input")
-		check(app._services.ui_style.save_preferences("crystal", "svg") == OK, "SVG switch saves")
-		check(chat.get_node("%Send").icon.resource_path.ends_with("action_send.svg"), "original SVG icon applied")
-		check(chat.get_node("%VolumeButton").icon.resource_path.ends_with("media_volume.svg"), "original volume SVG applied")
-		chat.get_node("%VolumeButton").pressed.emit()
-		await process_frame
-		check(chat.get_node("%VolumePopup").visible and chat.get_node("%Volume").is_visible_in_tree(), "volume icon opens an interactive slider")
-		check(chat.get_node("%Volume").size.x >= 180 and chat.get_node("%Volume").size.y >= 24, "volume popup slider remains usable")
-		chat.get_node("%Volume").value = 0.37
-		check(is_equal_approx(app._chat.get_audio_state().volume, 0.37), "popup slider changes actual voice volume")
-		await RenderingServer.frame_post_draw
-		check(root.get_texture().get_image().save_png(ARTIFACTS.path_join("volume-popup-%sx%s.png" % [dimensions.x, dimensions.y])) == OK, "volume popup capture")
-		chat.get_node("%VolumePopup").hide()
-		split.split_offset += 32
-		await process_frame
-		split.dragged.emit(split.split_offset)
-		await process_frame
-		check(absf(app._ratio - app._avatar.size.x / split.size.x) < 0.01, "native splitter updates persisted ratio")
-		app._ratio = 1.0 / 3.0
-		app._resize_split()
-		await process_frame
+	await _check_style_layouts(app, chat, split)
 	chat.get_node("%Input").text = "第一行\n第二行\n第三行\n第四行\n第五行\n第六行"
 	chat.get_node("%Input").text_changed.emit()
 	chat._attach({"ok":false, "code":"IMAGE_TOO_LARGE"})
@@ -128,15 +82,15 @@ func run() -> void:
 	chat.get_node("%Input").clear()
 	app.get_node("%NavDynamics").pressed.emit()
 	var dynamics = app.find_child("DynamicsWindow", true, false)
-	check(dynamics != null and dynamics.visible, "navigation opens independent dynamics window")
+	_check_navigation_opens_independent_dynamics_window(dynamics)
 	if dynamics != null: dynamics.hide()
 	app.get_node("%NavSettings").pressed.emit()
 	var settings = app.find_child("SettingsWindow", true, false)
-	check(settings != null and settings.visible, "settings entry remains functional")
+	_check_settings_entry_remains_functional(settings)
 	if settings != null: settings.hide()
 	app.get_node("%NavLogs").pressed.emit()
 	var logs = app.find_child("LogWindow", true, false)
-	check(logs != null and logs.visible, "logs entry remains functional")
+	_check_logs_entry_remains_functional(logs)
 	if logs != null: logs.hide()
 	await capture_samples(app, chat)
 	await app._dynamics.mark_read()
@@ -146,7 +100,6 @@ func run() -> void:
 	await process_frame
 	print("Chat review layout: ", "PASS" if failures.is_empty() else "FAIL: " + str(failures))
 	quit(0 if failures.is_empty() else 1)
-
 func capture(app: Control, chat: Control, label: String) -> void:
 	var started := Time.get_ticks_msec()
 	print("Chat review capture begin: ", label)
@@ -235,3 +188,70 @@ func capture_samples(app: Control, chat: Control) -> void:
 	check(scroll.scroll_to_message("long"), "long sample remains scrollable")
 	root.size = Vector2i(960, 640)
 	await capture(app, chat, "review-long-message-960x640")
+
+func _click_reset(reset_point: Vector2) -> void:
+	for pressed in [true, false]:
+		var click := InputEventMouseButton.new()
+		click.position = reset_point
+		click.global_position = reset_point
+		click.button_index = MOUSE_BUTTON_LEFT
+		click.pressed = pressed
+		Input.parse_input_event(click)
+		await process_frame
+
+func _check_volume_icon_opens_an_interactive_slider(chat: Variant) -> void:
+	check(chat.get_node("%VolumePopup").visible and chat.get_node("%Volume").is_visible_in_tree(), "volume icon opens an interactive slider")
+
+func _check_volume_popup_slider_remains_usable(chat: Variant) -> void:
+	check(chat.get_node("%Volume").size.x >= 180 and chat.get_node("%Volume").size.y >= 24, "volume popup slider remains usable")
+
+func _check_navigation_opens_independent_dynamics_window(dynamics: Variant) -> void:
+	check(dynamics != null and dynamics.visible, "navigation opens independent dynamics window")
+
+func _check_settings_entry_remains_functional(settings: Variant) -> void:
+	check(settings != null and settings.visible, "settings entry remains functional")
+
+func _check_logs_entry_remains_functional(logs: Variant) -> void:
+	check(logs != null and logs.visible, "logs entry remains functional")
+
+func _check_style_layouts(app: Variant, chat: Variant, split: HSplitContainer) -> void:
+	for dimensions in [Vector2i(1280, 800), Vector2i(960, 640)]:
+		root.size = dimensions
+		await process_frame
+		await process_frame
+		chat.get_node("%Latest").show()
+		chat.get_node("%Unread").show()
+		for pair in [["flat", "svg"], ["crystal", "svg"]]:
+			var offset: int = split.split_offset
+			var anchor: Dictionary = chat.get_node("%Scroll").get_reading_anchor()
+			check(app._services.ui_style.save_preferences(pair[0], pair[1]) == OK, "appearance saves " + str(pair))
+			await create_timer(0.15).timeout
+			check(split.split_offset == offset, "theme switch preserves split ratio")
+			check(chat.get_node("%Scroll").get_reading_anchor().get("id") == anchor.get("id"), "theme switch preserves reading message")
+			check(chat.get_node("%Input").text == "切换风格后仍然保留的草稿", "theme switch preserves input")
+			var label: String = "%s-%s-%sx%s" % [pair[0], pair[1], dimensions.x, dimensions.y]
+			await capture(app, chat, label)
+		check(app._services.ui_style.save_preferences("crystal", "emoji") == OK, "emoji switch saves")
+		check(chat.get_node("%Send").icon.resource_path.ends_with("action_send_emoji.png"), "original emoji icon applied")
+		check(chat.get_node("%VolumeButton").icon.resource_path.ends_with("media_volume_emoji.png"), "original volume emoji applied")
+		check(chat.get_node("%Input").text == "切换风格后仍然保留的草稿", "emoji switch preserves input")
+		check(app._services.ui_style.save_preferences("crystal", "svg") == OK, "SVG switch saves")
+		check(chat.get_node("%Send").icon.resource_path.ends_with("action_send.svg"), "original SVG icon applied")
+		check(chat.get_node("%VolumeButton").icon.resource_path.ends_with("media_volume.svg"), "original volume SVG applied")
+		chat.get_node("%VolumeButton").pressed.emit()
+		await process_frame
+		_check_volume_icon_opens_an_interactive_slider(chat)
+		_check_volume_popup_slider_remains_usable(chat)
+		chat.get_node("%Volume").value = 0.37
+		check(is_equal_approx(app._chat.get_audio_state().volume, 0.37), "popup slider changes actual voice volume")
+		await RenderingServer.frame_post_draw
+		check(root.get_texture().get_image().save_png(ARTIFACTS.path_join("volume-popup-%sx%s.png" % [dimensions.x, dimensions.y])) == OK, "volume popup capture")
+		chat.get_node("%VolumePopup").hide()
+		split.split_offset += 32
+		await process_frame
+		split.dragged.emit(split.split_offset)
+		await process_frame
+		check(absf(app._ratio - app._avatar.size.x / split.size.x) < 0.01, "native splitter updates persisted ratio")
+		app._ratio = 1.0 / 3.0
+		app._resize_split()
+		await process_frame

@@ -186,19 +186,7 @@ func _to_latest() -> void:
 	_latest.hide()
 
 func _state_changed(state: Dictionary) -> void:
-	var history: Dictionary = state.get("history",{"phase":"idle","count":0})
-	_history_retry.visible = history.phase in ["first_failed","failed"]
-	_history_skip.visible = history.phase == "first_failed"
-	_history_status.text = {"first_loading":"正在同步最近历史；发送的消息将暂时排队。", "first_failed":"首批历史加载失败；可重试或跳过后发送。", "loading":"后台同步历史 · 已加载 %s 条" % history.count, "failed":"较早历史加载失败，已加载内容保留。", "skipped":"已跳过本次历史同步。"}.get(history.phase, "")
-	if history.get("incomplete",false):
-		_history_status.text += " 检测到分页重复，无法确认历史完整。"
-	_apply_reading()
-	var reading: Dictionary = _session.get_reading_state()
-	if reading.reason == "NOT_FOUND":
-		_history_status.text += " 原阅读位置已找不到，回到最新消息。"
-	elif reading.reason == "SAVE_FAILED":
-		_history_status.text += " 本机阅读位置未能保存。"
-	%HistoryRow.visible = not _history_status.text.is_empty() or _history_retry.visible or _history_skip.visible
+	_update_history_status(state)
 	_status.text = {"idle":"连接已关闭", "connecting":"正在连接…", "authenticating":"正在验证账户…",
 		"ready":"已连接", "reconnecting":"正在重新连接 · 可以继续输入", "auth_rejected":"聊天凭据已失效，请退出后重新登录。"}.get(state.phase, "")
 	if state.thinking:
@@ -215,7 +203,6 @@ func _state_changed(state: Dictionary) -> void:
 		_status.text += " · 收到的数据不完整。"
 	elif state.phase == "ready" and not state.code.is_empty():
 		_status.text += " · 服务器暂时无法处理请求，请稍后重试。"
-
 func _audio_changed(id: String, state: Dictionary) -> void:
 	_scroll.set_audio_state(id,state)
 
@@ -267,3 +254,18 @@ func _update_density() -> void:
 	_latest.tooltip_text = "回到最新消息"
 	_unread.text = "未读" if size.x < 520 else "定位未读"
 	_unread.tooltip_text = "定位未读消息"
+
+func _update_history_status(state: Dictionary) -> void:
+	var history: Dictionary = state.get("history",{"phase":"idle","count":0})
+	_history_retry.visible = history.phase in ["first_failed","failed"]
+	_history_skip.visible = history.phase == "first_failed"
+	_history_status.text = {"first_loading":"正在同步最近历史；发送的消息将暂时排队。", "first_failed":"首批历史加载失败；可重试或跳过后发送。", "loading":"后台同步历史 · 已加载 %s 条" % history.count, "failed":"较早历史加载失败，已加载内容保留。", "skipped":"已跳过本次历史同步。"}.get(history.phase, "")
+	if history.get("incomplete",false):
+		_history_status.text += " 检测到分页重复，无法确认历史完整。"
+	_apply_reading()
+	var reading: Dictionary = _session.get_reading_state()
+	if reading.reason == "NOT_FOUND":
+		_history_status.text += " 原阅读位置已找不到，回到最新消息。"
+	elif reading.reason == "SAVE_FAILED":
+		_history_status.text += " 本机阅读位置未能保存。"
+	%HistoryRow.visible = not _history_status.text.is_empty() or _history_retry.visible or _history_skip.visible

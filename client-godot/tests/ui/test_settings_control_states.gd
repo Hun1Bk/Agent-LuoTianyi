@@ -33,12 +33,7 @@ func readonly_fields(window: Window, label: String) -> void:
 func run() -> void:
 	DirAccess.make_dir_recursive_absolute(ARTIFACTS)
 	FileAccess.open(ARTIFACTS+"/.gdignore",FileAccess.WRITE).close()
-	var theme: Theme = load("res://theme/app_theme.tres")
-	for kind in ["LineEdit","TextEdit"]: check(theme.has_stylebox("read_only",kind),kind+" declares read-only styling")
-	for state in ["normal","pressed","hover","hover_pressed","disabled","focus"]:
-		check(theme.has_stylebox(state,"CheckBox"),"checkbox declares "+state)
-	for state in ["font_color","font_pressed_color","font_hover_color","font_hover_pressed_color","font_focus_color","font_disabled_color"]:
-		check(theme.has_color(state,"CheckBox"),"checkbox declares "+state)
+	var theme := _check_theme_states()
 	var path := "user://control-states-%s" % Time.get_ticks_usec()
 	var scope := {"server":OS.get_environment("GODOT_TEST_SERVER"),"username":"ui_retry","message_token":"message-test"}
 	var models = load("res://src/session/model_settings.gd").new(load("res://src/network/json_request.gd").new(),load("res://src/storage/model_store.gd").new(ClassDB.instantiate("WindowsSecurity"),path))
@@ -57,35 +52,19 @@ func run() -> void:
 	await capture(window,"settings-load-failed")
 	readonly_fields(window,"failed load")
 	var page = window.get_node("%PreferencesPage")
-	check(page.get_node("%Status").text.contains("加载失败") and not page.get_node("%Reload").disabled,"failure explains how to retry")
+	_check_failure_explains_how_to_retry(page)
 	page.get_node("%Reload").pressed.emit()
 	check(await until(func(): return prefs.get_state().phase == "ready"),"retry restores editing")
 	check(page.get_node("%CustomContextField").editable,"loaded form becomes editable")
-	for pair in [["RelationshipField","RelationshipPresets"],["SpeakingStyleField","SpeakingStylePresets"]]:
-		var preset: Button = page.get_node("%"+pair[1])
-		check(preset.text.is_empty() and preset.icon != null, "preference current value is shown only in the input: " + pair[0])
-		check(not preset.tooltip_text.is_empty(), "icon-only preset has an accessible description")
-		check(not preset.get_items().any(func(item): return item.id == "custom" or item.label == "自定义"), "preference menus contain presets only: " + pair[0])
-		check(not page.get_node("%"+pair[0]).editable, "ready relationship and style reject manual input: " + pair[0])
-		if DisplayServer.get_name() != "headless":
-			var field: LineEdit = page.get_node("%"+pair[0])
-			var previous := field.text
-			field.grab_focus()
-			var typed := InputEventKey.new()
-			typed.pressed = true
-			typed.keycode = KEY_X
-			typed.unicode = 88
-			window.push_input(typed,true)
-			await process_frame
-			check(field.text == previous, "keyboard typing cannot replace the preset: " + pair[0])
+	await _check_readonly_presets(page, window)
 	page.get_node("%RelationshipPresets").activated.emit("friend")
 	page.get_node("%SpeakingStylePresets").activated.emit("gentle")
-	check(page.get_node("%RelationshipField").text == "朋友" and page.get_node("%SpeakingStyleField").text == "温柔可人" and prefs.get_state().dirty, "preset choices still update readonly values and the draft")
+	_check_preset_choices_still_update_readonly_values_and_the_draft(page, prefs)
 	page.get_node("%CustomContextField").text = "control state fixture"
 	page.get_node("%CustomContextField").text_changed.emit()
 	window.get_node("%SaveAll").pressed.emit()
 	await capture(window,"settings-saving")
-	check(window.is_saving() and window.get_node("%Result").visible,"saving retains visible progress")
+	_check_saving_retains_visible_progress(window)
 	readonly_fields(window,"saving")
 	check(not window.get_node("%BusyBlocker").get_global_rect().intersects(window.get_node("%LogoutButton").get_global_rect()),"busy blocker never covers footer actions")
 	check(await until(func(): return not window.is_saving()),"save completes")
@@ -94,19 +73,7 @@ func run() -> void:
 	card.get_node("%Enabled").button_pressed = true
 	await process_frame
 	var checkbox: CheckBox = card.get_node("%Enabled")
-	for state in ["normal","pressed","hover","hover_pressed","disabled","focus"]:
-		checkbox.disabled = state == "disabled"
-		checkbox.button_pressed = state in ["pressed","hover_pressed","disabled","focus"]
-		checkbox.release_focus()
-		var motion := InputEventMouseMotion.new()
-		motion.position = checkbox.get_global_rect().get_center() if state in ["hover","hover_pressed"] else Vector2(2,2)
-		window.push_input(motion,true)
-		if state == "focus" and DisplayServer.get_name() != "headless": checkbox.grab_focus()
-		await capture(window,"checkbox-"+state)
-	check(checkbox.get_theme_color("font_hover_pressed_color").is_equal_approx(Color("304553")),"checked hover text stays dark")
-	if theme.has_stylebox("focus","CheckBox"):
-		check(checkbox.get_theme_stylebox("focus").border_color.is_equal_approx(Color("168ac2")),"keyboard focus uses the stronger blue outline")
-	checkbox.disabled = false
+	await _capture_checkbox_states(checkbox, window, theme)
 	for name in ["Enabled","Json","Thinking"]:
 		check(card.get_node("%"+name).get_theme_color("font_pressed_color").is_equal_approx(Color("304553")),"API and capability toggles share legible selected text")
 	if DisplayServer.get_name() != "headless":
@@ -127,7 +94,6 @@ func run() -> void:
 	remove_folder(path)
 	print("Settings control states: ","PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
-
 func check_minimum_preferences(window: Window, factor: float) -> void:
 	window.select_page("preferences")
 	# Switching a hidden page queues its nested containers for layout, as in the
@@ -154,3 +120,59 @@ func remove_folder(path: String) -> void:
 	for directory in DirAccess.get_directories_at(path): remove_folder(path.path_join(directory))
 	for file in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(file))
 	DirAccess.remove_absolute(path)
+
+func _check_preset_choices_still_update_readonly_values_and_the_draft(page: Variant, prefs: Variant) -> void:
+	check(page.get_node("%RelationshipField").text == "朋友" and page.get_node("%SpeakingStyleField").text == "温柔可人" and prefs.get_state().dirty, "preset choices still update readonly values and the draft")
+
+func _check_run_result(preset: Variant, pair: Variant) -> void:
+	check(preset.text.is_empty() and preset.icon != null, "preference current value is shown only in the input: " + pair[0])
+
+func _check_failure_explains_how_to_retry(page: Variant) -> void:
+	check(page.get_node("%Status").text.contains("加载失败") and not page.get_node("%Reload").disabled,"failure explains how to retry")
+
+func _check_saving_retains_visible_progress(window: Variant) -> void:
+	check(window.is_saving() and window.get_node("%Result").visible,"saving retains visible progress")
+
+func _check_readonly_presets(page: Variant, window: Window) -> void:
+	for pair in [["RelationshipField","RelationshipPresets"],["SpeakingStyleField","SpeakingStylePresets"]]:
+		var preset: Button = page.get_node("%"+pair[1])
+		_check_run_result(preset, pair)
+		check(not preset.tooltip_text.is_empty(), "icon-only preset has an accessible description")
+		check(not preset.get_items().any(func(item): return item.id == "custom" or item.label == "自定义"), "preference menus contain presets only: " + pair[0])
+		check(not page.get_node("%"+pair[0]).editable, "ready relationship and style reject manual input: " + pair[0])
+		if DisplayServer.get_name() != "headless":
+			var field: LineEdit = page.get_node("%"+pair[0])
+			var previous := field.text
+			field.grab_focus()
+			var typed := InputEventKey.new()
+			typed.pressed = true
+			typed.keycode = KEY_X
+			typed.unicode = 88
+			window.push_input(typed,true)
+			await process_frame
+			check(field.text == previous, "keyboard typing cannot replace the preset: " + pair[0])
+
+func _capture_checkbox_states(checkbox: CheckBox, window: Window, theme: Theme) -> void:
+	for state in ["normal","pressed","hover","hover_pressed","disabled","focus"]:
+		checkbox.disabled = state == "disabled"
+		checkbox.button_pressed = state in ["pressed","hover_pressed","disabled","focus"]
+		checkbox.release_focus()
+		var motion := InputEventMouseMotion.new()
+		motion.position = checkbox.get_global_rect().get_center() if state in ["hover","hover_pressed"] else Vector2(2,2)
+		window.push_input(motion,true)
+		if state == "focus" and DisplayServer.get_name() != "headless": checkbox.grab_focus()
+		await capture(window,"checkbox-"+state)
+	check(checkbox.get_theme_color("font_hover_pressed_color").is_equal_approx(Color("304553")),"checked hover text stays dark")
+	if theme.has_stylebox("focus","CheckBox"):
+		check(checkbox.get_theme_stylebox("focus").border_color.is_equal_approx(Color("168ac2")),"keyboard focus uses the stronger blue outline")
+	checkbox.disabled = false
+
+func _check_theme_states() -> Theme:
+	var theme: Theme = load("res://theme/app_theme.tres")
+	for kind in ["LineEdit","TextEdit"]: check(theme.has_stylebox("read_only",kind),kind+" declares read-only styling")
+	for state in ["normal","pressed","hover","hover_pressed","disabled","focus"]:
+		check(theme.has_stylebox(state,"CheckBox"),"checkbox declares "+state)
+	for state in ["font_color","font_pressed_color","font_hover_color","font_hover_pressed_color","font_focus_color","font_disabled_color"]:
+		check(theme.has_color(state,"CheckBox"),"checkbox declares "+state)
+
+	return theme

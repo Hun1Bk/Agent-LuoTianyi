@@ -29,8 +29,8 @@ func run() -> void:
 	await settle()
 	var short_width: float = short.get_node("%Bubble").size.x
 	var medium_width: float = medium.get_node("%Bubble").size.x
-	check(short_width < medium_width and short_width < 140, "short text fits content instead of a fixed minimum")
-	check(long.get_node("%Bubble").size.x <= 620*.9+1 and long.get_node("%Bubble").size.y > medium.get_node("%Bubble").size.y*3, "long text is capped at 90 percent and grows vertically")
+	_check_short_text_fits_content_instead_of_a_fixed_minimum(short_width, medium_width)
+	_check_long_text_is_capped_at_90_percent_and_grows_vertically(long, medium)
 	check(short.get_node("%Bubble").get_global_rect().position.x > short.get_node("%Avatar").get_global_rect().end.x, "assistant bubble stays next to its left avatar")
 	check(own.get_node("%Bubble").get_global_rect().end.x < own.get_node("%Avatar").get_global_rect().position.x, "own bubble stays next to its right avatar")
 	var own_width: float = own.get_node("%Bubble").size.x
@@ -41,17 +41,17 @@ func run() -> void:
 		update.demo = true
 		own.update_message(update)
 		await settle()
-		check(not own.get_node("%Caption").visible and own.get_node("%Caption").text.is_empty(), status + " has no delivery caption or demo suffix")
+		_check_run_result(own, status)
 		check(is_equal_approx(own.get_combined_minimum_size().y, normal_height), status + " reserves no delivery caption height")
 	update.status = "failed"
 	own.update_message(update)
 	await settle()
-	check(own.get_node("%Caption").visible and own.get_node("%Caption").text == "发送失败", "failed delivery retains error caption")
+	_check_failed_delivery_retains_error_caption(own)
 	update.status = "uncertain"
 	own.update_message(update)
 	await settle()
 	check(is_equal_approx(own.get_node("%Bubble").size.x,own_width), "long delivery status does not widen the text panel")
-	check(own.get_node("%Caption").visible and own.get_node("%Caption").text == "无法确认送达，请勿重复发送", "uncertain delivery retains duplicate-send safety warning")
+	_check_uncertain_delivery_retains_duplicate_send_safety_warning(own)
 	update.status = "sent"
 	own.update_message(update)
 	await settle()
@@ -92,3 +92,17 @@ func run() -> void:
 	await process_frame
 	print("Adaptive text bubbles: ","PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+func _check_run_result(own: Variant, status: Variant) -> void:
+	check(not own.get_node("%Caption").visible and own.get_node("%Caption").text.is_empty(), status + " has no delivery caption or demo suffix")
+
+func _check_short_text_fits_content_instead_of_a_fixed_minimum(short_width: Variant, medium_width: Variant) -> void:
+	check(short_width < medium_width and short_width < 140, "short text fits content instead of a fixed minimum")
+
+func _check_long_text_is_capped_at_90_percent_and_grows_vertically(long: Variant, medium: Variant) -> void:
+	check(long.get_node("%Bubble").size.x <= 620*.9+1 and long.get_node("%Bubble").size.y > medium.get_node("%Bubble").size.y*3, "long text is capped at 90 percent and grows vertically")
+
+func _check_failed_delivery_retains_error_caption(own: Variant) -> void:
+	check(own.get_node("%Caption").visible and own.get_node("%Caption").text == "发送失败", "failed delivery retains error caption")
+
+func _check_uncertain_delivery_retains_duplicate_send_safety_warning(own: Variant) -> void:
+	check(own.get_node("%Caption").visible and own.get_node("%Caption").text == "无法确认送达，请勿重复发送", "uncertain delivery retains duplicate-send safety warning")

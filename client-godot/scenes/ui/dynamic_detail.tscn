@@ -122,6 +122,3 @@ text = "发送回复"
 visible = false
 unique_name_in_owner = true
 autowrap_mode = 3
-
-[node name="LoadMore" type="Button" parent="Margin/Column"]
-unique_name_in_owner = true

@@ -52,37 +52,16 @@ func probe_server(address: String) -> Dictionary:
 
 func _perform(operation: String, base: String, payload: Dictionary, generation: int) -> Dictionary:
 	if operation != "auto_login":
-		var public_key: Dictionary = await _exchange(base + "/auth/public_key", HTTPClient.METHOD_GET)
-		if generation != _generation:
-			return _failure("CANCELLED")
-		if not public_key.ok:
-			return public_key if public_key.code in ["TIMEOUT", "CANCELLED"] else _failure("PUBLIC_KEY_ERROR", public_key.status)
-		if not public_key.data.get("public_key") is String or public_key.data.public_key.is_empty():
-			return _failure("PUBLIC_KEY_ERROR", public_key.status)
-		var password_field := "new_password" if operation == "reset" else "password"
-		var encrypted: Dictionary = _security.encrypt_password(public_key.data.public_key, payload[password_field])
-		payload[password_field] = ""
-		if not encrypted.ok:
-			return _failure("ENCRYPTION_ERROR")
-		payload[password_field] = Marshalls.raw_to_base64(encrypted.data)
+		var prepared := await _encrypt_payload(operation, base, payload, generation)
+		if not prepared.ok:
+			return prepared
 	var endpoint := "reset_account" if operation == "reset" else operation
 	var response: Dictionary = await _exchange(base + "/auth/" + endpoint, HTTPClient.METHOD_POST, payload)
 	if generation != _generation:
 		return _failure("CANCELLED")
 	if not response.ok:
 		return response
-	var required := ["user_id", "login_token", "message_token"]
-	if operation == "register":
-		required = ["message", "user_id"]
-	elif operation == "reset":
-		required = ["message", "username"]
-	var data := {}
-	for field in required:
-		if not response.data.get(field) is String or response.data[field].is_empty():
-			return _failure("INVALID_RESPONSE", response.status)
-		data[field] = response.data[field]
-	return {"ok":true, "code":"OK", "status":response.status, "data":data}
-
+	return _validated_response(operation, response)
 func _exchange(url: String, method: int, payload: Dictionary = {}) -> Dictionary:
 	var http := HTTPRequest.new()
 	_http = http
@@ -125,3 +104,32 @@ func cancel() -> void:
 
 func _exit_tree() -> void:
 	cancel()
+
+func _encrypt_payload(operation: String, base: String, payload: Dictionary, generation: int) -> Dictionary:
+	var public_key: Dictionary = await _exchange(base + "/auth/public_key", HTTPClient.METHOD_GET)
+	if generation != _generation:
+		return _failure("CANCELLED")
+	if not public_key.ok:
+		return public_key if public_key.code in ["TIMEOUT", "CANCELLED"] else _failure("PUBLIC_KEY_ERROR", public_key.status)
+	if not public_key.data.get("public_key") is String or public_key.data.public_key.is_empty():
+		return _failure("PUBLIC_KEY_ERROR", public_key.status)
+	var password_field := "new_password" if operation == "reset" else "password"
+	var encrypted: Dictionary = _security.encrypt_password(public_key.data.public_key, payload[password_field])
+	payload[password_field] = ""
+	if not encrypted.ok:
+		return _failure("ENCRYPTION_ERROR")
+	payload[password_field] = Marshalls.raw_to_base64(encrypted.data)
+	return {"ok":true}
+
+func _validated_response(operation: String, response: Dictionary) -> Dictionary:
+	var required := ["user_id", "login_token", "message_token"]
+	if operation == "register":
+		required = ["message", "user_id"]
+	elif operation == "reset":
+		required = ["message", "username"]
+	var data := {}
+	for field in required:
+		if not response.data.get(field) is String or response.data[field].is_empty():
+			return _failure("INVALID_RESPONSE", response.status)
+		data[field] = response.data[field]
+	return {"ok":true, "code":"OK", "status":response.status, "data":data}

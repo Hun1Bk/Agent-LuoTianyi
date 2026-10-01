@@ -35,36 +35,7 @@ func capture(label: String) -> void:
 	check(pixels.save_png("res://artifacts/release-013/" + label + ".png") == OK, "capture " + label)
 
 func run() -> void:
-	var scene: PackedScene = load("res://scenes/ui/account_view.tscn")
-	var candidate := scene.instantiate()
-	for name in ["MenuButton","CloseLogin","RegisterLink","ResetLink","AutoLogin","Remember","SavedLogin","UsePassword","HistoryButton","ServerDialog","ServerSave","ServerCancel","Feedback","FeedbackAddress"]:
-		check(candidate.get_node_or_null("%" + name) != null, "scene authors " + name)
-	check(candidate.has_method("select_mode") and candidate.has_signal("feedback_requested"), "account view exposes navigation and feedback")
-	check(candidate.get_node_or_null("%AccountMode") == null, "old account-mode dropdown is removed")
-	root.add_child(candidate)
-	for field in ["Username","Password","Confirm"]:
-		check(candidate.get_node("%"+field).get_theme_stylebox("focus") is StyleBoxEmpty, "login focus keeps only the caret: " + field)
-	var option: CheckBox = candidate.get_node("%AutoLogin")
-	var circle := option.get_theme_icon("unchecked").get_image()
-	check(circle.get_width() == 24 and circle.get_height() == 24 and circle.get_pixel(0,0).a < .1 and circle.get_pixel(12,12).a < .1, "login checkbox is a 24px hollow circle, not a square")
-	check(option.get_theme_font_size("font_size") == 18, "login options use reference-sized regular text")
-	for control_name in ["AutoLogin","Remember","ResetLink","RegisterLink","HistoryButton"]:
-		var control: Control = candidate.get_node("%"+control_name)
-		check(control.get_theme_stylebox("disabled").bg_color.a == 0, "busy state keeps transparent control background: " + control_name)
-		check(control.get_theme_color("font_disabled_color").is_equal_approx(control.get_theme_color("font_color")), "busy state preserves text color: " + control_name)
-	candidate.free()
-	if not failures.is_empty():
-		quit(1)
-		return
-	var unavailable := scene.instantiate()
-	var exit_requested: Array[bool] = []
-	unavailable.exit_requested.connect(func(): exit_requested.append(true))
-	root.add_child(unavailable)
-	press(unavailable,"CloseLogin")
-	press(unavailable,"MenuButton")
-	check(exit_requested == [true] and unavailable.get_node("%MenuPopup").visible and unavailable.get_node("%SetServer").disabled, "missing account service still permits close and diagnostic menu")
-	unavailable.queue_free()
-	await process_frame
+	if not await _check_authored_login(): return
 	DirAccess.make_dir_recursive_absolute("res://artifacts/release-013")
 	var path := "user://login-ui-%s" % Time.get_ticks_usec()
 	var security = ClassDB.instantiate("WindowsSecurity")
@@ -78,13 +49,13 @@ func run() -> void:
 	await create_timer(.1).timeout
 	var view: Control = app.get_node("%AccountForm")
 	check(not view.get_node("%Server").is_visible_in_tree(), "server address is not part of the login form")
-	check(view.get_node("%RegisterLink").visible and view.get_node("%ResetLink").visible, "bottom register and forgotten-password links are visible")
+	_check_bottom_register_and_forgotten_password_links_are_visible(view)
 	var password: LineEdit = view.get_node("%Password")
 	password.text = "Ab_123!"
 	password.text_changed.emit(password.text)
 	password.text = "Ab_123!中文"
 	password.text_changed.emit(password.text)
-	check(password.text == "Ab_123!" and view.get_node("%Status").text.contains("英文"), "Chinese password insertion is rejected with a visible reason")
+	_check_chinese_password_insertion_is_rejected_with_a_visible_reason(password, view)
 	password.text = "mixed中文paste"
 	password.text_changed.emit(password.text)
 	check(password.text == "Ab_123!", "invalid paste restores the entire previous password")
@@ -99,19 +70,7 @@ func run() -> void:
 	check(password.text.is_empty(), "cleared secrets are not resurrected by invalid input")
 	view.select_mode("login")
 	await capture("login-default")
-	if DisplayServer.get_name() != "headless":
-		view.get_node("%Username").grab_focus()
-		await capture("login-account-focus")
-		view.get_node("%Password").grab_focus()
-		await capture("login-password-focus")
-		for pair in [["MenuButton","MenuPopup"],["HistoryButton","HistoryPopup"]]:
-			for expected in [true,false,true,false]:
-				await click_control(view.get_node("%"+pair[0]))
-				check(view.get_node("%"+pair[1]).visible == expected, "login trigger clicks alternate: " + pair[0])
-		check(root.borderless and root.transparent and root.transparent_bg and root.unresizable, "login uses a fixed transparent native window")
-		check(root.size == Vector2i(480,690), "compact login has the approved default dimensions")
-		var pixels := root.get_texture().get_image()
-		check(pixels.get_pixel(0,0).a < .1 and pixels.get_pixel(12,100).is_equal_approx(Color.WHITE), "rounded outside is transparent and body is white")
+	await _check_login_native_presentation(view)
 	press(view,"MenuButton")
 	check(view.get_node("%MenuPopup").visible, "menu opens below the trigger")
 	check(view.get_node("%MenuButton").get_theme_color("font_hover_pressed_color").is_equal_approx(Color("304553")), "open menu icon remains dark on its light highlight")
@@ -128,7 +87,7 @@ func run() -> void:
 	check(logs.visible, "pre-login log action opens the existing log window")
 	press(view,"MenuButton")
 	press(view,"Feedback")
-	check(browser.calls == 1 and view.get_node("%FeedbackAddress").visible, "external-link failure is reported without platform calls in the view")
+	_check_external_link_failure_is_reported_without_platform_calls_in_the_view(browser, view)
 	check(view.get_node("%FeedbackAddress").text == "https://github.com/SheepLiu712/Agent-LuoTianyi", "feedback uses the approved project URL")
 	view.get_node("%AutoLogin").button_pressed = true
 	check(view.get_node("%Remember").button_pressed, "automatic login enables remember")
@@ -139,18 +98,18 @@ func run() -> void:
 	view.get_node("%Password").text = "secret draft"
 	view.get_node("%Invite").text = "private invite"
 	press(view,"BackToLogin")
-	check(view.get_node("%Username").text == "test" and view.get_node("%Password").text.is_empty() and view.get_node("%Invite").text.is_empty(), "back keeps name and clears secrets")
+	_check_back_keeps_name_and_clears_secrets(view)
 	view.get_node("%Username").text = "visual_busy"
 	view.get_node("%Password").text = "synthetic-password"
 	view.get_node("%Remember").button_pressed = true
 	await capture("login-ready")
 	press(view,"Submit")
-	check(view.get_node("%Submit").disabled and not view.get_node("%Password").editable, "busy login still blocks duplicate input")
+	_check_busy_login_still_blocks_duplicate_input(view)
 	await capture("login-busy")
 	check(await until(func(): return not session.get_session().is_empty()), "login publishes the real session")
 	await process_frame
 	if DisplayServer.get_name() != "headless":
-		check(not root.borderless and not root.transparent and not root.transparent_bg and not root.unresizable, "signed-in workspace restores the system frame")
+		_check_signed_in_workspace_restores_the_system_frame()
 	check(logs.visible, "logs survive login")
 	app.queue_free()
 	await process_frame
@@ -161,10 +120,10 @@ func run() -> void:
 	app.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	await create_timer(.1).timeout
 	view = app.get_node("%AccountForm")
-	check(session.get_session().is_empty() and view.get_node("%SavedLogin").is_visible_in_tree() and not view.get_node("%Password").visible and view.get_node("%Password").text.is_empty(), "remembered account shows an honest status without fake password dots")
+	_check_remembered_account_shows_an_honest_status_without_fake_password_dots(session, view)
 	await capture("login-remembered")
 	press(view,"UsePassword")
-	check(view.get_node("%Password").visible and not view.get_node("%SavedLogin").visible, "user can explicitly return to password input")
+	_check_user_can_explicitly_return_to_password_input(view)
 	press(view,"HistoryButton")
 	var history_rows: Array = view.get_node("%HistoryRows").get_children().filter(func(row): return row.has_node("Choose"))
 	check(history_rows.size() == 1, "history has one scene-authored account row")
@@ -177,7 +136,7 @@ func run() -> void:
 	check(storage.read_login_token(OS.get_environment("GODOT_TEST_SERVER"),"visual_busy").token == "login-rotated", "page persists the rotated token")
 	session.logout()
 	await process_frame
-	check(logs.visible and view.get_node("%Password").text.is_empty(), "logout restores login without closing logs or keeping passwords")
+	_check_logout_restores_login_without_closing_logs_or_keeping_passwords(logs, view)
 	press(view,"HistoryButton")
 	check(view.get_node("%HistoryPopup").visible, "account history opens from its arrow")
 	check(not view.get_node("%HistoryEmpty").visible, "successful account is listed")
@@ -199,11 +158,137 @@ func run() -> void:
 	check(await until(func(): return not view.get_node("%ServerDialog").visible), "Esc/cancel closes server verification")
 	await create_timer(.6).timeout
 	check(session.get_login_defaults().server == OS.get_environment("GODOT_TEST_SERVER"), "cancelled editor never adopts its late address")
-	check(view.get_node("%Invite").visible and view.get_node("%Password").text == "cancel must keep this draft", "Esc only dismisses the temporary server editor")
+	_check_esc_only_dismisses_the_temporary_server_editor(view)
 	check(view.get_node("%Status").text == form_status, "cancelled server verification preserves underlying form feedback")
 	press(view,"BackToLogin")
+	await _check_login_scales(view)
+	app.queue_free()
+	await process_frame
+	var obstacle := FileAccess.open(path + "/blocked", FileAccess.WRITE)
+	obstacle.close()
+	var failing_storage = load("res://src/storage/godot_storage_service.gd").new(path+"/failure.cfg",load("res://src/storage/credential_store.gd").new(security,path+"/blocked"))
+	session = load("res://src/session/account_session.gd").new(load("res://src/network/account_api.gd").new(security),failing_storage)
+	app = load("res://scenes/main.tscn").instantiate()
+	app.setup(session,path+"/failure-window.cfg",browser)
+	root.add_child(app)
+	app.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	await session.set_server(OS.get_environment("GODOT_TEST_SERVER"))
+	await session.perform("login",OS.get_environment("GODOT_TEST_SERVER"),{"username":"test","password":"synthetic-password"},true,false)
+	await process_frame
+	var warning: Label = app.get_node_or_null("%AccountStorageWarning")
+	_check_failed_remember_storage_stays_visible_after_the_login_page_is_hidden(warning)
+	app.queue_free()
+	await process_frame
+	remove_folder(path)
+	print("Login presentation: ", "PASS" if failures.is_empty() else "FAIL")
+	quit(0 if failures.is_empty() else 1)
+func remove_folder(path: String) -> void:
+	for folder in DirAccess.get_directories_at(path): remove_folder(path.path_join(folder))
+	for file in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(file))
+	DirAccess.remove_absolute(path)
+
+func _check_login_uses_a_fixed_transparent_native_window() -> void:
+	check(root.borderless and root.transparent and root.transparent_bg and root.unresizable, "login uses a fixed transparent native window")
+
+func _check_signed_in_workspace_restores_the_system_frame() -> void:
+	check(not root.borderless and not root.transparent and not root.transparent_bg and not root.unresizable, "signed-in workspace restores the system frame")
+
+func _check_login_checkbox_is_a_24px_hollow_circle_not_a_square(circle: Variant) -> void:
+	check(circle.get_width() == 24 and circle.get_height() == 24 and circle.get_pixel(0,0).a < .1 and circle.get_pixel(12,12).a < .1, "login checkbox is a 24px hollow circle, not a square")
+
+func _check_remembered_account_shows_an_honest_status_without_fake_password_dots(session: Variant, view: Variant) -> void:
+	check(session.get_session().is_empty() and view.get_node("%SavedLogin").is_visible_in_tree() and not view.get_node("%Password").visible and view.get_node("%Password").text.is_empty(), "remembered account shows an honest status without fake password dots")
+
+func _check_missing_account_service_still_permits_close_and_diagnostic_menu(exit_requested: Variant, unavailable: Variant) -> void:
+	check(exit_requested == [true] and unavailable.get_node("%MenuPopup").visible and unavailable.get_node("%SetServer").disabled, "missing account service still permits close and diagnostic menu")
+
+func _check_back_keeps_name_and_clears_secrets(view: Variant) -> void:
+	check(view.get_node("%Username").text == "test" and view.get_node("%Password").text.is_empty() and view.get_node("%Invite").text.is_empty(), "back keeps name and clears secrets")
+
+func _check_rounded_outside_is_transparent_and_body_is_white(pixels: Variant) -> void:
+	check(pixels.get_pixel(0,0).a < .1 and pixels.get_pixel(12,100).is_equal_approx(Color.WHITE), "rounded outside is transparent and body is white")
+
+func _check_logout_restores_compact_presentation() -> void:
+	check(root.borderless and root.unresizable, "logout restores compact presentation")
+
+func _check_account_view_exposes_navigation_and_feedback(candidate: Variant) -> void:
+	check(candidate.has_method("select_mode") and candidate.has_signal("feedback_requested"), "account view exposes navigation and feedback")
+
+func _check_bottom_register_and_forgotten_password_links_are_visible(view: Variant) -> void:
+	check(view.get_node("%RegisterLink").visible and view.get_node("%ResetLink").visible, "bottom register and forgotten-password links are visible")
+
+func _check_chinese_password_insertion_is_rejected_with_a_visible_reason(password: Variant, view: Variant) -> void:
+	check(password.text == "Ab_123!" and view.get_node("%Status").text.contains("英文"), "Chinese password insertion is rejected with a visible reason")
+
+func _check_external_link_failure_is_reported_without_platform_calls_in_the_view(browser: Variant, view: Variant) -> void:
+	check(browser.calls == 1 and view.get_node("%FeedbackAddress").visible, "external-link failure is reported without platform calls in the view")
+
+func _check_busy_login_still_blocks_duplicate_input(view: Variant) -> void:
+	check(view.get_node("%Submit").disabled and not view.get_node("%Password").editable, "busy login still blocks duplicate input")
+
+func _check_user_can_explicitly_return_to_password_input(view: Variant) -> void:
+	check(view.get_node("%Password").visible and not view.get_node("%SavedLogin").visible, "user can explicitly return to password input")
+
+func _check_logout_restores_login_without_closing_logs_or_keeping_passwords(logs: Variant, view: Variant) -> void:
+	check(logs.visible and view.get_node("%Password").text.is_empty(), "logout restores login without closing logs or keeping passwords")
+
+func _check_esc_only_dismisses_the_temporary_server_editor(view: Variant) -> void:
+	check(view.get_node("%Invite").visible and view.get_node("%Password").text == "cancel must keep this draft", "Esc only dismisses the temporary server editor")
+
+func _check_failed_remember_storage_stays_visible_after_the_login_page_is_hidden(warning: Variant) -> void:
+	check(warning != null and warning.is_visible_in_tree(), "failed remember storage stays visible after the login page is hidden")
+
+func _check_authored_login() -> bool:
+	var scene: PackedScene = load("res://scenes/ui/account_view.tscn")
+	var candidate := scene.instantiate()
+	for name in ["MenuButton","CloseLogin","RegisterLink","ResetLink","AutoLogin","Remember","SavedLogin","UsePassword","HistoryButton","ServerDialog","ServerSave","ServerCancel","Feedback","FeedbackAddress"]:
+		check(candidate.get_node_or_null("%" + name) != null, "scene authors " + name)
+	_check_account_view_exposes_navigation_and_feedback(candidate)
+	check(candidate.get_node_or_null("%AccountMode") == null, "old account-mode dropdown is removed")
+	root.add_child(candidate)
+	for field in ["Username","Password","Confirm"]:
+		check(candidate.get_node("%"+field).get_theme_stylebox("focus") is StyleBoxEmpty, "login focus keeps only the caret: " + field)
+	var option: CheckBox = candidate.get_node("%AutoLogin")
+	var circle := option.get_theme_icon("unchecked").get_image()
+	_check_login_checkbox_is_a_24px_hollow_circle_not_a_square(circle)
+	check(option.get_theme_font_size("font_size") == 18, "login options use reference-sized regular text")
+	for control_name in ["AutoLogin","Remember","ResetLink","RegisterLink","HistoryButton"]:
+		var control: Control = candidate.get_node("%"+control_name)
+		check(control.get_theme_stylebox("disabled").bg_color.a == 0, "busy state keeps transparent control background: " + control_name)
+		check(control.get_theme_color("font_disabled_color").is_equal_approx(control.get_theme_color("font_color")), "busy state preserves text color: " + control_name)
+	candidate.free()
+	if not failures.is_empty():
+		quit(1)
+		return false
+	var unavailable := scene.instantiate()
+	var exit_requested: Array[bool] = []
+	unavailable.exit_requested.connect(func(): exit_requested.append(true))
+	root.add_child(unavailable)
+	press(unavailable,"CloseLogin")
+	press(unavailable,"MenuButton")
+	_check_missing_account_service_still_permits_close_and_diagnostic_menu(exit_requested, unavailable)
+	unavailable.queue_free()
+	await process_frame
+	return true
+
+func _check_login_native_presentation(view: Control) -> void:
 	if DisplayServer.get_name() != "headless":
-		check(root.borderless and root.unresizable, "logout restores compact presentation")
+		view.get_node("%Username").grab_focus()
+		await capture("login-account-focus")
+		view.get_node("%Password").grab_focus()
+		await capture("login-password-focus")
+		for pair in [["MenuButton","MenuPopup"],["HistoryButton","HistoryPopup"]]:
+			for expected in [true,false,true,false]:
+				await click_control(view.get_node("%"+pair[0]))
+				check(view.get_node("%"+pair[1]).visible == expected, "login trigger clicks alternate: " + pair[0])
+		_check_login_uses_a_fixed_transparent_native_window()
+		check(root.size == Vector2i(480,690), "compact login has the approved default dimensions")
+		var pixels := root.get_texture().get_image()
+		_check_rounded_outside_is_transparent_and_body_is_white(pixels)
+
+func _check_login_scales(view: Control) -> void:
+	if DisplayServer.get_name() != "headless":
+		_check_logout_restores_compact_presentation()
 		for factor in [1.0,1.25,1.5,2.0]:
 			root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 			root.content_scale_size = Vector2i.ZERO
@@ -222,27 +307,3 @@ func run() -> void:
 		var small_area := Rect2(Vector2.ZERO, root.get_visible_rect().size)
 		for name in ["MenuButton","CloseLogin","Submit","ResetLink","RegisterLink"]:
 			check(small_area.encloses(view.get_node("%"+name).get_global_rect()), "small screen keeps action reachable: " + name)
-	app.queue_free()
-	await process_frame
-	var obstacle := FileAccess.open(path + "/blocked", FileAccess.WRITE)
-	obstacle.close()
-	var failing_storage = load("res://src/storage/godot_storage_service.gd").new(path+"/failure.cfg",load("res://src/storage/credential_store.gd").new(security,path+"/blocked"))
-	session = load("res://src/session/account_session.gd").new(load("res://src/network/account_api.gd").new(security),failing_storage)
-	app = load("res://scenes/main.tscn").instantiate()
-	app.setup(session,path+"/failure-window.cfg",browser)
-	root.add_child(app)
-	app.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	await session.set_server(OS.get_environment("GODOT_TEST_SERVER"))
-	await session.perform("login",OS.get_environment("GODOT_TEST_SERVER"),{"username":"test","password":"synthetic-password"},true,false)
-	await process_frame
-	var warning: Label = app.get_node_or_null("%AccountStorageWarning")
-	check(warning != null and warning.is_visible_in_tree(), "failed remember storage stays visible after the login page is hidden")
-	app.queue_free()
-	await process_frame
-	remove_folder(path)
-	print("Login presentation: ", "PASS" if failures.is_empty() else "FAIL")
-	quit(0 if failures.is_empty() else 1)
-func remove_folder(path: String) -> void:
-	for folder in DirAccess.get_directories_at(path): remove_folder(path.path_join(folder))
-	for file in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(file))
-	DirAccess.remove_absolute(path)

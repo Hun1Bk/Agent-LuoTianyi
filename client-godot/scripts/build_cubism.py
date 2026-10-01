@@ -11,15 +11,7 @@ import subprocess
 import sys
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--source", type=Path, required=True)
-    parser.add_argument("--jobs", type=int, default=8)
-    parser.add_argument("--console-encoding", default="utf-8", choices=["utf-8", "gbk"])
-    args = parser.parse_args()
-    project = Path(__file__).resolve().parents[1]
-    lock = json.loads((project / "dependencies.lock.json").read_text(encoding="utf-8-sig"))
-    source = args.source.resolve()
+def validate_sources(source, lock):
     if not source.is_dir() or not (source / "godot-cpp").is_dir():
         raise RuntimeError(f"Cubism source or bundled godot-cpp is missing: {source}")
     for directory, expected in [(source, lock["gd_cubism"]["commit"]),
@@ -30,6 +22,18 @@ def main():
         actual = subprocess.check_output(["git", "-C", str(directory), "rev-parse", "HEAD"], text=True).strip()
         if actual != expected:
             raise RuntimeError(f"Unexpected source revision in {directory}: {actual}")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--jobs", type=int, default=8)
+    parser.add_argument("--console-encoding", default="utf-8", choices=["utf-8", "gbk"])
+    args = parser.parse_args()
+    project = Path(__file__).resolve().parents[1]
+    lock = json.loads((project / "dependencies.lock.json").read_text(encoding="utf-8-sig"))
+    source = args.source.resolve()
+    validate_sources(source, lock)
     import SCons
     if SCons.__version__ != lock["native_build"]["scons"]:
         raise RuntimeError("Use SCons " + lock["native_build"]["scons"])

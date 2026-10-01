@@ -53,11 +53,11 @@ func _run() -> void:
 		return
 	window.get_node("%ModelsTab").pressed.emit()
 	app.get_node("%NavSettings").pressed.emit()
-	check(app.find_children("SettingsWindow","Window",true,false).size() == 1 and window.get_node("%ModelPage").visible,"reopen preserves selected settings page and singleton")
+	_check_reopen_preserves_selected_settings_page_and_singleton(app, window)
 	window.get_node("%PreferencesTab").pressed.emit()
 	var input: TextEdit = window.find_child("CustomContextField",true,false)
 	var deadline := Time.get_ticks_msec()+2500
-	while not input.editable and Time.get_ticks_msec()<deadline: await process_frame
+	await _wait_editable(input, deadline)
 	input.text = "new draft"
 	input.text_changed.emit()
 	check(window.is_dirty(),"loaded form accepts draft edit")
@@ -67,34 +67,34 @@ func _run() -> void:
 	chat.get_node("%Input").image_pasted.emit(image)
 	root.close_requested.emit()
 	var dialog = app.get_node("%ExitDialog")
-	check(dialog.visible and dialog.dialog_text.contains("聊天") and dialog.dialog_text.contains("设置") and dialog.dialog_text.contains("动态"),"one exit prompt summarizes every draft")
+	_check_one_exit_prompt_summarizes_every_draft(dialog)
 	dialog.get_cancel_button().pressed.emit()
-	check(chat.is_dirty() and window.is_dirty() and draft.text == "unsaved dynamic" and chat.get_node("%AttachmentBar").visible,"cancel preserves every draft")
+	_check_cancel_preserves_every_draft(chat, window, draft)
 	window.get_node("%LogoutButton").pressed.emit()
-	check(not session.get_session().is_empty() and dialog.visible,"logout waits for decision")
+	_check_logout_waits_for_decision(session, dialog)
 	dialog.get_cancel_button().pressed.emit()
 	window.get_node("%LogoutButton").pressed.emit()
 	dialog.get_ok_button().pressed.emit()
 	await process_frame
 	check(session.get_session().is_empty(),"confirmed discard completes logout")
-	check(not is_instance_valid(window) and logs.visible,"logout closes business windows but preserves logs")
+	_check_logout_closes_business_windows_but_preserves_logs(window, logs)
 	await session.perform("login",OS.get_environment("GODOT_TEST_SERVER"),{"username":"slow_save","password":"synthetic-password","request_token":false},false)
 	app.get_node("%NavSettings").pressed.emit()
 	window = app.find_child("SettingsWindow",true,false)
 	input = window.find_child("CustomContextField",true,false)
 	deadline = Time.get_ticks_msec()+2500
-	while not input.editable and Time.get_ticks_msec()<deadline: await process_frame
+	await _wait_editable(input, deadline)
 	check(not app.find_child("ChatView",true,false).is_dirty(),"relogin does not restore prior text or image drafts")
 	input.text = "save before logout"
 	input.text_changed.emit()
 	window.get_node("%SaveAll").pressed.emit()
-	check(window.is_saving() and window.get_node("%Result").visible,"save exposes processing feedback")
+	_check_save_exposes_processing_feedback(window)
 	window.get_node("%LogoutButton").pressed.emit()
 	check(not session.get_session().is_empty(),"logout waits for an in-flight save")
 	deadline = Time.get_ticks_msec()+3000
 	while not session.get_session().is_empty() and Time.get_ticks_msec()<deadline: await process_frame
 	await process_frame
-	check(session.get_session().is_empty() and not is_instance_valid(window) and logs.visible,"completed save permits logout and keeps logs")
+	_check_completed_save_permits_logout_and_keeps_logs(session, window, logs)
 	app.queue_free()
 	await process_frame
 	remove_folder(path)
@@ -104,3 +104,27 @@ func remove_folder(path: String) -> void:
 	for folder in DirAccess.get_directories_at(path): remove_folder(path.path_join(folder))
 	for file in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(file))
 	DirAccess.remove_absolute(path)
+
+func _check_one_exit_prompt_summarizes_every_draft(dialog: Variant) -> void:
+	check(dialog.visible and dialog.dialog_text.contains("聊天") and dialog.dialog_text.contains("设置") and dialog.dialog_text.contains("动态"),"one exit prompt summarizes every draft")
+
+func _check_cancel_preserves_every_draft(chat: Variant, window: Variant, draft: Variant) -> void:
+	check(chat.is_dirty() and window.is_dirty() and draft.text == "unsaved dynamic" and chat.get_node("%AttachmentBar").visible,"cancel preserves every draft")
+
+func _check_completed_save_permits_logout_and_keeps_logs(session: Variant, window: Variant, logs: Variant) -> void:
+	check(session.get_session().is_empty() and not is_instance_valid(window) and logs.visible,"completed save permits logout and keeps logs")
+
+func _check_reopen_preserves_selected_settings_page_and_singleton(app: Variant, window: Variant) -> void:
+	check(app.find_children("SettingsWindow","Window",true,false).size() == 1 and window.get_node("%ModelPage").visible,"reopen preserves selected settings page and singleton")
+
+func _check_logout_waits_for_decision(session: Variant, dialog: Variant) -> void:
+	check(not session.get_session().is_empty() and dialog.visible,"logout waits for decision")
+
+func _check_logout_closes_business_windows_but_preserves_logs(window: Variant, logs: Variant) -> void:
+	check(not is_instance_valid(window) and logs.visible,"logout closes business windows but preserves logs")
+
+func _check_save_exposes_processing_feedback(window: Variant) -> void:
+	check(window.is_saving() and window.get_node("%Result").visible,"save exposes processing feedback")
+
+func _wait_editable(input: TextEdit, deadline: int) -> void:
+	while not input.editable and Time.get_ticks_msec()<deadline: await process_frame

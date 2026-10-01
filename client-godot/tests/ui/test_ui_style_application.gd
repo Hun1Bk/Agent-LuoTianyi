@@ -45,8 +45,8 @@ func run() -> void:
 	DirAccess.make_dir_recursive_absolute(directory)
 	var app := make_app(directory)
 	await create_timer(.4).timeout
-	check(root.size == Vector2i(480,690) and root.unresizable and root.borderless and root.transparent_bg, "compact transparent login geometry unchanged")
-	check(app._services.ui_style.ui_style == "flat" and app._services.ui_style.icon_style == "svg", "application defaults to flat/svg")
+	_check_compact_transparent_login_geometry_unchanged()
+	_check_application_defaults_to_flat_svg(app)
 	await capture(root, "login-flat")
 	await app._session.perform("login", OS.get_environment("GODOT_TEST_SERVER"), {"username":"visual","password":"synthetic","request_token":false}, false)
 	check(await until(func(): return app._chat_view != null and app._chat.get_state().phase == "ready"), "local fixture login and chat ready")
@@ -66,7 +66,7 @@ func run() -> void:
 	var settings = app.find_child("SettingsWindow", true, false)
 	var logs = app.find_child("LogWindow", true, false)
 	var dynamics = app.find_child("DynamicsWindow", true, false)
-	check(settings != null and logs != null and dynamics != null, "all application windows open")
+	_check_all_application_windows_open(settings, logs, dynamics)
 	check(await until(func(): return app._dynamics.get_posts().size() > 0), "dynamics fixture loaded")
 	check(dynamics.select_post("visual-post"), "dynamic detail opens")
 	var image: Texture2D = load("res://assets/ui/tianyi_icon.png")
@@ -74,6 +74,61 @@ func run() -> void:
 	viewer.hide()
 	logs.hide()
 	dynamics.hide()
+	await _check_style_combinations(app, settings, chat, dynamics, logs, viewer, image)
+	dynamics.close_requested.emit()
+	viewer.queue_free()
+	await process_frame
+	app.get_node("%NavDynamics").pressed.emit()
+	dynamics = app.find_child("DynamicsWindow", true, false)
+	check_icon(dynamics, "Refresh", "action_refresh", true)
+	viewer = app._images_presenter.open_image(root, func(): return image)
+	check_icon(viewer, "ZoomIn", "zoom_in", true)
+	viewer.hide()
+	dynamics.hide()
+	# The last choice must be applied before login on the next application instance.
+	app.queue_free()
+	await process_frame
+	await process_frame
+	app = make_app(directory)
+	await create_timer(.3).timeout
+	_check_new_application_restores_appearance_before_login(app)
+	check_icon(app, "NavChat", "nav_chat", true)
+	await capture(root, "login-restored-crystal")
+	await app._session.perform("login", OS.get_environment("GODOT_TEST_SERVER"), {"username":"visual","password":"synthetic","request_token":false}, false)
+	app.get_node("%NavSettings").pressed.emit()
+	settings = app.find_child("SettingsWindow", true, false)
+	check(settings.get_node("%StylePage").get_node("%UiStyleField").text == "清透", "reopened settings shows persisted choice")
+	check_icon(app._chat_view, "Send", "action_send", true)
+	check(app._services.ui_style.save_preferences("flat", "svg") == OK, "reset fixture to defaults")
+	app.queue_free()
+	await process_frame
+	print("Application UI style: ", "PASS" if failures.is_empty() else "FAIL: " + str(failures))
+	quit(0 if failures.is_empty() else 1)
+func _check_compact_transparent_login_geometry_unchanged() -> void:
+	check(root.size == Vector2i(480,690) and root.unresizable and root.borderless and root.transparent_bg, "compact transparent login geometry unchanged")
+
+func _check_scene_roots_retain_the_single_shared_theme(app: Variant, theme: Variant, settings: Variant, dynamics: Variant) -> void:
+	check(app.theme == theme and settings.theme == theme and dynamics.theme == theme, "scene roots retain the single shared theme")
+
+func _check_all_application_windows_open(settings: Variant, logs: Variant, dynamics: Variant) -> void:
+	check(settings != null and logs != null and dynamics != null, "all application windows open")
+
+func _check_existing_message_changes_without_rebuilding_chat(panel: Variant, crystal: Variant) -> void:
+	check(panel.corner_radius_top_left == (12 if crystal else 8), "existing message changes without rebuilding chat")
+
+func _check_run_result(result: Variant, settings: Variant, pair: Variant) -> void:
+	check(result.ok and not settings.is_dirty(), "settings saves combination: " + str(pair))
+
+func _check_open_surfaces_hot_switch_shadows(theme: Variant, crystal: Variant) -> void:
+	check(theme.get_stylebox("panel", "AppSurface").shadow_size == (12 if crystal else 0), "open surfaces hot-switch shadows")
+
+func _check_application_defaults_to_flat_svg(app: Variant) -> void:
+	check(app._services.ui_style.ui_style == "flat" and app._services.ui_style.icon_style == "svg", "application defaults to flat/svg")
+
+func _check_new_application_restores_appearance_before_login(app: Variant) -> void:
+	check(app._services.ui_style.ui_style == "crystal" and app._services.ui_style.icon_style == "emoji", "new application restores appearance before login")
+
+func _check_style_combinations(app: Variant, settings: Variant, chat: Variant, dynamics: Variant, logs: Variant, viewer: Variant, image: Texture2D) -> void:
 	for pair in [["flat","svg"],["flat","emoji"],["crystal","svg"],["crystal","emoji"]]:
 		settings.open()
 		settings.select_page("style")
@@ -81,7 +136,7 @@ func run() -> void:
 		page.get_node("%UiStylePresets").activated.emit(pair[0])
 		page.get_node("%IconStylePresets").activated.emit(pair[1])
 		var result: Dictionary = await settings.save_changes()
-		check(result.ok and not settings.is_dirty(), "settings saves combination: " + str(pair))
+		_check_run_result(result, settings, pair)
 		var emoji: bool = pair[1] == "emoji"
 		var crystal: bool = pair[0] == "crystal"
 		for entry in [["NavChat","nav_chat"],["NavDynamics","nav_at"],["NavSettings","nav_settings"],["NavLogs","nav_scroll"]]:
@@ -98,14 +153,14 @@ func run() -> void:
 		for entry in [["ZoomIn","zoom_in"],["ZoomOut","zoom_out"],["FitImage","zoom_fit"],["OriginalSize","zoom_1to1"],["CloseImage","action_close"]]:
 			check_icon(viewer, entry[0], entry[1], emoji)
 		var theme: Theme = load("res://theme/app_theme.tres")
-		check(app.theme == theme and settings.theme == theme and dynamics.theme == theme, "scene roots retain the single shared theme")
+		_check_scene_roots_retain_the_single_shared_theme(app, theme, settings, dynamics)
 		for kind in ["LineEdit", "TextEdit", "RichTextLabel"]:
 			check(theme.get_color("selection_color", kind).is_equal_approx(Color("0078d7")), "text selection stays blue in " + str(pair) + ": " + kind)
 			check(theme.get_color("font_selected_color", kind).is_equal_approx(Color.WHITE), "selected text stays white in " + str(pair) + ": " + kind)
-		check(theme.get_stylebox("panel", "AppSurface").shadow_size == (12 if crystal else 0), "open surfaces hot-switch shadows")
+		_check_open_surfaces_hot_switch_shadows(theme, crystal)
 		for bubble in chat.get_node("%Scroll").get_node("%Canvas").get_children():
 			var panel: StyleBoxFlat = bubble.get_node("%Bubble").get_theme_stylebox("panel")
-			check(panel.corner_radius_top_left == (12 if crystal else 8), "existing message changes without rebuilding chat")
+			_check_existing_message_changes_without_rebuilding_chat(panel, crystal)
 		check(chat.get_node("%Input").text == "切换风格后保留的草稿", "application preserves composer draft")
 		var label: String = pair[0] + "-" + pair[1]
 		var form_scroll: ScrollContainer = page.find_child("Scroll", true, false)
@@ -126,32 +181,3 @@ func run() -> void:
 		viewer.present(root, func(): return image)
 		await capture(viewer, "image-" + label)
 		viewer.hide()
-	dynamics.close_requested.emit()
-	viewer.queue_free()
-	await process_frame
-	app.get_node("%NavDynamics").pressed.emit()
-	dynamics = app.find_child("DynamicsWindow", true, false)
-	check_icon(dynamics, "Refresh", "action_refresh", true)
-	viewer = app._images_presenter.open_image(root, func(): return image)
-	check_icon(viewer, "ZoomIn", "zoom_in", true)
-	viewer.hide()
-	dynamics.hide()
-	# The last choice must be applied before login on the next application instance.
-	app.queue_free()
-	await process_frame
-	await process_frame
-	app = make_app(directory)
-	await create_timer(.3).timeout
-	check(app._services.ui_style.ui_style == "crystal" and app._services.ui_style.icon_style == "emoji", "new application restores appearance before login")
-	check_icon(app, "NavChat", "nav_chat", true)
-	await capture(root, "login-restored-crystal")
-	await app._session.perform("login", OS.get_environment("GODOT_TEST_SERVER"), {"username":"visual","password":"synthetic","request_token":false}, false)
-	app.get_node("%NavSettings").pressed.emit()
-	settings = app.find_child("SettingsWindow", true, false)
-	check(settings.get_node("%StylePage").get_node("%UiStyleField").text == "清透", "reopened settings shows persisted choice")
-	check_icon(app._chat_view, "Send", "action_send", true)
-	check(app._services.ui_style.save_preferences("flat", "svg") == OK, "reset fixture to defaults")
-	app.queue_free()
-	await process_frame
-	print("Application UI style: ", "PASS" if failures.is_empty() else "FAIL: " + str(failures))
-	quit(0 if failures.is_empty() else 1)

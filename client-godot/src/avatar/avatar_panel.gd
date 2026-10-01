@@ -82,38 +82,9 @@ func _layout_avatar() -> void:
 
 func _handle_pointer(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			var local := avatar.to_local(get_global_transform() * event.position)
-			var areas: Array[String] = avatar.hit_test(local)
-			if not areas.is_empty():
-				var ripple := Ripple.instantiate() as Control
-				ripple.position = event.position - Vector2(60, 60)
-				add_child(ripple)
-				touched.emit(areas)
-			accept_event()
-		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			_dragging = event.pressed
-			if not _dragging:
-				_save()
-			accept_event()
-		elif event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
-			framing.zoom_by(1.1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.1)
-			_layout_avatar()
-			_save()
-			accept_event()
+		_handle_button(event)
 	elif event is InputEventMouseMotion:
-		if %Stage.size.x > 0 and %Stage.size.y > 0:
-			avatar.set_gaze(Vector2(event.position.x / %Stage.size.x * 2 - 1, 1 - event.position.y / %Stage.size.y * 2))
-		if _dragging:
-			if not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
-				_dragging = false
-				_save()
-				return
-			framing.pan_by(event.relative, %Stage.size)
-			_layout_avatar()
-			accept_event()
-
-
+		_handle_motion(event)
 func _save() -> void:
 	if framing.save_settings() != OK:
 		_error_label.text = "当前角色位置无法保存，重启后将恢复上次设置。"
@@ -131,3 +102,39 @@ func _process(_delta: float) -> void:
 	var minimized: bool = window_system.minimized(get_window())
 	avatar.visible = not minimized
 	avatar.process_mode = Node.PROCESS_MODE_DISABLED if minimized else Node.PROCESS_MODE_INHERIT
+
+func _handle_button(event: InputEventMouseButton) -> void:
+	if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		_handle_touch(event)
+	elif event.button_index == MOUSE_BUTTON_RIGHT:
+		_dragging = event.pressed
+		if not _dragging:
+			_save()
+		accept_event()
+	elif event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+		framing.zoom_by(1.1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.1)
+		_layout_avatar()
+		_save()
+		accept_event()
+
+func _handle_touch(event: InputEventMouseButton) -> void:
+	var local := avatar.to_local(get_global_transform() * event.position)
+	var areas: Array[String] = avatar.hit_test(local)
+	if not areas.is_empty():
+		var ripple := Ripple.instantiate() as Control
+		ripple.position = event.position - Vector2(60, 60)
+		add_child(ripple)
+		touched.emit(areas)
+	accept_event()
+
+func _handle_motion(event: InputEventMouseMotion) -> void:
+	if %Stage.size.x > 0 and %Stage.size.y > 0:
+		avatar.set_gaze(Vector2(event.position.x / %Stage.size.x * 2 - 1, 1 - event.position.y / %Stage.size.y * 2))
+	if _dragging:
+		if not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+			_dragging = false
+			_save()
+			return
+		framing.pan_by(event.relative, %Stage.size)
+		_layout_avatar()
+		accept_event()

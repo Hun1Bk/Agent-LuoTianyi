@@ -38,13 +38,7 @@ func _run() -> void:
 	root.always_on_top = was_on_top
 	if screenshot_code != 0: failures.append("native frame screenshot: " + str(screenshot_output))
 	await profile(root,"glass")
-	var glass_nodes: Array[Node] = app.find_children("*","ColorRect",true,false).filter(func(n): return n.get_script() != null and n.get_script().resource_path == "res://src/ui/frost_surface.gd")
-	var materials: Array = []
-	for node in glass_nodes:
-		materials.append(node.material)
-		node.material = null
-	await profile(root,"solid")
-	for index in glass_nodes.size(): glass_nodes[index].material = materials[index]
+	await _profile_surfaces(app)
 	for factor in [1.25,1.5,2.0]:
 		root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 		root.content_scale_factor = factor
@@ -54,17 +48,7 @@ func _run() -> void:
 	root.size = Vector2i(960,640)
 	await capture(root,"agentluo-redesign-chat-minimum")
 	root.size = Vector2i(1200,800)
-	for item in [["logs","客户端日志","logs"],["preferences","设置","preferences"],["models","设置","models"]]:
-		app.get_node("%NavLogs" if item[0] == "logs" else "%NavSettings").pressed.emit()
-		await create_timer(.4).timeout
-		var windows: Array = app.find_children("*","Window",true,false).filter(func(n): return n.name == ("LogWindow" if item[0] == "logs" else "SettingsWindow"))
-		if windows.is_empty():
-			failures.append("window missing: "+item[1])
-			continue
-		if item[0] != "logs":
-			windows[0].get_node("%ModelsTab" if item[0] == "models" else "%PreferencesTab").pressed.emit()
-		await capture(windows[0],"agentluo-011-"+item[2])
-		windows[0].hide()
+	await _capture_business_windows(app)
 	app.get_node("%NavDynamics").pressed.emit()
 	await create_timer(.4).timeout
 	var window: Window = app.find_children("*","Window",true,false).filter(func(n): return n.title == "天依的动态")[0]
@@ -97,7 +81,6 @@ func _run() -> void:
 	remove_folder(directory)
 	print("Release screenshots: ","PASS" if failures.is_empty() else "FAIL: "+str(failures))
 	quit(0 if failures.is_empty() else 1)
-
 func profile(window: Window, suffix: String) -> void:
 	window.grab_focus()
 	for index in 12: await process_frame
@@ -124,3 +107,25 @@ func remove_folder(path: String) -> void:
 	for folder in DirAccess.get_directories_at(path): remove_folder(path.path_join(folder))
 	for filename in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(filename))
 	DirAccess.remove_absolute(path)
+
+func _capture_business_windows(app: Control) -> void:
+	for item in [["logs","客户端日志","logs"],["preferences","设置","preferences"],["models","设置","models"]]:
+		app.get_node("%NavLogs" if item[0] == "logs" else "%NavSettings").pressed.emit()
+		await create_timer(.4).timeout
+		var windows: Array = app.find_children("*","Window",true,false).filter(func(n): return n.name == ("LogWindow" if item[0] == "logs" else "SettingsWindow"))
+		if windows.is_empty():
+			failures.append("window missing: "+item[1])
+			continue
+		if item[0] != "logs":
+			windows[0].get_node("%ModelsTab" if item[0] == "models" else "%PreferencesTab").pressed.emit()
+		await capture(windows[0],"agentluo-011-"+item[2])
+		windows[0].hide()
+
+func _profile_surfaces(app: Control) -> void:
+	var glass_nodes: Array[Node] = app.find_children("*","ColorRect",true,false).filter(func(n): return n.get_script() != null and n.get_script().resource_path == "res://src/ui/frost_surface.gd")
+	var materials: Array = []
+	for node in glass_nodes:
+		materials.append(node.material)
+		node.material = null
+	await profile(root,"solid")
+	for index in glass_nodes.size(): glass_nodes[index].material = materials[index]

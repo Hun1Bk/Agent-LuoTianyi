@@ -62,43 +62,22 @@ func test_config(type_id: String,config: Dictionary) -> Dictionary:
 	return {"ok":false,"code":"CANCELLED"} if generation != _generation else {"ok":result.ok,"code":result.code}
 
 func _execute(request: Dictionary,config: Dictionary) -> Dictionary:
-	if not _active:
-		return _failure("CANCELLED")
-	if config.is_empty() or config.get("enabled") != true:
-		return _failure("MODEL_DISABLED")
-	var valid: Dictionary = _settings.validate(str(request.get("type","")),config)
+	var valid := _validate_request(request, config)
 	if not valid.ok:
-		return _failure(valid.code)
-	if request.get("model_kind") != config.model_kind:
-		return _failure("MODEL_KIND_MISMATCH")
-	if not request.get("prompt") is String or not request.get("params",{}) is Dictionary or not request.get("use_json",false) is bool or not request.get("enable_thinking",false) is bool:
-		return _failure("INVALID_INPUT")
+		return valid
 	var use_json: bool = request.get("use_json",false)
 	var thinking: bool = request.get("enable_thinking",false)
-	if (use_json and not config.model_capabilities.can_use_json) or (thinking and not config.model_capabilities.can_enable_thinking):
-		return _failure("MODEL_CAPABILITY_MISMATCH")
-	var image: Variant = request.get("image_base64","")
-	if not image is String or (not image.is_empty() and config.model_kind != "vlm"):
-		return _failure("MODEL_KIND_MISMATCH")
-	if not image.is_empty():
-		var image_check: Dictionary = Attachment.from_data_uri(image)
-		if not image_check.ok:
-			return _failure(image_check.code)
+	var checked := _validate_media(request, config, use_json, thinking)
+	if not checked.ok:
+		return checked
+	var image: String = request.get("image_base64", "")
 	var params: Dictionary = request.get("params",{}).duplicate(true)
 	params.merge(config.params,true)
 	if (params.has("stream") and (not params.stream is bool or params.stream)) or params.has("stream_options"):
 		return _failure("STREAMING_NOT_SUPPORTED")
 	if _requests.size() >= 8:
 		return _failure("MODEL_BUSY")
-	var body := {"max_tokens":4096,"temperature":0.7,"top_p":0.9}
-	body.merge(params,true)
-	body.model = config.model
-	body.stream = false
-	body.messages = [{"role":"system","content":request.prompt}] if image.is_empty() else [{"role":"user","content":[{"type":"text","text":request.prompt},{"type":"image_url","image_url":{"url":image,"detail":"auto"}}]}]
-	if thinking:
-		body.enable_thinking = true
-	if use_json:
-		body.response_format = {"type":"json_object"}
+	var body := _request_body(request, config, params, image, thinking, use_json)
 	var http := Http.new(_timeout)
 	add_child(http)
 	_requests.append(http)
@@ -110,7 +89,6 @@ func _execute(request: Dictionary,config: Dictionary) -> Dictionary:
 	var answer := _parse(result,use_json)
 	_log("complete" if answer.ok else "error",answer.code,str(request.type),Time.get_ticks_msec()-started)
 	return answer
-
 func _parse(result: Dictionary,use_json: bool) -> Dictionary:
 	if not result.ok:
 		return _failure(result.code)
@@ -120,14 +98,8 @@ func _parse(result: Dictionary,use_json: bool) -> Dictionary:
 	var content: String = data.choices[0].message.content
 	if use_json and JSON.new().parse(content) != OK:
 		return _failure("INVALID_JSON")
-	var usage := {}
-	if data.get("usage") is Dictionary:
-		for key in ["prompt_tokens","completion_tokens","total_tokens"]:
-			var value: Variant = data.usage.get(key)
-			if (value is float or value is int) and is_finite(float(value)) and value >= 0:
-				usage[key] = int(value)
+	var usage := _response_usage(data)
 	return {"ok":true,"code":"OK","content":content,"usage":usage}
-
 func _failure(code: String) -> Dictionary:
 	return {"ok":false,"code":code}
 
@@ -137,3 +109,50 @@ func _log(phase: String,code: String,type_id: String,elapsed: int) -> void:
 
 func _exit_tree() -> void:
 	stop()
+
+func _validate_request(request: Dictionary, config: Dictionary) -> Dictionary:
+	if not _active:
+		return _failure("CANCELLED")
+	if config.is_empty() or config.get("enabled") != true:
+		return _failure("MODEL_DISABLED")
+	var valid: Dictionary = _settings.validate(str(request.get("type","")),config)
+	if not valid.ok:
+		return _failure(valid.code)
+	if request.get("model_kind") != config.model_kind:
+		return _failure("MODEL_KIND_MISMATCH")
+	if not request.get("prompt") is String or not request.get("params",{}) is Dictionary or not request.get("use_json",false) is bool or not request.get("enable_thinking",false) is bool:
+		return _failure("INVALID_INPUT")
+	return {"ok":true}
+
+func _validate_media(request: Dictionary, config: Dictionary, use_json: bool, thinking: bool) -> Dictionary:
+	if (use_json and not config.model_capabilities.can_use_json) or (thinking and not config.model_capabilities.can_enable_thinking):
+		return _failure("MODEL_CAPABILITY_MISMATCH")
+	var image: Variant = request.get("image_base64","")
+	if not image is String or (not image.is_empty() and config.model_kind != "vlm"):
+		return _failure("MODEL_KIND_MISMATCH")
+	if not image.is_empty():
+		var image_check: Dictionary = Attachment.from_data_uri(image)
+		if not image_check.ok:
+			return _failure(image_check.code)
+	return {"ok":true}
+
+func _request_body(request: Dictionary, config: Dictionary, params: Dictionary, image: String, thinking: bool, use_json: bool) -> Dictionary:
+	var body := {"max_tokens":4096,"temperature":0.7,"top_p":0.9}
+	body.merge(params,true)
+	body.model = config.model
+	body.stream = false
+	body.messages = [{"role":"system","content":request.prompt}] if image.is_empty() else [{"role":"user","content":[{"type":"text","text":request.prompt},{"type":"image_url","image_url":{"url":image,"detail":"auto"}}]}]
+	if thinking:
+		body.enable_thinking = true
+	if use_json:
+		body.response_format = {"type":"json_object"}
+	return body
+
+func _response_usage(data: Dictionary) -> Dictionary:
+	var usage := {}
+	if data.get("usage") is Dictionary:
+		for key in ["prompt_tokens","completion_tokens","total_tokens"]:
+			var value: Variant = data.usage.get(key)
+			if (value is float or value is int) and is_finite(float(value)) and value >= 0:
+				usage[key] = int(value)
+	return usage

@@ -94,11 +94,9 @@ func _load_posts(more: bool) -> void:
 	_notify()
 
 func load_comments(id: String,more: bool = false) -> void:
-	if _session.is_empty() or _writing or not _find_post(id).size():
+	if _comments_blocked(id):
 		return
-	if not _comments.has(id):
-		_comments[id] = _empty_comments()
-	var state: Dictionary = _comments[id]
+	var state := _ensure_comments(id)
 	if state.busy or (more and not state.has_more):
 		return
 	state.busy = true
@@ -119,11 +117,10 @@ func load_comments(id: String,more: bool = false) -> void:
 		state.loaded = true
 	state.code = result.code
 	_notify()
-
 func refresh_comments(id: String) -> void:
-	if _session.is_empty() or _writing or _find_post(id).is_empty(): return
-	if not _comments.has(id): _comments[id] = _empty_comments()
-	var state: Dictionary = _comments[id]
+	if _comments_blocked(id):
+		return
+	var state := _ensure_comments(id)
 	if state.busy: return
 	state.busy = true
 	changed.emit()
@@ -153,7 +150,6 @@ func refresh_comments(id: String) -> void:
 		state.cursor = ""
 		state.loaded = true
 	_notify()
-
 func refresh_unread() -> void:
 	if _session.is_empty() or _unread_busy:
 		return
@@ -163,23 +159,9 @@ func refresh_unread() -> void:
 	if generation != _generation:
 		return
 	if result.ok:
-		var count: Variant = result.data.get("unread_count")
-		if (count is int or count is float) and is_finite(float(count)) and count >= 0 and count == floor(count):
-			_state.unread = int(count)
-		else:
-			result = _failure("INVALID_RESPONSE")
+		result = _read_unread_count(result)
 	if result.ok:
-		var latest: Dictionary = {}
-		var dynamic_count: Variant = result.data.get("unread_dynamic_count", 0)
-		if (dynamic_count is int or dynamic_count is float) and is_finite(float(dynamic_count)) and dynamic_count > 0 and dynamic_count == floor(dynamic_count):
-			var last_read: Variant = result.data.get("last_read_dynamic_at")
-			var preview := await _load_latest_unread(generation, last_read if last_read is String else "")
-			if preview.ok:
-				latest = preview.post
-			else:
-				result.code = preview.code
-				if not _latest_unread.is_empty() and (not last_read is String or _latest_unread.created_at >= last_read):
-					latest = get_latest_unread()
+		var latest := await _unread_preview(result, generation)
 		if generation != _generation: return
 		_latest_unread = latest
 		latest_unread_changed.emit(get_latest_unread())
@@ -187,7 +169,6 @@ func refresh_unread() -> void:
 	_state.unread_code = result.code
 	unread_changed.emit(_state.unread)
 	_log("ready",result.code)
-
 func _load_latest_unread(generation: int, last_read: String) -> Dictionary:
 	var cursor := ""
 	var seen := {}
@@ -197,15 +178,13 @@ func _load_latest_unread(generation: int, last_read: String) -> Dictionary:
 		if generation != _generation: return _failure("CANCELLED")
 		if result.ok: result = _page(result.data, cursor, false)
 		if not result.ok: return result
-		for post in result.items:
-			if post.author_type == "user": continue
-			if not last_read.is_empty() and post.created_at < last_read: return {"ok":true, "post":{}}
-			return {"ok":true, "post":post.duplicate(true)}
+		var preview := _first_unread_post(result.items, last_read)
+		if not preview.is_empty():
+			return preview
 		if not result.has_more: return {"ok":true, "post":{}}
 		if seen.has(result.cursor): return _failure("INVALID_RESPONSE")
 		cursor = result.cursor
 	return _failure("CANCELLED")
-
 func mark_read() -> void:
 	if _session.is_empty() or _unread_busy:
 		return
@@ -266,7 +245,7 @@ func comment(id: String,content: String,parent_comment_id: String = "") -> Dicti
 func _write(id: String,content: String,parent: String) -> Dictionary:
 	if content.strip_edges().is_empty():
 		return _failure("INVALID_INPUT")
-	if _writing or _session.is_empty() or _state.busy or (not id.is_empty() and get_comments(id).busy):
+	if _write_blocked(id):
 		return _failure("BUSY")
 	_writing = true
 	var generation := _generation
@@ -282,24 +261,15 @@ func _write(id: String,content: String,parent: String) -> Dictionary:
 	if result.ok and not _valid_item(result.data.get("item"),not id.is_empty(),id):
 		result = _failure("INVALID_RESPONSE")
 	if result.ok:
-		if id.is_empty():
-			_posts = _merge([result.data.item],_posts)
-		else:
-			if not _comments.has(id):
-				_comments[id] = _empty_comments()
-			_comments[id].items = _merge(_comments[id].items,[result.data.item])
-			_sort_comments(_comments[id].items)
-			var post := _find_post(id)
-			post.comment_count = int(post.get("comment_count",0))+1
+		_accept_written_item(id, result.data.item)
 	_state.code = result.code
 	_notify()
 	return {"ok":result.ok,"code":result.code,"item_id":result.data.item.id if result.ok else ""}
-
 func _page(data: Dictionary,cursor: String,comments: bool,id: String = "") -> Dictionary:
 	if not data.get("items") is Array or not data.get("has_more") is bool:
 		return _failure("INVALID_RESPONSE")
 	var next: Variant = data.get("next_cursor")
-	if data.has_more and (not next is String or next.is_empty() or next == cursor or data.items.is_empty()):
+	if not _valid_next_cursor(data, next, cursor):
 		return _failure("INVALID_RESPONSE")
 	if data.items.size() > (20 if comments else 10):
 		return _failure("INVALID_RESPONSE")
@@ -307,7 +277,6 @@ func _page(data: Dictionary,cursor: String,comments: bool,id: String = "") -> Di
 		if not _valid_item(item,comments,id):
 			return _failure("INVALID_RESPONSE")
 	return {"ok":true,"code":"OK","items":data.items,"has_more":data.has_more,"cursor":next if data.has_more else ""}
-
 func _valid_item(item: Variant,comment: bool,id: String = "") -> bool:
 	if not item is Dictionary:
 		return false
@@ -354,3 +323,59 @@ func _log(phase: String,code: String) -> void:
 
 func _exit_tree() -> void:
 	stop()
+
+func _comments_blocked(id: String) -> bool:
+	return _session.is_empty() or _writing or _find_post(id).is_empty()
+
+func _ensure_comments(id: String) -> Dictionary:
+	if not _comments.has(id):
+		_comments[id] = _empty_comments()
+	return _comments[id]
+
+func _read_unread_count(result: Dictionary) -> Dictionary:
+	var count: Variant = result.data.get("unread_count")
+	if (count is int or count is float) and is_finite(float(count)) and count >= 0 and count == floor(count):
+		_state.unread = int(count)
+	else:
+		result = _failure("INVALID_RESPONSE")
+	return result
+
+func _unread_preview(result: Dictionary, generation: int) -> Dictionary:
+	var latest: Dictionary = {}
+	var dynamic_count: Variant = result.data.get("unread_dynamic_count", 0)
+	if _has_unread_dynamics(dynamic_count):
+		var last_read: Variant = result.data.get("last_read_dynamic_at")
+		var preview := await _load_latest_unread(generation, last_read if last_read is String else "")
+		if preview.ok:
+			latest = preview.post
+		else:
+			result.code = preview.code
+			if not _latest_unread.is_empty() and (not last_read is String or _latest_unread.created_at >= last_read):
+				latest = get_latest_unread()
+	return latest
+func _first_unread_post(items: Array, last_read: String) -> Dictionary:
+	for post in items:
+		if post.author_type == "user": continue
+		if not last_read.is_empty() and post.created_at < last_read: return {"ok":true, "post":{}}
+		return {"ok":true, "post":post.duplicate(true)}
+	return {}
+
+func _write_blocked(id: String) -> bool:
+	return _writing or _session.is_empty() or _state.busy or (not id.is_empty() and get_comments(id).busy)
+
+func _accept_written_item(id: String, item: Dictionary) -> void:
+	if id.is_empty():
+		_posts = _merge([item],_posts)
+	else:
+		if not _comments.has(id):
+			_comments[id] = _empty_comments()
+		_comments[id].items = _merge(_comments[id].items,[item])
+		_sort_comments(_comments[id].items)
+		var post := _find_post(id)
+		post.comment_count = int(post.get("comment_count",0))+1
+
+func _valid_next_cursor(data: Dictionary, next: Variant, cursor: String) -> bool:
+	return not data.has_more or (next is String and not next.is_empty() and next != cursor and not data.items.is_empty())
+
+func _has_unread_dynamics(count: Variant) -> bool:
+	return (count is int or count is float) and is_finite(float(count)) and count > 0 and count == floor(count)

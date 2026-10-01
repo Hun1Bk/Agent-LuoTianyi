@@ -47,20 +47,7 @@ bool PcmStreamDecoder::parse_format(const uint8_t *p, size_t size) {
     if (size < 16 || rate != 0) { fail("INVALID_WAV"); return false; }
     format = u16(p); channels = u16(p + 2); rate = u32(p + 4);
     alignment = u16(p + 12); bits = u16(p + 14);
-    if (format == 0xfffe) {
-        // Validate the entire subtype GUID; accepting only its first word is unsafe.
-        const uint8_t suffix[] = {0,0,0,0,0x10,0,0x80,0,0,0xaa,0,0x38,0x9b,0x71};
-        if (size < 40 || u16(p + 16) < 22 || u16(p + 18) != bits ||
-                std::memcmp(p + 26, suffix, sizeof(suffix)) != 0) {
-            fail("UNSUPPORTED_FORMAT"); return false;
-        }
-        format = u16(p + 24);
-    }
-    if (channels < 1 || channels > 2 || rate < 8000 || rate > 192000 ||
-            !((format == 1 && (bits == 8 || bits == 16 || bits == 24 || bits == 32)) ||
-              (format == 3 && bits == 32))) {
-        fail("UNSUPPORTED_FORMAT"); return false;
-    }
+    if (!parse_subtype(p, size) || !validate_format()) return false;
     if (alignment != channels * bits / 8 || u32(p + 8) != uint32_t(rate * alignment)) {
         fail("INVALID_WAV"); return false;
     }
@@ -81,16 +68,7 @@ bool PcmStreamDecoder::decode(const uint8_t *p, size_t count) {
         float values[2];
         for (int channel = 0; channel < channels; ++channel, p += bits / 8) {
             float value;
-            if (format == 3) {
-                std::memcpy(&value, p, sizeof(value));
-                if (!std::isfinite(value)) { fail("INVALID_WAV"); return false; }
-            } else if (bits == 8) value = (int(p[0]) - 128) / 128.f;
-            else if (bits == 16) value = int16_t(u16(p)) / 32768.f;
-            else if (bits == 24) {
-                int32_t integer = p[0] | (uint32_t(p[1]) << 8) | (uint32_t(p[2]) << 16);
-                if (integer & 0x800000) integer -= 0x1000000;
-                value = integer / 8388608.f;
-            } else value = int32_t(u32(p)) / 2147483648.f;
+            if (!decode_sample(p, value)) return false;
             values[channel] = std::clamp(value, -1.f, 1.f);
         }
         if (channels == 1) values[1] = values[0];
@@ -117,39 +95,9 @@ Dictionary PcmStreamDecoder::append(const PackedByteArray &bytes) {
     if (!bytes.is_empty()) pending.insert(pending.end(), bytes.ptr(), bytes.ptr() + bytes.size());
     size_t offset = 0;
     while (offset < pending.size()) {
-        const uint8_t *p = pending.data() + offset;
-        const size_t available = pending.size() - offset;
-        if (phase == RIFF) {
-            if (available < 12) break;
-            if (!tag(p, "RIFF") || !tag(p + 8, "WAVE")) { fail("INVALID_WAV"); return get_status(); }
-            offset += 12; header_bytes += 12; phase = CHUNKS;
-        } else if (phase == CHUNKS) {
-            if (available < 8) break;
-            const uint32_t size = u32(p + 4);
-            if (tag(p, "data")) {
-                if (!rate) { fail("INVALID_WAV"); return get_status(); }
-                if (header_bytes + 8 > HEADER_LIMIT) { fail("BUFFER_LIMIT"); return get_status(); }
-                data_left = size; unbounded_data = size == 0xffffffff;
-                offset += 8; phase = DATA;
-            } else {
-                const uint64_t padded = uint64_t(size) + (size & 1) + 8;
-                if (header_bytes + padded > HEADER_LIMIT) { fail("BUFFER_LIMIT"); return get_status(); }
-                if (available < padded) break;
-                if (tag(p, "fmt ") && !parse_format(p + 8, size)) return get_status();
-                offset += size_t(padded); header_bytes += padded;
-            }
-        } else if (phase == DATA) {
-            size_t count = unbounded_data ? available : size_t(std::min<uint64_t>(available, data_left));
-            count -= count % alignment;
-            if (count && !decode(p, count)) return get_status();
-            offset += count;
-            if (!unbounded_data) {
-                data_left -= count;
-                if (!data_left) { phase = TAIL; continue; }
-            }
-            if (!count) break;
-        } else { offset = pending.size(); }
+        if (!advance_phase(offset)) break;
     }
+    if (!code.is_empty()) return get_status();
     if (offset) pending.erase(pending.begin(), pending.begin() + offset);
     return get_status();
 }
@@ -196,4 +144,91 @@ PackedFloat32Array PcmStreamDecoder::get_waveform(int buckets) const {
         output.set(bucket, peak);
     }
     return output;
+}
+
+bool PcmStreamDecoder::supported_encoding() const {
+    return (format == 1 && (bits == 8 || bits == 16 || bits == 24 || bits == 32)) ||
+        (format == 3 && bits == 32);
+}
+
+bool PcmStreamDecoder::parse_subtype(const uint8_t *p, size_t size) {
+    if (format == 0xfffe) {
+        // Validate the entire subtype GUID; accepting only its first word is unsafe.
+        const uint8_t suffix[] = {0,0,0,0,0x10,0,0x80,0,0,0xaa,0,0x38,0x9b,0x71};
+        if (size < 40 || u16(p + 16) < 22 || u16(p + 18) != bits ||
+                std::memcmp(p + 26, suffix, sizeof(suffix)) != 0) {
+            fail("UNSUPPORTED_FORMAT"); return false;
+        }
+        format = u16(p + 24);
+    }
+    return true;
+}
+
+bool PcmStreamDecoder::validate_format() {
+    if (channels < 1 || channels > 2 || rate < 8000 || rate > 192000 ||
+            !supported_encoding()) {
+        fail("UNSUPPORTED_FORMAT"); return false;
+    }
+    return true;
+}
+
+bool PcmStreamDecoder::decode_sample(const uint8_t *pointer, float &value) {
+    if (format == 3) {
+        std::memcpy(&value, pointer, sizeof(value));
+        if (!std::isfinite(value)) { fail("INVALID_WAV"); return false; }
+    } else if (bits == 8) value = (int(pointer[0]) - 128) / 128.f;
+    else if (bits == 16) value = int16_t(u16(pointer)) / 32768.f;
+    else if (bits == 24) {
+        int32_t integer = pointer[0] | (uint32_t(pointer[1]) << 8) | (uint32_t(pointer[2]) << 16);
+        if (integer & 0x800000) integer -= 0x1000000;
+        value = integer / 8388608.f;
+    } else value = int32_t(u32(pointer)) / 2147483648.f;
+    return true;
+}
+
+bool PcmStreamDecoder::advance_phase(size_t &offset) {
+    const uint8_t *pointer = pending.data() + offset;
+    const size_t available = pending.size() - offset;
+    if (phase == RIFF) return consume_riff(pointer, available, offset);
+    if (phase == CHUNKS) return consume_chunk(pointer, available, offset);
+    if (phase == DATA) return consume_data(pointer, available, offset);
+    offset = pending.size();
+    return true;
+}
+
+bool PcmStreamDecoder::consume_riff(const uint8_t *pointer, size_t available, size_t &offset) {
+    if (available < 12) return false;
+    if (!tag(pointer, "RIFF") || !tag(pointer + 8, "WAVE")) { fail("INVALID_WAV"); return false; }
+    offset += 12; header_bytes += 12; phase = CHUNKS;
+    return true;
+}
+
+bool PcmStreamDecoder::consume_chunk(const uint8_t *pointer, size_t available, size_t &offset) {
+    if (available < 8) return false;
+    const uint32_t size = u32(pointer + 4);
+    if (tag(pointer, "data")) {
+        if (!rate) { fail("INVALID_WAV"); return false; }
+        if (header_bytes + 8 > HEADER_LIMIT) { fail("BUFFER_LIMIT"); return false; }
+        data_left = size; unbounded_data = size == 0xffffffff;
+        offset += 8; phase = DATA;
+        return true;
+    }
+    const uint64_t padded = uint64_t(size) + (size & 1) + 8;
+    if (header_bytes + padded > HEADER_LIMIT) { fail("BUFFER_LIMIT"); return false; }
+    if (available < padded) return false;
+    if (tag(pointer, "fmt ") && !parse_format(pointer + 8, size)) return false;
+    offset += size_t(padded); header_bytes += padded;
+    return true;
+}
+
+bool PcmStreamDecoder::consume_data(const uint8_t *pointer, size_t available, size_t &offset) {
+    size_t count = unbounded_data ? available : size_t(std::min<uint64_t>(available, data_left));
+    count -= count % alignment;
+    if (count && !decode(pointer, count)) return false;
+    offset += count;
+    if (!unbounded_data) {
+        data_left -= count;
+        if (!data_left) { phase = TAIL; return true; }
+    }
+    return count != 0;
 }

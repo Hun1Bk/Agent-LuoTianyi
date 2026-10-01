@@ -40,6 +40,8 @@ Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_log_window.gd') 'log-window'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_dropdown.gd') 'unified-dropdown'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_virtual_history.gd') 'virtual-history'
+Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/ui/test_chat_timestamps.gd') 'chat-timestamps' -RequirePass
+Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/session/test_message_timestamps.gd') 'message-timestamps' -RequirePass
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_reading_position.gd') 'reading-position'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--script', 'res://tests/test_voice_replay.gd') 'voice-replay'
 Invoke-GodotChecked $engine @('--headless', '--path', $ProjectRoot, '--quit-after', '3', '--', '--preview') 'offline-preview'

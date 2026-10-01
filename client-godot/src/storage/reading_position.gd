@@ -45,30 +45,10 @@ func located() -> void:
 func report_visible(ids: Array, foreground: bool) -> Error:
 	if not foreground or _state.pending or not _state.located or _path.is_empty():
 		return OK
-	var candidate: String = _state.saved_id
-	var previous := _index(candidate)
-	for id in ids:
-		var index := _index(id)
-		if index <= previous or index < 0:
-			continue
-		var message: Dictionary = _messages[index]
-		if (message.get("history",false) or message.get("role") == "assistant") and not message.get("is_ephemeral",false):
-			candidate = id
-			previous = index
+	var candidate := _visible_candidate(ids)
 	if candidate == _state.saved_id:
 		return OK
-	var error := DirAccess.make_dir_recursive_absolute(_root)
-	if error == OK:
-		var file := FileAccess.open(_path+".tmp",FileAccess.WRITE)
-		if file == null:
-			error = FileAccess.get_open_error()
-		else:
-			file.store_string(JSON.stringify({"uuid":candidate}))
-			file.flush()
-			error = file.get_error()
-			file.close()
-			if error == OK:
-				error = DirAccess.rename_absolute(_path+".tmp",_path)
+	var error := _save_candidate(candidate)
 	if error == OK:
 		_state.saved_id = candidate
 	else:
@@ -81,3 +61,31 @@ func _index(id: String) -> int:
 		if _messages[index].id == id:
 			return index
 	return -1
+
+func _visible_candidate(ids: Array) -> String:
+	var candidate: String = _state.saved_id
+	var previous := _index(candidate)
+	for id in ids:
+		var index := _index(id)
+		if index <= previous or index < 0:
+			continue
+		var message: Dictionary = _messages[index]
+		if (message.get("history",false) or message.get("role") == "assistant") and not message.get("is_ephemeral",false):
+			candidate = id
+			previous = index
+	return candidate
+
+func _save_candidate(candidate: String) -> Error:
+	var error := DirAccess.make_dir_recursive_absolute(_root)
+	if error == OK:
+		var file := FileAccess.open(_path+".tmp",FileAccess.WRITE)
+		if file == null:
+			error = FileAccess.get_open_error()
+		else:
+			file.store_string(JSON.stringify({"uuid":candidate}))
+			file.flush()
+			error = file.get_error()
+			file.close()
+			if error == OK:
+				error = DirAccess.rename_absolute(_path+".tmp",_path)
+	return error

@@ -32,36 +32,17 @@ func _load_profile() -> void:
 		return
 	var server := ServerAddress.normalize(data.server)
 	if not data.has("version") and data.get("remember") is bool:
-		var migrated := {"version":2,"server":DEFAULT_SERVER if server.is_empty() else server,"username":data.username,"accounts":[]}
-		if not data.username.is_empty():
-			var remember: bool = data.remember and not server.is_empty()
-			migrated.accounts.append({"server":migrated.server,"username":data.username,"remember":remember,"auto_login":remember,"last_used":0})
-		_profile = migrated
-		_storage_error = _storage.write_login_profile(migrated) != OK
-		_storage_ready = not _storage_error
+		_migrate_profile(data, server)
 		return
-	if data.get("version") != 2 or server.is_empty() or not data.get("accounts") is Array:
+	if not _valid_profile_shape(data, server):
 		_storage_error = true
 		_storage_ready = false
 		return
-	var accounts: Array = []
-	var keys: Dictionary = {}
-	for entry in data.accounts:
-		if not entry is Dictionary or not entry.get("server") is String or not entry.get("username") is String or not entry.get("remember") is bool or not entry.get("auto_login") is bool or not (entry.get("last_used") is int or entry.get("last_used") is float):
-			_storage_ready = false
-			break
-		var address := ServerAddress.normalize(entry.server)
-		var key := JSON.stringify([address,entry.username])
-		if address.is_empty() or entry.username.is_empty() or keys.has(key) or not is_finite(float(entry.last_used)):
-			_storage_ready = false
-			break
-		keys[key] = true
-		accounts.append({"server":address,"username":entry.username,"remember":entry.remember,"auto_login":entry.auto_login and entry.remember,"last_used":entry.last_used})
+	var accounts := _profile_accounts(data.accounts)
 	if not _storage_ready:
 		_storage_error = true
 		return
 	_profile = {"version":2,"server":server,"username":data.username,"accounts":accounts}
-
 func get_login_defaults() -> Dictionary:
 	var entry := _entry(_profile.server, _profile.username)
 	return {"server":_profile.server,"username":_profile.username,"remember":entry.get("remember",false),"auto_login":entry.get("auto_login",false),"storage_error":_storage_error}
@@ -143,31 +124,11 @@ func perform(operation: String, server: String, fields: Dictionary, remember: bo
 	response.storage_error = false
 	if generation != _generation: response = _result(false, "CANCELLED")
 	if response.ok:
-		var address := ServerAddress.normalize(server)
-		var username: String = fields.get("username", fields.get("new_username", ""))
-		var profile := _profile.duplicate(true)
-		profile.server = address
-		profile.username = username
-		if operation in ["login", "auto_login"]:
-			_session = response.data.duplicate(true)
-			_session.server = address
-			_session.username = username
-			var stored := ERR_UNAVAILABLE
-			if _storage_ready:
-				stored = _storage.save_login_token(address, username, _session.login_token) if remember else _storage.forget_login_token(address, username)
-			response.storage_error = stored != OK
-			var index := _index(profile.accounts, address, username)
-			if index >= 0: profile.accounts.remove_at(index)
-			profile.accounts.push_front({"server":address,"username":username,"remember":remember and stored == OK,"auto_login":auto_login and stored == OK,"last_used":Time.get_unix_time_from_system()})
-		if _persist(profile) != OK: response.storage_error = true
-		if response.storage_error and operation in ["login", "auto_login"]:
-			_storage.forget_login_token(address, username)
-			_disable_memory(address, username)
+		_accept_account(operation, server, fields, remember, auto_login, response)
 	elif operation == "auto_login" and response.code == "AUTH_REJECTED":
 		response.storage_error = _forget_options(ServerAddress.normalize(server), str(fields.get("username", ""))) != OK
 	_emit(response.code, response.storage_error)
 	return response
-
 func resume() -> Dictionary:
 	var defaults := get_login_defaults()
 	if not defaults.auto_login or not defaults.remember or defaults.username.is_empty():
@@ -247,3 +208,62 @@ func _result(ok: bool, code: String, storage_error: bool = false) -> Dictionary:
 
 func _exit_tree() -> void:
 	cancel()
+
+func _migrate_profile(data: Dictionary, server: String) -> void:
+	var migrated := {"version":2,"server":DEFAULT_SERVER if server.is_empty() else server,"username":data.username,"accounts":[]}
+	if not data.username.is_empty():
+		var remember: bool = data.remember and not server.is_empty()
+		migrated.accounts.append({"server":migrated.server,"username":data.username,"remember":remember,"auto_login":remember,"last_used":0})
+	_profile = migrated
+	_storage_error = _storage.write_login_profile(migrated) != OK
+	_storage_ready = not _storage_error
+	return
+
+func _profile_accounts(entries: Array) -> Array:
+	var accounts: Array = []
+	var keys: Dictionary = {}
+	for entry in entries:
+		if not _valid_account_entry(entry):
+			_storage_ready = false
+			break
+		var address := ServerAddress.normalize(entry.server)
+		var key := JSON.stringify([address,entry.username])
+		if address.is_empty() or entry.username.is_empty() or keys.has(key) or not is_finite(float(entry.last_used)):
+			_storage_ready = false
+			break
+		keys[key] = true
+		accounts.append({"server":address,"username":entry.username,"remember":entry.remember,"auto_login":entry.auto_login and entry.remember,"last_used":entry.last_used})
+	return accounts
+
+func _valid_account_entry(entry: Variant) -> bool:
+	if not entry is Dictionary or not entry.get("server") is String or not entry.get("username") is String:
+		return false
+	return entry.get("remember") is bool and entry.get("auto_login") is bool and (entry.get("last_used") is int or entry.get("last_used") is float)
+
+func _accept_account(operation: String, server: String, fields: Dictionary, remember: bool, auto_login: bool, response: Dictionary) -> void:
+	var address := ServerAddress.normalize(server)
+	var username: String = fields.get("username", fields.get("new_username", ""))
+	var profile := _profile.duplicate(true)
+	profile.server = address
+	profile.username = username
+	if operation in ["login", "auto_login"]:
+		_accept_login(profile, address, username, remember, auto_login, response)
+	if _persist(profile) != OK: response.storage_error = true
+	if response.storage_error and operation in ["login", "auto_login"]:
+		_storage.forget_login_token(address, username)
+		_disable_memory(address, username)
+
+func _accept_login(profile: Dictionary, address: String, username: String, remember: bool, auto_login: bool, response: Dictionary) -> void:
+	_session = response.data.duplicate(true)
+	_session.server = address
+	_session.username = username
+	var stored := ERR_UNAVAILABLE
+	if _storage_ready:
+		stored = _storage.save_login_token(address, username, _session.login_token) if remember else _storage.forget_login_token(address, username)
+	response.storage_error = stored != OK
+	var index := _index(profile.accounts, address, username)
+	if index >= 0: profile.accounts.remove_at(index)
+	profile.accounts.push_front({"server":address,"username":username,"remember":remember and stored == OK,"auto_login":auto_login and stored == OK,"last_used":Time.get_unix_time_from_system()})
+
+func _valid_profile_shape(data: Dictionary, server: String) -> bool:
+	return data.get("version") == 2 and not server.is_empty() and data.get("accounts") is Array

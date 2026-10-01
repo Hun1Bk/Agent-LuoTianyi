@@ -54,20 +54,7 @@ func save() -> void:
 	if generation != _generation:
 		return
 	if response.ok:
-		var merged: Dictionary = response.data.preferences.duplicate(true)
-		for key in FIELDS:
-			if draft[key] == _baseline[key]:
-				continue
-			var value: String = draft[key].strip_edges()
-			if key == "personality_text":
-				var traits: Array[String] = []
-				for part in value.replace("，",",").replace("、",",").replace("\n",",").replace("\r",",").split(","):
-					if not part.strip_edges().is_empty():
-						traits.append(part.strip_edges())
-				merged.personality_traits = traits
-				merged["#sym:personality_text"] = "，".join(traits)
-			else:
-				merged[key] = "" if (key == "relationship" and value == "朋友") or (key == "speaking_style" and value == "活泼可爱") else value
+		var merged := _merge_preferences(response.data.preferences, draft)
 		var body := _auth()
 		body.preferences = merged
 		response = await _http.send(_session.server+"/preference/overwrite",HTTPClient.METHOD_POST,body)
@@ -119,3 +106,23 @@ func _notify() -> void:
 	changed.emit(get_state())
 func _exit_tree() -> void:
 	stop()
+
+func _merge_preferences(preferences: Dictionary, draft: Dictionary) -> Dictionary:
+	var merged: Dictionary = preferences.duplicate(true)
+	for key in FIELDS:
+		if draft[key] == _baseline[key]:
+			continue
+		var value: String = draft[key].strip_edges()
+		if key == "personality_text":
+			_merge_traits(merged, value)
+		else:
+			merged[key] = "" if (key == "relationship" and value == "朋友") or (key == "speaking_style" and value == "活泼可爱") else value
+	return merged
+
+func _merge_traits(merged: Dictionary, value: String) -> void:
+	var traits: Array[String] = []
+	for part in value.replace("，",",").replace("、",",").replace("\n",",").replace("\r",",").split(","):
+		if not part.strip_edges().is_empty():
+			traits.append(part.strip_edges())
+	merged.personality_traits = traits
+	merged["#sym:personality_text"] = "，".join(traits)

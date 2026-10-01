@@ -166,14 +166,7 @@ func _ready() -> void:
 	_session.changed.connect(_account_changed)
 
 	var settings: Resource = _services.settings
-	if settings.load_settings() == OK:
-		var ratio: Variant = settings.get_value("layout", "ratio", 1.0 / 3.0)
-		if (ratio is float or ratio is int) and is_finite(float(ratio)):
-			_ratio = clampf(float(ratio), 0.3, 0.6)
-		var volume: Variant = settings.get_value("audio", "volume", 1.0)
-		if (volume is float or volume is int) and is_finite(float(volume)) and volume >= 0 and volume <= 1:
-			_chat.set_volume(float(volume))
-
+	_restore_settings(settings)
 	_chat.state_changed.connect(func(_state):
 		var volume: float = _chat.get_audio_state().volume
 		if settings.get_value("audio", "volume", 1.0) != volume:
@@ -195,18 +188,7 @@ func _ready() -> void:
 	_layout_ready = true
 	_resize_split()
 
-	var capture := ""
-	for argument in runtime.arguments():
-		if argument.begins_with("--capture="):
-			capture = argument.trim_prefix("--capture=")
-
-	if not capture.is_empty():
-		await get_tree().create_timer(1.0).timeout
-		await RenderingServer.frame_post_draw
-		var saved: Error = runtime.capture(get_viewport(),capture)
-		get_tree().quit(0 if saved == OK else 1)
-	elif not runtime.is_headless():
-		_session.resume()
+	await _capture_or_resume()
 
 
 ## 账户状态变化回调。
@@ -254,29 +236,7 @@ func _account_changed(state: Dictionary) -> void:
 			return
 
 	else:
-		_coordinator.close_all()
-		_lifecycle.stop()
-
-		if _chat_view != null:
-			_chat_view.hide()
-			_chat_view.queue_free()
-			_chat_view = null
-
-		if _avatar != null:
-			_avatar.hide()
-			_avatar.queue_free()
-			_avatar = null
-
-		_center.show()
-		%Navigation.hide()
-
-		if _expanded:
-			if window_system.windowed(get_window()):
-				_expanded_size = window_system.geometry(get_window()).size
-			_expanded = false
-			_split.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
-			_resize_window(Vector2i(480, 690), Vector2i(360, 480))
-
+		_show_signed_out()
 	_resize_split()
 
 
@@ -321,3 +281,51 @@ func _open_settings(kind: String) -> void:
 ## 将关闭请求转交给窗口协调器统一处理。
 func _request_close(action: String) -> void:
 	if _coordinator != null: _coordinator.request_close(action)
+
+func _restore_settings(settings: Resource) -> void:
+	if settings.load_settings() == OK:
+		var ratio: Variant = settings.get_value("layout", "ratio", 1.0 / 3.0)
+		if (ratio is float or ratio is int) and is_finite(float(ratio)):
+			_ratio = clampf(float(ratio), 0.3, 0.6)
+		var volume: Variant = settings.get_value("audio", "volume", 1.0)
+		if (volume is float or volume is int) and is_finite(float(volume)) and volume >= 0 and volume <= 1:
+			_chat.set_volume(float(volume))
+
+func _capture_or_resume() -> void:
+	var capture := ""
+	for argument in runtime.arguments():
+		if argument.begins_with("--capture="):
+			capture = argument.trim_prefix("--capture=")
+
+	if not capture.is_empty():
+		await get_tree().create_timer(1.0).timeout
+		await RenderingServer.frame_post_draw
+		var saved: Error = runtime.capture(get_viewport(),capture)
+		get_tree().quit(0 if saved == OK else 1)
+	elif not runtime.is_headless():
+		_session.resume()
+
+
+func _show_signed_out() -> void:
+	_coordinator.close_all()
+	_lifecycle.stop()
+
+	if _chat_view != null:
+		_chat_view.hide()
+		_chat_view.queue_free()
+		_chat_view = null
+
+	if _avatar != null:
+		_avatar.hide()
+		_avatar.queue_free()
+		_avatar = null
+
+	_center.show()
+	%Navigation.hide()
+
+	if _expanded:
+		if window_system.windowed(get_window()):
+			_expanded_size = window_system.geometry(get_window()).size
+		_expanded = false
+		_split.dragger_visibility = SplitContainer.DRAGGER_HIDDEN_COLLAPSED
+		_resize_window(Vector2i(480, 690), Vector2i(360, 480))

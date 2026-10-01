@@ -47,17 +47,8 @@ func _init(logger: RefCounted = null, clock: Callable = Callable(), cache: RefCo
 func append_reply_audio(id: String, encoded: String, final: bool, audio_error: bool = false, ephemeral: bool = false) -> void:
 	if _completed.has(id):
 		return
-	if not _streams.has(id):
-		if _streams.size() >= 16:
-			_completed[id] = true
-			_log("audio_error", id, {"code":"BUFFER_LIMIT"})
-			_log("audio_receive_finished", id, {"code":"BUFFER_LIMIT"})
-			_log("audio_playback_finished", id, {"code":"BUFFER_LIMIT"})
-			receive_finished.emit(id, "BUFFER_LIMIT")
-			playback_finished.emit(id, "BUFFER_LIMIT")
-			return
-		_streams[id] = {"decoder":null, "final":false, "code":"", "stopped":false,
-			"updated":_clock.call(), "format_logged":false, "cache_started":false, "cache_suppressed":false}
+	if not _ensure_stream(id):
+		return
 	var item: Dictionary = _streams[id]
 	if item.final:
 		return
@@ -70,61 +61,10 @@ func append_reply_audio(id: String, encoded: String, final: bool, audio_error: b
 		_fail(id, "AUDIO_ERROR")
 		return
 	if not encoded.is_empty():
-		if encoded.length() > 12 * 1024 * 1024 or encoded.length() % 4 != 0 or _invalid_base64.search(encoded) == null:
-			_fail(id, "INVALID_BASE64")
-			return
-		var bytes := Marshalls.base64_to_raw(encoded)
-		if bytes.is_empty() or Marshalls.raw_to_base64(bytes) != encoded:
-			_fail(id, "INVALID_BASE64")
-			return
-		_log("audio_received", id, {"bytes":bytes.size()})
-		if _cache != null and not item.cache_suppressed:
-			if not item.cache_started:
-				var result: Error = _cache.begin(id)
-				if result == ERR_ALREADY_EXISTS:
-					item.cache_suppressed = true
-				elif result != OK:
-					_cache_failed(id)
-				else:
-					item.cache_started = true
-			if item.cache_started and not item.cache_suppressed and _cache.append(id,bytes) != OK:
-				_cache_failed(id)
-		if item.decoder == null:
-			item.decoder = _decoder_factory.create_decoder()
-			if item.decoder == null:
-				_fail(id, "DECODER_UNAVAILABLE")
-				return
-		var status: Dictionary = item.decoder.append(bytes)
-		if not status.ok:
-			_fail(id, status.code)
-			return
-		if status.sample_rate > 0 and not item.format_logged:
-			_log("audio_format", id, status)
-			item.format_logged = true
-		_log("audio_decoded", id, {"frames":status.decoded_frames, "queued":status.queued_frames})
-		if item.stopped:
-			item.decoder.read_frames(status.queued_frames)
-		var queued_frames := 0
-		for other in _streams.values():
-			if other.decoder != null:
-				queued_frames += int(other.decoder.get_status().queued_frames)
-		if queued_frames > 128 * 1024 * 1024 / 8:
-			_fail(id, "BUFFER_LIMIT")
+		if not _append_encoded(id, item, encoded):
 			return
 	if final:
-		if item.decoder != null:
-			var status: Dictionary = item.decoder.finish()
-			if not status.ok:
-				_fail(id, status.code)
-				return
-			if _cache != null and item.cache_started and not item.cache_suppressed:
-				if _cache.commit(id,status,item.decoder.get_waveform()) != OK:
-					_cache_failed(id)
-				else:
-					_metadata.erase(id)
-					_notify_audio(id)
-		_end_receive(id)
-
+		_finish_receive(id, item)
 func play_reply(id: String) -> void:
 	if _active.is_empty() and _streams.has(id):
 		_active = id
@@ -218,46 +158,9 @@ func _process(_delta: float) -> void:
 		return
 	var status: Dictionary = item.decoder.get_status()
 	if _playback == null:
-		if status.sample_rate == 0 or status.queued_frames == 0 or (not item.final and status.queued_frames < status.sample_rate * .08):
+		if not _start_playback(item, status):
 			return
-		if not _replay.id.is_empty():
-			_log("replay_preempted",_replay.id)
-			stop_replay()
-		var generator := AudioStreamGenerator.new()
-		generator.mix_rate = status.sample_rate
-		generator.buffer_length = .25
-		_player.stream = generator
-		_player.play()
-		_playback = _player.get_stream_playback()
-		_capacity = _playback.get_frames_available()
-		_pushed = 0
-		_skips = _playback.get_skips()
-		_log("audio_playback_started", _active, {"sample_rate":status.sample_rate, "volume":_volume,
-			"latency_ms":AudioServer.get_output_latency() * 1000})
-		state_changed.emit(get_state())
-		_notify_all_audio()
-	var available := _playback.get_frames_available()
-	var buffered := _capacity - available
-	var heard := _pushed - buffered - int(AudioServer.get_output_latency() * status.sample_rate)
-	mouth_changed.emit(clampf(item.decoder.get_amplitude(heard) * 3.0, 0, 1))
-	var skips := _playback.get_skips()
-	if skips > _skips and not item.final:
-		_log("audio_underrun", _active, {"skips":skips - _skips})
-	_skips = skips
-	var count := mini(available, mini(int(status.queued_frames), 16384))
-	if count > 0:
-		var frames: PackedVector2Array = item.decoder.read_frames(count)
-		if not _playback.push_buffer(frames):
-			_fail(_active, "PLAYBACK_FAILED")
-			return
-		_pushed += frames.size()
-		_drain_at = 0
-	elif item.final and buffered == 0:
-		if _drain_at == 0:
-			_drain_at = now + ceili((AudioServer.get_output_latency() + AudioServer.get_time_to_next_mix()) * 1000) + 10
-		elif now >= _drain_at:
-			_complete()
-
+	_pump_playback(item, status, now)
 func _exit_tree() -> void:
 	reset()
 
@@ -339,3 +242,135 @@ func _notify_audio(id: String) -> void:
 func _notify_all_audio() -> void:
 	for id in _metadata.keys():
 		_notify_audio(id)
+
+func _ensure_stream(id: String) -> bool:
+	if not _streams.has(id):
+		if _streams.size() >= 16:
+			_completed[id] = true
+			_log("audio_error", id, {"code":"BUFFER_LIMIT"})
+			_log("audio_receive_finished", id, {"code":"BUFFER_LIMIT"})
+			_log("audio_playback_finished", id, {"code":"BUFFER_LIMIT"})
+			receive_finished.emit(id, "BUFFER_LIMIT")
+			playback_finished.emit(id, "BUFFER_LIMIT")
+			return false
+		_streams[id] = {"decoder":null, "final":false, "code":"", "stopped":false,
+			"updated":_clock.call(), "format_logged":false, "cache_started":false, "cache_suppressed":false}
+	return true
+
+func _append_encoded(id: String, item: Dictionary, encoded: String) -> bool:
+	if not _valid_encoded_audio(encoded):
+		_fail(id, "INVALID_BASE64")
+		return false
+	var bytes := Marshalls.base64_to_raw(encoded)
+	if bytes.is_empty() or Marshalls.raw_to_base64(bytes) != encoded:
+		_fail(id, "INVALID_BASE64")
+		return false
+	_log("audio_received", id, {"bytes":bytes.size()})
+	_append_cache(id, item, bytes)
+	if not _ensure_decoder(id, item):
+		return false
+	var status: Dictionary = item.decoder.append(bytes)
+	if not status.ok:
+		_fail(id, status.code)
+		return false
+	if status.sample_rate > 0 and not item.format_logged:
+		_log("audio_format", id, status)
+		item.format_logged = true
+	_log("audio_decoded", id, {"frames":status.decoded_frames, "queued":status.queued_frames})
+	if item.stopped:
+		item.decoder.read_frames(status.queued_frames)
+	return _check_queued_frames(id)
+func _append_cache(id: String, item: Dictionary, bytes: PackedByteArray) -> void:
+	if _cache != null and not item.cache_suppressed:
+		if not item.cache_started:
+			var result: Error = _cache.begin(id)
+			if result == ERR_ALREADY_EXISTS:
+				item.cache_suppressed = true
+			elif result != OK:
+				_cache_failed(id)
+			else:
+				item.cache_started = true
+		if item.cache_started and not item.cache_suppressed and _cache.append(id,bytes) != OK:
+			_cache_failed(id)
+
+func _check_queued_frames(id: String) -> bool:
+	var queued_frames := 0
+	for other in _streams.values():
+		if other.decoder != null:
+			queued_frames += int(other.decoder.get_status().queued_frames)
+	if queued_frames > 128 * 1024 * 1024 / 8:
+		_fail(id, "BUFFER_LIMIT")
+		return false
+	return true
+
+func _finish_receive(id: String, item: Dictionary) -> void:
+	if item.decoder != null:
+		var status: Dictionary = item.decoder.finish()
+		if not status.ok:
+			_fail(id, status.code)
+			return
+		_commit_cache(id, item, status)
+	_end_receive(id)
+
+func _commit_cache(id: String, item: Dictionary, status: Dictionary) -> void:
+	if _cache != null and item.cache_started and not item.cache_suppressed:
+		if _cache.commit(id,status,item.decoder.get_waveform()) != OK:
+			_cache_failed(id)
+		else:
+			_metadata.erase(id)
+			_notify_audio(id)
+
+func _start_playback(item: Dictionary, status: Dictionary) -> bool:
+	if status.sample_rate == 0 or status.queued_frames == 0 or (not item.final and status.queued_frames < status.sample_rate * .08):
+		return false
+	if not _replay.id.is_empty():
+		_log("replay_preempted",_replay.id)
+		stop_replay()
+	var generator := AudioStreamGenerator.new()
+	generator.mix_rate = status.sample_rate
+	generator.buffer_length = .25
+	_player.stream = generator
+	_player.play()
+	_playback = _player.get_stream_playback()
+	_capacity = _playback.get_frames_available()
+	_pushed = 0
+	_skips = _playback.get_skips()
+	_log("audio_playback_started", _active, {"sample_rate":status.sample_rate, "volume":_volume,
+		"latency_ms":AudioServer.get_output_latency() * 1000})
+	state_changed.emit(get_state())
+	_notify_all_audio()
+	return true
+
+func _pump_playback(item: Dictionary, status: Dictionary, now: int) -> void:
+	var available := _playback.get_frames_available()
+	var buffered := _capacity - available
+	var heard := _pushed - buffered - int(AudioServer.get_output_latency() * status.sample_rate)
+	mouth_changed.emit(clampf(item.decoder.get_amplitude(heard) * 3.0, 0, 1))
+	var skips := _playback.get_skips()
+	if skips > _skips and not item.final:
+		_log("audio_underrun", _active, {"skips":skips - _skips})
+	_skips = skips
+	var count := mini(available, mini(int(status.queued_frames), 16384))
+	if count > 0:
+		var frames: PackedVector2Array = item.decoder.read_frames(count)
+		if not _playback.push_buffer(frames):
+			_fail(_active, "PLAYBACK_FAILED")
+			return
+		_pushed += frames.size()
+		_drain_at = 0
+	elif item.final and buffered == 0:
+		if _drain_at == 0:
+			_drain_at = now + ceili((AudioServer.get_output_latency() + AudioServer.get_time_to_next_mix()) * 1000) + 10
+		elif now >= _drain_at:
+			_complete()
+
+func _ensure_decoder(id: String, item: Dictionary) -> bool:
+	if item.decoder == null:
+		item.decoder = _decoder_factory.create_decoder()
+		if item.decoder == null:
+			_fail(id, "DECODER_UNAVAILABLE")
+			return false
+	return true
+
+func _valid_encoded_audio(encoded: String) -> bool:
+	return encoded.length() <= 12 * 1024 * 1024 and encoded.length() % 4 == 0 and _invalid_base64.search(encoded) != null

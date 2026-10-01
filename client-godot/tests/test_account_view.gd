@@ -51,7 +51,7 @@ func run() -> void:
 	var server := input(view, "服务器地址")
 	var username := input(view, "用户名")
 	var password := input(view, "密码")
-	check(server != null and username != null and password != null, "account form is available")
+	_check_account_form_is_available(server, username, password)
 	if server != null and username != null and password != null:
 		await session.set_server(OS.get_environment("GODOT_TEST_SERVER"))
 		username.text = "reject"
@@ -85,3 +85,6 @@ func run() -> void:
 	DirAccess.remove_absolute(folder)
 	print("Account view: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+
+func _check_account_form_is_available(server: Variant, username: Variant, password: Variant) -> void:
+	check(server != null and username != null and password != null, "account form is available")

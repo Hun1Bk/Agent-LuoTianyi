@@ -38,32 +38,18 @@ func load_avatar(model_path: String,mapping_path: String = MAPPING_PATH) -> Erro
 		return ERR_FILE_NOT_FOUND
 	if not FileAccess.file_exists(mapping_path):
 		return ERR_FILE_NOT_FOUND
-	var mapping: Variant = JSON.parse_string(FileAccess.get_file_as_string(mapping_path))
-	if not mapping is Dictionary or not mapping.get("expression_projection") is Dictionary or not mapping.get("mouth_value_projection") is Dictionary:
-		return ERR_INVALID_DATA
-	if not ClassDB.class_exists("GDCubismUserModel"):
-		return ERR_UNAVAILABLE
+	var parsed := _read_mapping(mapping_path)
+	if not parsed.ok: return parsed.code
+	var mapping: Dictionary = parsed.mapping
 	var data = JSON.parse_string(FileAccess.get_file_as_string(model_path))
 	if not data is Dictionary or not model_path.ends_with(".model3.json"):
 		return ERR_INVALID_DATA
 	var references: Dictionary = data.get("FileReferences", {})
-	if not references.has("Moc") or references.get("Textures", []).is_empty():
+	if not _valid_references(references):
 		return ERR_INVALID_DATA
-	var files: Array = [references.Moc]
-	files.append_array(references.Textures)
-	for optional in ["Physics", "Pose", "UserData"]:
-		if references.has(optional):
-			files.append(references[optional])
-	for entry in references.get("Expressions", []):
-		files.append(entry.File)
-	for group in references.get("Motions", {}).values():
-		for motion in group:
-			files.append(motion.File)
-	for file in files:
-		var resource_path: String = model_path.get_base_dir().path_join(file)
-		# Exported textures are imported resources, not loose PNG files.
-		if not FileAccess.file_exists(resource_path) and not ResourceLoader.exists(resource_path):
-			return ERR_FILE_NOT_FOUND
+	var checked := _check_model_files(model_path, references)
+	if checked != OK:
+		return checked
 	var candidate: Node2D = ClassDB.instantiate("GDCubismUserModel")
 	var effects: Node = ClassDB.instantiate("GDCubismEffectCustom")
 	candidate.add_child(ClassDB.instantiate("GDCubismEffectBreath"))
@@ -80,35 +66,15 @@ func load_avatar(model_path: String,mapping_path: String = MAPPING_PATH) -> Erro
 	_mapping = mapping
 	_character_id = ""
 	_resource_id = ""
-	_parameters.clear()
-	for parameter in _model.call("get_parameters"):
-		_parameters[parameter.id] = parameter
-	_expression_eyes.clear()
-	for expression in references.get("Expressions", []):
-		var expression_data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(model_path.get_base_dir().path_join(expression.File)))
-		var eyes := Vector2.ONE
-		for parameter in expression_data.get("Parameters", []):
-			var index := ["ParamEyeLOpen", "ParamEyeROpen"].find(parameter.get("Id", ""))
-			if index < 0: continue
-			match parameter.get("Blend", "Add"):
-				"Add": eyes[index] += float(parameter.Value)
-				"Multiply": eyes[index] *= float(parameter.Value)
-				"Overwrite": eyes[index] = float(parameter.Value)
-		_expression_eyes[expression.Name] = eyes.clamp(Vector2.ZERO, Vector2.ONE)
+	_index_model(model_path, references)
 	effects.connect("cubism_process", _apply_parameters)
 	_mouth_override = -1.0
 	_elapsed = 0.0
 	_gaze = Vector2.ZERO
 	_gaze_target = Vector2.ZERO
-	_touch_meshes.clear()
-	var meshes: Dictionary = _model.call("get_meshes")
-	for area in _mapping.get("touch_meshes", {}):
-		for id in _mapping.touch_meshes[area]:
-			if meshes.has(id): _touch_meshes[meshes[id]] = area
+	_index_touch_meshes()
 	apply_expression("normal")
 	return OK
-
-
 func apply_expression(command: String) -> bool:
 	if not is_instance_valid(_model):
 		return false
@@ -195,3 +161,56 @@ func _apply_parameters(_source: Object, delta: float) -> void:
 	var mouth := _mouth_override if _mouth_override >= 0 else _base_mouth
 	if mouth >= 0 and _parameters.has("ParamMouthOpenY"):
 		_parameters.ParamMouthOpenY.value = mouth
+
+func _check_model_files(model_path: String, references: Dictionary) -> Error:
+	var files: Array = [references.Moc]
+	files.append_array(references.Textures)
+	for optional in ["Physics", "Pose", "UserData"]:
+		if references.has(optional):
+			files.append(references[optional])
+	for entry in references.get("Expressions", []):
+		files.append(entry.File)
+	for group in references.get("Motions", {}).values():
+		for motion in group:
+			files.append(motion.File)
+	for file in files:
+		var resource_path: String = model_path.get_base_dir().path_join(file)
+		# Exported textures are imported resources, not loose PNG files.
+		if not FileAccess.file_exists(resource_path) and not ResourceLoader.exists(resource_path):
+			return ERR_FILE_NOT_FOUND
+	return OK
+
+func _index_model(model_path: String, references: Dictionary) -> void:
+	_parameters.clear()
+	for parameter in _model.call("get_parameters"):
+		_parameters[parameter.id] = parameter
+	_expression_eyes.clear()
+	for expression in references.get("Expressions", []):
+		var expression_data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(model_path.get_base_dir().path_join(expression.File)))
+		var eyes := Vector2.ONE
+		for parameter in expression_data.get("Parameters", []):
+			var index := ["ParamEyeLOpen", "ParamEyeROpen"].find(parameter.get("Id", ""))
+			if index < 0: continue
+			match parameter.get("Blend", "Add"):
+				"Add": eyes[index] += float(parameter.Value)
+				"Multiply": eyes[index] *= float(parameter.Value)
+				"Overwrite": eyes[index] = float(parameter.Value)
+		_expression_eyes[expression.Name] = eyes.clamp(Vector2.ZERO, Vector2.ONE)
+
+func _index_touch_meshes() -> void:
+	_touch_meshes.clear()
+	var meshes: Dictionary = _model.call("get_meshes")
+	for area in _mapping.get("touch_meshes", {}):
+		for id in _mapping.touch_meshes[area]:
+			if meshes.has(id): _touch_meshes[meshes[id]] = area
+
+func _read_mapping(mapping_path: String) -> Dictionary:
+	var mapping: Variant = JSON.parse_string(FileAccess.get_file_as_string(mapping_path))
+	if not mapping is Dictionary or not mapping.get("expression_projection") is Dictionary or not mapping.get("mouth_value_projection") is Dictionary:
+		return {"ok":false,"code":ERR_INVALID_DATA}
+	if not ClassDB.class_exists("GDCubismUserModel"):
+		return {"ok":false,"code":ERR_UNAVAILABLE}
+	return {"ok":true,"mapping":mapping}
+
+func _valid_references(references: Dictionary) -> bool:
+	return references.has("Moc") and not references.get("Textures", []).is_empty()

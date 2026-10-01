@@ -46,8 +46,8 @@ func test_details() -> void:
 	for input in window.find_children("CommentDraft","TextEdit",true,false):
 		if input.is_visible_in_tree(): check(not input.editable,"read-only dynamic disables input")
 	window.select_post("d0")
-	check(draft.text == "ordinary draft" and draft.is_visible_in_tree(),"switch preserves correct draft")
-	check(not window.select_post("missing") and window.get_selected_id()=="d0","unknown selection cannot clear current detail")
+	_check_switch_preserves_correct_draft(draft)
+	_check_unknown_selection_cannot_clear_current_detail(window)
 	var active = window.find_children("*","ScrollContainer",true,false).filter(func(n): return n.has_method("update_comments") and n.is_visible_in_tree())[0]
 	await process_frame
 	active.scroll_vertical = 140
@@ -71,7 +71,7 @@ func test_details() -> void:
 		var reply = window.find_child("ReplyDraft",true,false)
 		reply.text = "reply draft"
 		window.find_child("CancelReply",true,false).pressed.emit()
-		check(reply.text == "reply draft" and window.is_dirty(),"cancel target keeps reply text")
+		_check_cancel_target_keeps_reply_text(reply, window)
 	for button in window.find_children("*","Button",true,false):
 		if button.text=="发布动态": button.pressed.emit()
 	await process_frame
@@ -79,7 +79,7 @@ func test_details() -> void:
 	publish.text = "new post"
 	window.find_child("PublishButton",true,false).pressed.emit()
 	await create_timer(.2).timeout
-	check(window.get_selected_id()=="d99" and window.find_child("PublishDraft",true,false)==null,"publication selects returned post and closes publisher")
+	_check_publication_selects_returned_post_and_closes_publisher(window)
 	check(window.is_dirty(),"publication success preserves another post draft")
 	window.select_post("d0")
 	check(draft.text=="ordinary draft","prior comment survives publication")
@@ -97,13 +97,12 @@ func test_details() -> void:
 	await process_frame
 	split = restored.find_children("*","HSplitContainer",true,false)[0]
 	check(absf(split.get_child(0).size.x/split.size.x-.55)<.02,"divider ratio survives new window")
-	check(restored.get_selected_id().is_empty() and not restored.is_dirty(),"new window restores neither selection nor discarded drafts")
+	_check_new_window_restores_neither_selection_nor_discarded_drafts(restored)
 	restored.queue_free()
 	await process_frame
 	controller.queue_free()
 	await process_frame
 	DirAccess.remove_absolute(layout_path)
-
 func test_publish_failure() -> void:
 	var controller = load("res://src/session/dynamics_controller.gd").new()
 	root.add_child(controller)
@@ -143,3 +142,18 @@ func test_publish_failure() -> void:
 	DirAccess.remove_absolute(layout_path)
 	controller.queue_free()
 	await process_frame
+
+func _check_cancel_target_keeps_reply_text(reply: Variant, window: Variant) -> void:
+	check(reply.text == "reply draft" and window.is_dirty(),"cancel target keeps reply text")
+
+func _check_switch_preserves_correct_draft(draft: Variant) -> void:
+	check(draft.text == "ordinary draft" and draft.is_visible_in_tree(),"switch preserves correct draft")
+
+func _check_unknown_selection_cannot_clear_current_detail(window: Variant) -> void:
+	check(not window.select_post("missing") and window.get_selected_id()=="d0","unknown selection cannot clear current detail")
+
+func _check_publication_selects_returned_post_and_closes_publisher(window: Variant) -> void:
+	check(window.get_selected_id()=="d99" and window.find_child("PublishDraft",true,false)==null,"publication selects returned post and closes publisher")
+
+func _check_new_window_restores_neither_selection_nor_discarded_drafts(restored: Variant) -> void:
+	check(restored.get_selected_id().is_empty() and not restored.is_dirty(),"new window restores neither selection nor discarded drafts")

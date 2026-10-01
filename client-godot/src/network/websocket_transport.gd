@@ -61,46 +61,14 @@ func _process(_delta: float) -> void:
 	if _state.phase == "reconnecting" and now >= _next_connect:
 		_connect_socket(now)
 	if _peer != null:
-		_peer.poll()
-		var ready := _peer.get_ready_state()
-		if ready == WebSocketPeer.STATE_OPEN:
-			if _state.phase == "connecting":
-				_deadline = now + 5000
-				_set_state("authenticating", "")
-				_send_control("user_auth", {"username":_session.username, "token":_session.message_token,
-					"capabilities":["negative_ack_v1"]}, now)
-		# A close frame can arrive in the same poll as auth_error or a final reply.
-		# Consume those queued packets before deciding to reconnect.
-		var processed := 0
-		while _peer != null and _peer.get_available_packet_count() > 0 and processed < 64:
-			var bytes := _peer.get_packet()
-			var parser := JSON.new()
-			if not _peer.was_string_packet() or bytes.size() > MAX_PACKET or parser.parse(bytes.get_string_from_utf8()) != OK:
-				_protocol_error(now)
-				break
-			var event: Variant = parser.data
-			if not event is Dictionary or not event.get("type") is String or not event.get("payload") is Dictionary:
-				_protocol_error(now)
-				break
-			_handle_event(event, now)
-			processed += 1
-		if _peer != null and ready in [WebSocketPeer.STATE_CLOSED, WebSocketPeer.STATE_CLOSING]:
-			if _state.phase == "authenticating" and _peer.get_close_code() == 1008:
-				_reject_auth("AUTH_REJECTED")
-			else:
-				_disconnect(now, "CONNECTION_LOST")
+		_poll_socket(now)
 	if _state.phase in ["connecting", "authenticating"] and now >= _deadline:
 		_disconnect(now, "CONNECT_TIMEOUT" if _state.phase == "connecting" else "AUTH_TIMEOUT")
 	if _state.phase == "ready" and now >= _next_heartbeat:
 		_ping_id += 1
 		_next_heartbeat = now + 10000
 		_send_control("hb_ping", {"ping_id":_ping_id}, now)
-	var packets: Array[Dictionary] = _outbox.take_ready(now, _state.phase == "ready")
-	for packet in packets:
-		if _peer == null or _peer.send_text(JSON.stringify(packet)) != OK:
-			_disconnect(now, "SEND_FAILED")
-			break
-
+	_send_pending(now)
 func _connect_socket(now: int) -> void:
 	_peer = WebSocketPeer.new()
 	_peer.inbound_buffer_size = MAX_PACKET
@@ -130,14 +98,7 @@ func _handle_event(event: Dictionary, now: int) -> void:
 		return
 	if _state.phase != "ready":
 		return
-	if event.type == "server_ack":
-		if event.get("reply_to") is String:
-			_outbox.acknowledge(event.reply_to, event.payload, now)
-	elif event.type == "error":
-		system_error.emit(_error_code(event.payload, "SERVER_ERROR"))
-	else:
-		event_received.emit(event.duplicate(true))
-
+	_dispatch_event(event, now)
 func _send_control(type: String, payload: Dictionary, now: int) -> void:
 	var packet := {"type":type, "payload":payload, "client_msg_id":"c-" + Crypto.new().generate_random_bytes(16).hex_encode(),
 		"ts":int(Time.get_unix_time_from_system() * 1000), "reply_to":null}
@@ -178,3 +139,55 @@ static func _error_code(payload: Dictionary, fallback: String) -> String:
 
 func _exit_tree() -> void:
 	stop()
+
+func _poll_socket(now: int) -> void:
+	_peer.poll()
+	var ready := _peer.get_ready_state()
+	if ready == WebSocketPeer.STATE_OPEN:
+		if _state.phase == "connecting":
+			_deadline = now + 5000
+			_set_state("authenticating", "")
+			_send_control("user_auth", {"username":_session.username, "token":_session.message_token,
+				"capabilities":["negative_ack_v1"]}, now)
+	# A close frame can arrive in the same poll as auth_error or a final reply.
+	# Consume those queued packets before deciding to reconnect.
+	_receive_packets(now)
+	if _peer != null and ready in [WebSocketPeer.STATE_CLOSED, WebSocketPeer.STATE_CLOSING]:
+		if _state.phase == "authenticating" and _peer.get_close_code() == 1008:
+			_reject_auth("AUTH_REJECTED")
+		else:
+			_disconnect(now, "CONNECTION_LOST")
+
+func _receive_packets(now: int) -> void:
+	var processed := 0
+	while _peer != null and _peer.get_available_packet_count() > 0 and processed < 64:
+		var bytes := _peer.get_packet()
+		var parser := JSON.new()
+		if not _peer.was_string_packet() or bytes.size() > MAX_PACKET or parser.parse(bytes.get_string_from_utf8()) != OK:
+			_protocol_error(now)
+			break
+		var event: Variant = parser.data
+		if not _valid_event(event):
+			_protocol_error(now)
+			break
+		_handle_event(event, now)
+		processed += 1
+
+func _valid_event(event: Variant) -> bool:
+	return event is Dictionary and event.get("type") is String and event.get("payload") is Dictionary
+
+func _dispatch_event(event: Dictionary, now: int) -> void:
+	if event.type == "server_ack":
+		if event.get("reply_to") is String:
+			_outbox.acknowledge(event.reply_to, event.payload, now)
+	elif event.type == "error":
+		system_error.emit(_error_code(event.payload, "SERVER_ERROR"))
+	else:
+		event_received.emit(event.duplicate(true))
+
+func _send_pending(now: int) -> void:
+	var packets: Array[Dictionary] = _outbox.take_ready(now, _state.phase == "ready")
+	for packet in packets:
+		if _peer == null or _peer.send_text(JSON.stringify(packet)) != OK:
+			_disconnect(now, "SEND_FAILED")
+			break

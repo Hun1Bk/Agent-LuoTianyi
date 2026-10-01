@@ -30,7 +30,7 @@ func _run() -> void:
 	check(settings.save("text-purpose",config).ok,"valid config saved locally")
 	check(settings.enabled_types()==["text-purpose"],"only enabled valid types advertised")
 	var copy: Dictionary = settings.copy_config(config,"vision-purpose")
-	check(copy.model_kind == "vlm" and settings.validate("vision-purpose",copy).ok,"copy preserves target kind")
+	_check_copy_preserves_target_kind(copy, settings)
 	copy.params = {"stream":true}
 	check(not settings.validate("vision-purpose",copy).ok,"streaming conflict rejected")
 	var recovered = store_script.new(security,directory)
@@ -50,7 +50,7 @@ func _run() -> void:
 	malformed.model_capabilities = "broken-local-file"
 	check(store.save("vision-purpose",malformed).ok,"fixture writes malformed stored configuration")
 	await settings.start(scope)
-	check(settings.get_config("vision-purpose").model_capabilities is Dictionary and not settings.get_config("vision-purpose").enabled,"bad persisted configuration safely disabled")
+	_check_bad_persisted_configuration_safely_disabled(settings)
 	check(ResourceLoader.exists("res://scenes/ui/settings_window.tscn"),"model settings window available")
 	if ResourceLoader.exists("res://scenes/ui/settings_window.tscn"):
 		var window = load("res://scenes/ui/settings_window.tscn").instantiate()
@@ -79,3 +79,8 @@ func _run() -> void:
 	DirAccess.remove_absolute(directory)
 	print("Model settings: ","PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+func _check_copy_preserves_target_kind(copy: Variant, settings: Variant) -> void:
+	check(copy.model_kind == "vlm" and settings.validate("vision-purpose",copy).ok,"copy preserves target kind")
+
+func _check_bad_persisted_configuration_safely_disabled(settings: Variant) -> void:
+	check(settings.get_config("vision-purpose").model_capabilities is Dictionary and not settings.get_config("vision-purpose").enabled,"bad persisted configuration safely disabled")

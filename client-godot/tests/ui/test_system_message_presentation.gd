@@ -9,10 +9,10 @@ func run() -> void:
 	bubble.configure({"id":"notice", "role":"system", "text":"连接已恢复", "status":"received"})
 	await process_frame
 	var visible: Array[Node] = []
-	for child in bubble.get_children():
+	for child in bubble.get_node("%Row").get_children():
 		if child is Control and child.is_visible_in_tree():
 			visible.append(child)
-	var passed := visible.size() == 1 and visible[0] is Label
+	var passed: bool = not bubble.get_node("%TimeMarker").visible and visible.size() == 1 and visible[0] is Label
 	if passed:
 		passed = visible[0].text == "连接已恢复" and visible[0].horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER
 	print("System message only shows centered text: ", "PASS" if passed else "FAIL")

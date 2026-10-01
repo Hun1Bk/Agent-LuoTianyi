@@ -10,7 +10,7 @@ func _initialize() -> void:
 	if not ClassDB.class_exists("WindowsSecurity"):
 		var unavailable = load("res://src/platform/windows_secret_protection.gd").new()
 		var missing: Dictionary = unavailable.protect_secret("secret".to_utf8_buffer(), "scope".to_utf8_buffer())
-		check(not missing.ok and missing.error == "SECURITY_UNAVAILABLE" and missing.data.is_empty(), "missing security DLL is explicit")
+		_check_missing_security_dll_is_explicit(missing)
 		print("ENVIRONMENT: WindowsSecurity extension unavailable")
 		quit(2)
 		return
@@ -27,7 +27,7 @@ func _initialize() -> void:
 		var restored: Dictionary = security.unprotect_secret(protected.data, scope)
 		check(restored.ok and restored.data == plain, "same user and scope restore secret")
 		var wrong_scope: Dictionary = security.unprotect_secret(protected.data, "other-account".to_utf8_buffer())
-		check(not wrong_scope.ok and wrong_scope.get("stage", "") == "native_code" and int(wrong_scope.get("native_code", 0)) != 0, "wrong scope rejected by native protection")
+		_check_wrong_scope_rejected_by_native_protection(wrong_scope)
 		var damaged: PackedByteArray = protected.data.duplicate()
 		damaged[damaged.size() - 1] ^= 255
 		check(not security.unprotect_secret(damaged, scope).ok, "tampered DPAPI blob rejected")
@@ -35,7 +35,7 @@ func _initialize() -> void:
 	large.resize(65537)
 	check(not security.protect_secret(large, scope).ok, "secret size bounded")
 	var invalid: Dictionary = security.encrypt_password("not PEM", "test")
-	check(not invalid.ok and invalid.error == "INVALID_KEY" and invalid.data.is_empty() and invalid.get("stage", "") == "native_code" and invalid.has("native_code"), "bad key has safe native error")
+	_check_bad_key_has_safe_native_error(invalid)
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--fixture="):
 			var path := argument.trim_prefix("--fixture=")
@@ -51,3 +51,11 @@ func _initialize() -> void:
 			file.close()
 	print("Windows security: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+func _check_bad_key_has_safe_native_error(invalid: Variant) -> void:
+	check(not invalid.ok and invalid.error == "INVALID_KEY" and invalid.data.is_empty() and invalid.get("stage", "") == "native_code" and invalid.has("native_code"), "bad key has safe native error")
+
+func _check_missing_security_dll_is_explicit(missing: Variant) -> void:
+	check(not missing.ok and missing.error == "SECURITY_UNAVAILABLE" and missing.data.is_empty(), "missing security DLL is explicit")
+
+func _check_wrong_scope_rejected_by_native_protection(wrong_scope: Variant) -> void:
+	check(not wrong_scope.ok and wrong_scope.get("stage", "") == "native_code" and int(wrong_scope.get("native_code", 0)) != 0, "wrong scope rejected by native protection")

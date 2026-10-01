@@ -19,13 +19,7 @@ func run() -> void:
 	var result_path := "res://artifacts/native-window-controls.json"
 	DirAccess.remove_absolute(result_path)
 	var pid := OS.create_process(OS.get_environment("GODOT_TEST_PYTHON"),[ProjectSettings.globalize_path("res://tests/drive_native_window.py"),str(DisplayServer.window_get_native_handle(DisplayServer.WINDOW_HANDLE,root.get_window_id())),str(OS.get_process_id()),ProjectSettings.globalize_path(result_path)],false)
-	var deadline := Time.get_ticks_msec()+30000
-	while not FileAccess.file_exists(result_path) and Time.get_ticks_msec() < deadline:
-		await create_timer(.05).timeout
-	if not FileAccess.file_exists(result_path):
-		if pid > 0 and OS.is_process_running(pid): OS.kill(pid)
-		print("Native window controls: FAIL timeout")
-		quit(1)
+	if not await _wait_driver(pid, result_path):
 		return
 	var result: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(result_path))
 	await process_frame
@@ -37,3 +31,14 @@ func run() -> void:
 	print(result)
 	print("Native window controls: ","PASS" if result.ok else "FAIL")
 	quit(0 if result.ok else 1)
+
+func _wait_driver(pid: int, result_path: String) -> bool:
+	var deadline := Time.get_ticks_msec()+30000
+	while not FileAccess.file_exists(result_path) and Time.get_ticks_msec() < deadline:
+		await create_timer(.05).timeout
+	if not FileAccess.file_exists(result_path):
+		if pid > 0 and OS.is_process_running(pid): OS.kill(pid)
+		print("Native window controls: FAIL timeout")
+		quit(1)
+		return false
+	return true

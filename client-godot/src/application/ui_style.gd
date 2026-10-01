@@ -68,14 +68,7 @@ func _apply_theme() -> void:
 		navigation.bg_color = {"normal": Color(0, 0, 0, 0), "hover": Color(0.87, 0.95, 0.99, 0.72 if is_crystal() else 1.0), "pressed": Color(0.87, 0.945, 0.992, 0.82 if is_crystal() else 1.0)}[state]
 	_theme.set_font_size("font_size", "NavigationButton", 12)
 	_theme.set_constant("h_separation", "NavigationButton", 8)
-	for kind in ["AppSurface", "PanelContainer", "DialogSurface", "DropdownPopup", "PopupPanel", "PopupMenu", "LoginSurface", "LoginDialog", "ModelCard"]:
-		if _theme.has_stylebox("panel", kind):
-			var panel := _theme.get_stylebox("panel", kind) as StyleBoxFlat
-			if panel != null: apply_surface_style(panel)
-	for kind in ['normal', 'selected']:
-		if _theme.has_stylebox(kind, 'DynamicsPost'):
-			var post := _theme.get_stylebox(kind, 'DynamicsPost') as StyleBoxFlat
-			if post != null: apply_post_style(post, kind == 'selected')
+	_apply_panel_themes()
 	_theme.set_block_signals(false)
 	_theme.emit_changed()
 
@@ -178,3 +171,13 @@ func _apply_shadow(stylebox: StyleBoxFlat) -> void:
 		stylebox.shadow_color = Color(0, 0, 0, 0)
 		stylebox.shadow_size = 0
 		stylebox.shadow_offset = Vector2.ZERO
+
+func _apply_panel_themes() -> void:
+	for kind in ["AppSurface", "PanelContainer", "DialogSurface", "DropdownPopup", "PopupPanel", "PopupMenu", "LoginSurface", "LoginDialog", "ModelCard"]:
+		if _theme.has_stylebox("panel", kind):
+			var panel := _theme.get_stylebox("panel", kind) as StyleBoxFlat
+			if panel != null: apply_surface_style(panel)
+	for kind in ['normal', 'selected']:
+		if _theme.has_stylebox(kind, 'DynamicsPost'):
+			var post := _theme.get_stylebox(kind, 'DynamicsPost') as StyleBoxFlat
+			if post != null: apply_post_style(post, kind == 'selected')

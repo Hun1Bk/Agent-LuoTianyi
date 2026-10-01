@@ -28,9 +28,9 @@ func test_reads() -> void:
 	preview.content = "mutated"
 	check(controller.get_latest_unread().content != "mutated", "unread preview snapshots are independent")
 	await controller.refresh()
-	check(controller.get_posts().size()==10 and controller.get_state().unread==123,"reading ten posts does not clear unread")
+	_check_reading_ten_posts_does_not_clear_unread(controller)
 	await controller.load_more()
-	check(controller.get_posts().size()==12 and not controller.get_state().has_more,"opaque cursor paging deduplicates posts")
+	_check_opaque_cursor_paging_deduplicates_posts(controller)
 	await controller.load_comments("d0")
 	check(controller.get_comments("d0").items.size()==20,"comments first twenty")
 	if not controller.has_method("refresh_comments"):
@@ -40,7 +40,7 @@ func test_reads() -> void:
 		quit(1)
 		return
 	await controller.refresh_comments("d0")
-	check(controller.get_comments("d0").items.size()==22 and not controller.get_comments("d0").has_more,"refresh reaches replies beyond first page")
+	_check_refresh_reaches_replies_beyond_first_page(controller)
 	await controller.load_comments("d0",true)
 	check(controller.get_comments("d0").items.size()==22,"comments page merge")
 	await controller.mark_read()
@@ -77,7 +77,7 @@ func test_reads() -> void:
 		await controller.refresh()
 		await controller.load_comments("d0")
 		var expected := 2 if user == "private-a" else 1
-		check(controller.get_posts()[0].comment_count==expected and controller.get_comments("d0").items.size()==expected,"same public post has account-scoped count")
+		_check_same_public_post_has_account_scoped_count(controller, expected)
 		check(controller.get_comments("d0").items.all(func(item): return item.owner_user_id==user),"relogin retains no prior private comments")
 	scope.username = "slow-comments"
 	await controller.start(scope)
@@ -103,7 +103,6 @@ func test_reads() -> void:
 	check(controller.get_posts().is_empty() and controller.get_state().unread==0,"logout isolates pending reads")
 	controller.queue_free()
 	await process_frame
-
 func test_writes() -> void:
 	var controller = load("res://src/session/dynamics_controller.gd").new()
 	root.add_child(controller)
@@ -121,3 +120,15 @@ func test_writes() -> void:
 	check(not (await controller.comment("d0","wrong parent","missing")).ok,"unknown reply target refused")
 	controller.queue_free()
 	await process_frame
+
+func _check_same_public_post_has_account_scoped_count(controller: Variant, expected: Variant) -> void:
+	check(controller.get_posts()[0].comment_count==expected and controller.get_comments("d0").items.size()==expected,"same public post has account-scoped count")
+
+func _check_reading_ten_posts_does_not_clear_unread(controller: Variant) -> void:
+	check(controller.get_posts().size()==10 and controller.get_state().unread==123,"reading ten posts does not clear unread")
+
+func _check_opaque_cursor_paging_deduplicates_posts(controller: Variant) -> void:
+	check(controller.get_posts().size()==12 and not controller.get_state().has_more,"opaque cursor paging deduplicates posts")
+
+func _check_refresh_reaches_replies_beyond_first_page(controller: Variant) -> void:
+	check(controller.get_comments("d0").items.size()==22 and not controller.get_comments("d0").has_more,"refresh reaches replies beyond first page")

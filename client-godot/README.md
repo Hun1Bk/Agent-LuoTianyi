@@ -9,10 +9,14 @@
 使用 Godot **4.7.1 standard / Windows x64**。通过 Godot 的 Manage Export Templates 安装同版本模板，或将锁定模板包中的 Windows x64 文件和 version.txt 放入 `%APPDATA%/Godot/export_templates/4.7.1.stable/`。依赖来源和 SHA-256 见 `dependencies.lock.json`。
 
 ```powershell
-$env:GODOT_BIN = 'D:\godot\Godot_v4.7.1-stable_win64.exe\Godot_v4.7.1-stable_win64_console.exe'
-powershell -NoProfile -ExecutionPolicy Bypass -File client_godot/scripts/check.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File client_godot/scripts/build.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File client-godot/scripts/build.ps1
 ```
+
+运行后输入版本号，回车沿用 `release.json` 的当前版本。支持 `0.1.5`、`0.1.4.2`，每段数字范围为 0–65535；输入错误会重新提示。脚本会同步 `release.json`、`project.godot` 的显示版本和 `export_presets.cfg` 的 EXE 版本（三段版本补 `.0`）。没有传入 `-Godot` 或设置 `GODOT_BIN` 时，会提示输入 Godot 可执行文件路径。
+
+默认输出完整程序目录及 ZIP。同版本产物已存在时，新目录和 ZIP 自动添加时间戳及随机后缀，旧包保持不变。自动化调用请显式使用 `-Version 0.1.5 -Godot '<exe>'` 跳过交互；只导出目录可在 PowerShell 中使用 `-Package:$false`。版本写入成功后，即使后续导出失败也保留选择的版本，便于修复后重试；失败不会发布临时输出目录。
+
+打包编排回归：`python client-godot/tests/test_build_prompt.py`，使用隔离临时工程和模拟导出器，覆盖输入重试、三段/四段版本同步、重复打包保留旧包及错误配置不部分写入；不代替真实 Godot 导出验收。
 
 也可以显式传入 `-Godot <exe>`。构建脚本不下载依赖、不连接服务端；失败返回非零并保留 `artifacts/` 中的日志。输出 `dist/agentluo-<version>/` 整个目录（EXE、PCK、插件 DLL 和 licenses）必须一起分发。headless 启动检查不代表视觉、GPU 或真机验收。
 
@@ -81,7 +85,7 @@ python client_godot/tests/run_security_interop.py --godot $env:GODOT_BIN
 
 ## agentluo 版本化交付与功能验证
 
-release.json 是版本单一来源，界面/诊断/目录/ZIP 使用同一版本。`scripts/build.ps1 -Package` 导出 `dist/agentluo-<version>/agentluo.exe` 并生成 `artifacts/agentluo-<version>.zip`；存在同名交付 ZIP 时拒绝覆盖。重建不自动升级版本。保留旧包作为回退，数据仍在 AgentLuo-Godot。
+release.json 是版本单一来源，界面/诊断/目录/ZIP 使用同一版本。`scripts/build.ps1` 提示输入版本后导出 `dist/agentluo-<version>/agentluo.exe` 并生成 `artifacts/agentluo-<version>.zip`；同版本重复打包自动使用带时间戳的新名称。重建不自动升级版本，回车沿用当前版本。保留旧包作为回退，数据仍在 AgentLuo-Godot。
 
 历史、相处模式、模型配置/委托及动态回归：`scripts/check_features.ps1 -Godot <exe> -Python <python.exe>`。测试依赖另包括 aiohttp；所有默认 fixture 仅监听 loopback，无公共服务写入或收费供应商。新增界面 GPU 截图：`tests/run_feature_tests.py --godot <exe> --script res://tests/capture_release_ui.gd --gpu`。
 

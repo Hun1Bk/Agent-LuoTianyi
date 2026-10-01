@@ -39,6 +39,18 @@ $python = '<已安装测试依赖的python.exe>'
 
 ## GPU与原生验收
 
+### 聊天时间分组与动态加载框
+
+`ui/test_chat_timestamps.gd` 验证相邻实际消息间隔至少 300 秒才新增居中时间气泡，首次有效消息给出时间定位；连续聊天不按累计时长重复提醒。覆盖秒/毫秒/服务端日历时间、跨日、非法时间、系统消息排除、历史分页边界、1000 条虚拟历史、阅读锚点与选区，以及两种主题和 1280×800 / 960×640。实时消息取首次到达时间，历史合并后采用历史时间；展示节点不增加业务消息或虚构 UUID。
+
+`session/test_message_timestamps.gd` 使用实际 ChatSession 和不播放声音的媒体夹具，验证排队/送达状态不改变发送时间、服务端毫秒时间、流式首包与终包、缺失或非法时间回退，以及历史 UUID 合并保留实时正文。
+
+```powershell
+python client-godot/tests/run_feature_tests.py --godot '<Godot.exe>' --script res://tests/ui/test_chat_timestamps.gd --gpu
+```
+
+截图保存为 `artifacts/ui-redraw-client/chat-time-*.png`，使用实际聊天场景和明确标注的本地固定内容。动态专项 `ui/test_dynamics_review_actions.gd` 另验证详情加载中也没有矩形加载按钮；真实评论请求、滚到底部自动分页和失败后点击卡片重试保留，瞬时截图为 `dynamics-comments-no-loading-box.png`。这些检查不代表打包、发布或全量回归完成。
+
 ### 界面与图标风格
 
 当前源码目录为 `client-godot`。`check.ps1` 包含 `ui/test_ui_style.gd`：验证默认扁平/SVG、四种组合、保存失败回滚、草稿关闭保护、重启恢复、虚拟列表新旧气泡及音频状态图标。
@@ -104,3 +116,27 @@ Python runner入口统一带`--godot $engine --script res://tests/<脚本> --gpu
 - `support/native_reply_audio.gd`只装配真实播放器和真实原生工厂，没有复制播放器实现。媒体消费者不再依赖隐式ClassDB创建。
 
 本轮前后日志在`artifacts/isolation-baseline`。原生驱动等待DWM动画、只移动自身测试窗口并校验点击目标，避免桌面浮层抢占导致误判。无需打包即可进行本轮源码回归；系统DPI、Android、多屏和公共服务仍须单独验收。
+
+## 严格圈复杂度检查
+
+在 `client-godot` 目录使用独立 Python 环境安装固定依赖后运行（入口拒绝不匹配的解析器版本）：
+
+```powershell
+python -m pip install -r tests/requirements-complexity.txt
+python scripts/check_complexity.py
+python scripts/check_complexity.py --format json
+python tests/test_complexity_check.py
+python tests/test_build_prompt.py
+```
+
+阈值固定为 10，等于 10 合法。超限或分析失败退出码为 1；JSON 含全部单元、超限项和错误，不能用解析失败跳过文件。
+
+覆盖 `src`、`tests` 的 GDScript，`scripts`、`tests` 的 Python/PowerShell，自有 `native` 源码与 `SConstruct`，以及 `assets` 的 shader；排除第三方插件、`native/godot-cpp`、生成物和二进制。新增自有源码放在这些目录；检查器不依赖 Git 的跟踪状态。
+
+- GDScript 使用固定 gdtoolkit AST，支持现有内联回调语法；函数、匿名回调、属性访问器、文件/内部类初始化分别计数。
+- Python 使用标准 AST，函数、回调和脚本主流程分别计数；计入 `assert`、`except`、推导式过滤条件。
+- PowerShell 使用本机 AST，函数、脚本块和主流程分别计数；优先 PowerShell 7，否则使用 Windows PowerShell 5.1。后者遇到 7 的专属语法报错，不静默放行；7 的语法测试在未安装 7 时明确跳过。
+- C++ 使用固定 tree-sitter-cpp 做语法结构检查、提取独立 lambda，再以固定 Lizard 默认口径计数，包含函数内条件编译分支；`GDE_EXPORT` 仅在语法解析输入中作为导出修饰宏去除，原文仍用于计数。语法检查不替代锁定工具链编译。shader 的 uniform/精度/提示声明转换为结构解析输入，仍按原文使用 Lizard 计数；结构检查不替代 Godot 编译。
+- 分支、循环、条件表达式及短路操作计入；默认匹配分支不另计一次。新增辅助函数和检查器自身同样必须达标。
+
+边界测试覆盖 10/11、短路、默认分支、嵌套函数/回调、字符串注释、属性访问器、顶层/内部类初始化、C++ lambda、解析错误与第三方排除。复杂度通过不等于行为通过，仍须执行受影响的四组回归及 GPU/系统窗口入口。

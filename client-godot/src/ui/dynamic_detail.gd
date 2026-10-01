@@ -15,13 +15,11 @@ const CommentRow = preload("res://scenes/ui/dynamic_comment_row.tscn")
 @onready var _cancel: Button = %CancelReply
 @onready var _reply_send: Button = %ReplySend
 @onready var _status: Label = %Status
-@onready var _load: Button = %LoadMore
 var _controller: Node
 var _post: Dictionary
 var _parent := ""
 var _rows := {}
 var _writing := false
-var _refresh_failed := false
 var _initialized := false
 var _ui_style: RefCounted
 var _draft_style: StyleBoxFlat
@@ -66,13 +64,6 @@ func _initialize() -> void:
 		_parent = ""
 		_place_reply())
 	_reply_send.pressed.connect(func(): _submit(true))
-	_load.pressed.connect(func():
-		if _refresh_failed:
-			_refresh_failed = false
-			await refresh_comments()
-		else:
-			var state: Dictionary = _controller.get_comments(_post.id)
-			await _controller.load_comments(_post.id,state.loaded and state.has_more))
 	get_v_scroll_bar().value_changed.connect(func(_value): _at_bottom())
 	_controller.changed.connect(update_comments)
 	update_post(_post)
@@ -97,14 +88,7 @@ func update_comments() -> void:
 	var previous_max := scroll_bar.max_value
 	var preserve_reading_position := previous_scroll > 0 and previous_scroll < previous_max - 24
 	var state: Dictionary = _controller.get_comments(_post.id)
-	_load.visible = state.busy or state.has_more or not state.loaded or state.code not in ["","OK"]
-	_load.disabled = state.busy
-	_load.text = "加载中…" if state.busy else ("加载更多评论" if state.loaded else "加载评论")
-	if state.code not in ["","OK"]:
-		_load.text = "重试评论"
-		_set_status("评论加载失败（%s），已保留现有内容。"%state.code)
-	elif _status.text.begins_with("评论加载失败"):
-		_set_status("")
+	_update_comment_status(state)
 	var names := {}
 	for item in state.items: names[item.id] = item.author_name
 	for index in state.items.size():
@@ -124,7 +108,6 @@ func update_comments() -> void:
 	if preserve_reading_position:
 		scroll_vertical = int(previous_scroll)
 		set_deferred('scroll_vertical', int(previous_scroll))
-
 func _place_reply() -> void:
 	var destination: Node = _column if _parent.is_empty() else _rows.get(_parent,_column)
 	if _reply_box.get_parent() != destination: _reply_box.reparent(destination)
@@ -160,7 +143,6 @@ func _set_status(text: String) -> void:
 
 func refresh_comments() -> void:
 	await _controller.refresh_comments(_post.id)
-	_refresh_failed = _controller.get_comments(_post.id).code not in ["","OK"]
 
 func _at_bottom() -> void:
 	if not is_visible_in_tree(): return
@@ -177,12 +159,7 @@ static func relative_time(raw: String) -> String:
 	var pattern := RegEx.new()
 	pattern.compile("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$")
 	if pattern.search(raw) == null: return raw
-	var year := int(raw.substr(0,4))
-	var month := int(raw.substr(5,2))
-	var day := int(raw.substr(8,2))
-	if year < 1 or month < 1 or month > 12: return raw
-	var days := [31,29 if year%400==0 or (year%4==0 and year%100!=0) else 28,31,30,31,30,31,31,30,31,30,31]
-	if day < 1 or day > days[month-1] or int(raw.substr(11,2)) > 23 or int(raw.substr(14,2)) > 59 or int(raw.substr(17,2)) > 59: return raw
+	if not _valid_calendar_time(raw): return raw
 	var normalized := raw.replace(" ","T")
 	var epoch := Time.get_unix_time_from_datetime_string(normalized)
 	if Time.get_datetime_string_from_unix_time(epoch) != normalized: return raw
@@ -193,3 +170,20 @@ static func relative_time(raw: String) -> String:
 	if age < 86400: return "%s小时前"%(age/3600)
 	if age < 7*86400: return "%s天前"%(age/86400)
 	return raw.left(10)
+func _update_comment_status(state: Dictionary) -> void:
+	if state.code not in ["","OK"]:
+		_set_status("评论加载失败（%s），已保留现有内容；点击动态卡片重试。"%state.code)
+	elif _status.text.begins_with("评论加载失败"):
+		_set_status("")
+
+static func _valid_calendar_time(raw: String) -> bool:
+	var year := int(raw.substr(0,4))
+	var month := int(raw.substr(5,2))
+	var day := int(raw.substr(8,2))
+	if year < 1 or month < 1 or month > 12: return false
+	var days := [31,_february_days(year),31,30,31,30,31,31,30,31,30,31]
+	if day < 1 or day > days[month-1] or int(raw.substr(11,2)) > 23 or int(raw.substr(14,2)) > 59 or int(raw.substr(17,2)) > 59: return false
+	return true
+
+static func _february_days(year: int) -> int:
+	return 29 if year%400==0 or (year%4==0 and year%100!=0) else 28

@@ -62,12 +62,12 @@ func _run() -> void:
 	peak = 0
 	capture.clear_buffer()
 	await delay(.16)
-	check(peak < .0001 and mouth == -1.0,"paused replay is silent and mouth restores")
+	_check_paused_replay_is_silent_and_mouth_restores()
 	check(audio.get_message_audio("one").position == paused,"paused progress freezes")
 	audio.resume_replay()
 	check(await wait_for(func(): return audio.get_message_audio("one").position > paused + .08),"resume continues from paused position")
 	check(await wait_for(func(): return replayed.has("one")),"natural replay completion")
-	check(online == ["one"] and audio.get_message_audio("one").position == 0,"replay completion does not complete online twice")
+	_check_replay_completion_does_not_complete_online_twice(audio)
 	audio.replay("one")
 	await delay(.1)
 	audio.stop_replay()
@@ -76,11 +76,11 @@ func _run() -> void:
 	audio.replay("one")
 	check(audio.get_message_audio("one").position < .05,"play after stop starts at beginning")
 	audio.append_reply_audio("two",Marshalls.raw_to_base64(bytes),true)
-	check(audio.replay("two") == OK and audio.get_message_audio("one").status == "idle","switch replay stops old message")
+	_check_switch_replay_stops_old_message(audio)
 	audio.pause_replay()
 	audio.play_reply("two")
 	check(await wait_for(func(): return audio.get_state().playing),"online voice starts")
-	check(audio.get_message_audio("two").status == "idle" and audio.replay("one") == ERR_BUSY,"online voice preempts paused replay and blocks replay")
+	_check_online_voice_preempts_paused_replay_and_blocks_replay(audio)
 	check(await wait_for(func(): return online.has("two")),"online preemption drains normally")
 	audio.replay("one")
 	audio.append_reply_audio("stopped",Marshalls.raw_to_base64(bytes.slice(0,15000)),false)
@@ -90,11 +90,11 @@ func _run() -> void:
 	audio.stop_current()
 	audio.append_reply_audio("stopped",Marshalls.raw_to_base64(bytes.slice(15000)),true)
 	check(await wait_for(func(): return online.has("stopped")),"stopped online terminal still completes")
-	check(audio.get_message_audio("stopped").available and is_equal_approx(audio.get_message_audio("stopped").duration,1.2),"stopped output still saves full stream")
+	_check_stopped_output_still_saves_full_stream(audio)
 	audio.append_reply_audio("ephemeral",Marshalls.raw_to_base64(bytes),true,false,true)
 	audio.append_reply_audio("error",Marshalls.raw_to_base64(bytes.slice(0,100)),false)
 	audio.append_reply_audio("error","",true,true)
-	check(not audio.get_message_audio("ephemeral").available and not audio.get_message_audio("error").available,"temporary and failed voices not replayable")
+	_check_temporary_and_failed_voices_not_replayable(audio)
 	audio.append_reply_audio("clearing",Marshalls.raw_to_base64(bytes.slice(0,15000)),false)
 	audio.play_reply("clearing")
 	await wait_for(func(): return audio.get_state().playing)
@@ -138,3 +138,20 @@ func _run() -> void:
 	AudioServer.remove_bus_effect(0,AudioServer.get_bus_effect_count(0)-1)
 	print("Voice replay: ","PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+func _check_paused_replay_is_silent_and_mouth_restores() -> void:
+	check(peak < .0001 and mouth == -1.0,"paused replay is silent and mouth restores")
+
+func _check_replay_completion_does_not_complete_online_twice(audio: Variant) -> void:
+	check(online == ["one"] and audio.get_message_audio("one").position == 0,"replay completion does not complete online twice")
+
+func _check_switch_replay_stops_old_message(audio: Variant) -> void:
+	check(audio.replay("two") == OK and audio.get_message_audio("one").status == "idle","switch replay stops old message")
+
+func _check_online_voice_preempts_paused_replay_and_blocks_replay(audio: Variant) -> void:
+	check(audio.get_message_audio("two").status == "idle" and audio.replay("one") == ERR_BUSY,"online voice preempts paused replay and blocks replay")
+
+func _check_stopped_output_still_saves_full_stream(audio: Variant) -> void:
+	check(audio.get_message_audio("stopped").available and is_equal_approx(audio.get_message_audio("stopped").duration,1.2),"stopped output still saves full stream")
+
+func _check_temporary_and_failed_voices_not_replayable(audio: Variant) -> void:
+	check(not audio.get_message_audio("ephemeral").available and not audio.get_message_audio("error").available,"temporary and failed voices not replayable")

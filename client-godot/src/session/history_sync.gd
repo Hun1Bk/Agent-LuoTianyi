@@ -53,28 +53,16 @@ func _load(generation: int) -> void:
 		if not response.ok:
 			_fail(response.code)
 			return
-		var data: Dictionary = response.data
-		var start: Variant = data.get("start_index")
-		var rows: Array = data.get("history",[])
-		if not (start is int or start is float) or not is_finite(float(start)) or start < 0 or start != floor(start) or rows.size() > 50:
+		var start: Variant = response.data.get("start_index")
+		var rows: Array = response.data.get("history",[])
+		if not _valid_page_bounds(start, rows.size()):
 			_fail("HISTORY_INVALID")
 			return
-		if (_end >= 0 and (start >= _end or _end-int(start) != rows.size())) or (_end == -1 and start > 0 and rows.size() != 50):
+		var messages := _page_messages(rows)
+		if messages.size() != rows.size():
 			_fail("HISTORY_INVALID")
 			return
-		var messages: Array[Dictionary] = []
-		for row in rows:
-			if not row is Dictionary or not row.get("uuid") is String or row.uuid.is_empty() or not row.get("source") in ["agent","user","system"] or not row.get("type") in ["text","image","sing","cmd"] or (row.type != "image" and not row.get("content") is String) or not (row.get("timestamp") is int or row.get("timestamp") is float or row.get("timestamp") is String):
-				_fail("HISTORY_INVALID")
-				return
-			messages.append({"id":row.uuid,"role":"assistant" if row.source == "agent" else row.source,"text":"[图片]" if row.type == "image" else row.content,"type":row.type,"timestamp":row.timestamp,"history":true,"status":"received","code":""})
-		var unique: Array[Dictionary] = []
-		for message in messages:
-			if _seen.has(message.id):
-				_state.incomplete = true
-			else:
-				_seen[message.id] = true
-				unique.append(message)
+		var unique := _deduplicate(messages)
 		var first := _end == -1
 		_end = int(start)
 		_state.start_index = _end
@@ -99,3 +87,45 @@ func _empty() -> Dictionary:
 	return {"phase":"idle","code":"","count":0,"start_index":-1,"incomplete":false}
 func _exit_tree() -> void:
 	stop()
+
+func _valid_page_bounds(start: Variant, row_count: int) -> bool:
+	if not _valid_page_start(start, row_count):
+		return false
+	if (_end >= 0 and (start >= _end or _end-int(start) != row_count)) or (_end == -1 and start > 0 and row_count != 50):
+		return false
+	return true
+
+func _valid_page_start(start: Variant, row_count: int) -> bool:
+	if not (start is int or start is float) or not is_finite(float(start)) or start < 0 or start != floor(start) or row_count > 50:
+		return false
+	return true
+
+func _page_messages(rows: Array) -> Array[Dictionary]:
+	var messages: Array[Dictionary] = []
+	for row in rows:
+		if not _valid_history_row(row):
+			return []
+		messages.append({"id":row.uuid,"role":"assistant" if row.source == "agent" else row.source,"text":"[图片]" if row.type == "image" else row.content,"type":row.type,"timestamp":row.timestamp,"history":true,"status":"received","code":""})
+	return messages
+
+func _valid_history_row(row: Variant) -> bool:
+	if not row is Dictionary or not row.get("uuid") is String or row.uuid.is_empty():
+		return false
+	if not row.get("source") in ["agent","user","system"] or not row.get("type") in ["text","image","sing","cmd"]:
+		return false
+	return _valid_history_content(row)
+
+func _valid_history_content(row: Dictionary) -> bool:
+	if row.type != "image" and not row.get("content") is String:
+		return false
+	return row.get("timestamp") is int or row.get("timestamp") is float or row.get("timestamp") is String
+
+func _deduplicate(messages: Array[Dictionary]) -> Array[Dictionary]:
+	var unique: Array[Dictionary] = []
+	for message in messages:
+		if _seen.has(message.id):
+			_state.incomplete = true
+		else:
+			_seen[message.id] = true
+			unique.append(message)
+	return unique

@@ -110,6 +110,30 @@ def drag(start, offset):
     time.sleep(.12)
 
 
+def _edge_target(before, edge):
+    x = before[0] + 3 if "W" in edge else before[2] - 3 if "E" in edge else (before[0] + before[2]) / 2
+    y = before[1] + 3 if "N" in edge else before[3] - 3 if "S" in edge else (before[1] + before[3]) / 2
+    dx = -24 if "W" in edge else 24 if "E" in edge else 0
+    dy = -24 if "N" in edge else 24 if "S" in edge else 0
+    return x, y, dx, dy
+
+
+def _verify_resize(edge):
+    u.SetWindowPos(hwnd, None, 160, 120, 800, 600, 0x0044)
+    time.sleep(.12)
+    before = rect()
+    x, y, dx, dy = _edge_target(before, edge)
+    drag((x, y), (dx, dy))
+    after = rect()
+    if dx:
+        index = 0 if dx < 0 else 2
+        assert abs(after[index] - before[index] - dx) < 8, "horizontal edge resize " + edge
+    if dy:
+        index = 1 if dy < 0 else 3
+        assert abs(after[index] - before[index] - dy) < 8, "vertical edge resize " + edge
+    checks.append("native resize " + edge)
+
+
 try:
     owned()
     u.ShowWindow(hwnd, 9)
@@ -136,22 +160,7 @@ try:
         wait_for(lambda: fills_work_area() if expected else all(abs(a-b) < 8 for a,b in zip(rect(),normal)), "title double-click " + ("maximizes" if expected else "restores"))
         time.sleep(.2)
     for edge in ["NW", "N", "NE", "W", "E", "SW", "S", "SE"]:
-        u.SetWindowPos(hwnd, None, 160, 120, 800, 600, 0x0044)
-        time.sleep(.12)
-        before = rect()
-        x = before[0] + 3 if "W" in edge else before[2] - 3 if "E" in edge else (before[0] + before[2]) / 2
-        y = before[1] + 3 if "N" in edge else before[3] - 3 if "S" in edge else (before[1] + before[3]) / 2
-        dx = -24 if "W" in edge else 24 if "E" in edge else 0
-        dy = -24 if "N" in edge else 24 if "S" in edge else 0
-        drag((x, y), (dx, dy))
-        after = rect()
-        if dx:
-            index = 0 if dx < 0 else 2
-            assert abs(after[index] - before[index] - dx) < 8, "horizontal edge resize " + edge
-        if dy:
-            index = 1 if dy < 0 else 3
-            assert abs(after[index] - before[index] - dy) < 8, "vertical edge resize " + edge
-        checks.append("native resize " + edge)
+        _verify_resize(edge)
     # Move only our owned window away from top-edge third-party desktop overlays.
     current = rect()
     u.SetWindowPos(hwnd, None, 40, 260, current[2]-current[0], current[3]-current[1], 0x0044)

@@ -16,39 +16,54 @@ def run(godot,script,gpu=False):
             body=json.dumps(data).encode(); self.send_response(status); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); self.end_headers()
             try: self.wfile.write(body)
             except (OSError,ConnectionError): pass
+        def reply_unread(self, user):
+            unread_calls[user]=unread_calls.get(user,0)+1
+            if user=='fail-unread' and unread_calls[user]>1: self.reply(503,{}); return
+            dynamic_count = 0 if user in reads or user=='comments-only' else 12
+            self.reply(200,{'unread_count':0 if user in reads else 123,'has_unread':user not in reads,'unread_dynamic_count':dynamic_count,'unread_comment_count':0 if user in reads else 123-dynamic_count,'last_read_dynamic_at':'2026-09-18 10:00:00','last_read_comment_at':None}); return
+
+        def reply_posts(self, user, query, cursor):
+            post_calls[user]=post_calls.get(user,0)+1
+            if user=='preview-fail' and post_calls[user]>1: self.reply(503,{}); return
+            if query.get('limit')!=['10']: errors.append('post page limit')
+            if cursor and cursor!='older | page': errors.append('cursor not preserved')
+            items=[post(i) for i in (range(10) if not cursor else range(9,12))]
+            self.adjust_posts(user, cursor, items)
+            self.reply(200,{'items':items,'has_more':not cursor,'next_cursor':'older | page' if not cursor else None}); return
+
+        def comment_items(self, cursor):
+            return [comment(i) for i in (range(20) if not cursor else range(19,22))]
+
+        def reply_comments(self, user, query, cursor):
+            if query.get('limit')!=['20']: errors.append('comment page limit')
+            comment_calls[user]=comment_calls.get(user,0)+1
+            if user=='fail-refresh' and cursor: self.reply(503,{}); return
+            if user=='slow-comments': time.sleep(.3)
+            if user in ('private-a','private-b'):
+                self.reply(200,{'items':[{**comment(i),'content':user+' private content','owner_user_id':user} for i in range(2 if user=='private-a' else 1)],'has_more':False,'next_cursor':None}); return
+            self.reply(200,{'items':self.comment_items(cursor),'has_more':not cursor,'next_cursor':'next | comments' if not cursor else None}); return
+
+        def adjust_posts(self, user, cursor, items):
+            if user=='preview-pagination' and not cursor:
+                for item in items: item['author_type']='user'
+            if user=='preview-late' and cursor: time.sleep(.3)
+            if user=='preview-late' and not cursor:
+                for item in items: item['author_type']='user'
+            self.adjust_private_posts(user, items)
+
+        def adjust_private_posts(self, user, items):
+            if user in ('private-a','private-b'):
+                for item in items: item.update(visibility='public',comment_count=2 if user=='private-a' else 1)
+
         def do_GET(self):
             path=urlparse(self.path); query=parse_qs(path.query); user=query.get('username',[''])[0]
             if path.path=='/stats': self.reply(200,{'writes':writes}); return
             if self.headers.get('Authorization')!='Bearer fixture-token': errors.append('invalid bearer')
             if user=='slow': time.sleep(.5)
-            if path.path=='/dynamics/unread':
-                unread_calls[user]=unread_calls.get(user,0)+1
-                if user=='fail-unread' and unread_calls[user]>1: self.reply(503,{}); return
-                dynamic_count = 0 if user in reads or user=='comments-only' else 12
-                self.reply(200,{'unread_count':0 if user in reads else 123,'has_unread':user not in reads,'unread_dynamic_count':dynamic_count,'unread_comment_count':0 if user in reads else 123-dynamic_count,'last_read_dynamic_at':'2026-09-18 10:00:00','last_read_comment_at':None}); return
+            if path.path=='/dynamics/unread': self.reply_unread(user); return
             cursor=query.get('cursor',[''])[0]
-            if path.path=='/dynamics':
-                post_calls[user]=post_calls.get(user,0)+1
-                if user=='preview-fail' and post_calls[user]>1: self.reply(503,{}); return
-                if query.get('limit')!=['10']: errors.append('post page limit')
-                if cursor and cursor!='older | page': errors.append('cursor not preserved')
-                items=[post(i) for i in (range(10) if not cursor else range(9,12))]
-                if user=='preview-pagination' and not cursor:
-                    for item in items: item['author_type']='user'
-                if user=='preview-late' and cursor: time.sleep(.3)
-                if user=='preview-late' and not cursor:
-                    for item in items: item['author_type']='user'
-                if user in ('private-a','private-b'):
-                    for item in items: item.update(visibility='public',comment_count=2 if user=='private-a' else 1)
-                self.reply(200,{'items':items,'has_more':not cursor,'next_cursor':'older | page' if not cursor else None}); return
-            if path.path=='/dynamics/d0/comments':
-                if query.get('limit')!=['20']: errors.append('comment page limit')
-                comment_calls[user]=comment_calls.get(user,0)+1
-                if user=='fail-refresh' and cursor: self.reply(503,{}); return
-                if user=='slow-comments': time.sleep(.3)
-                if user in ('private-a','private-b'):
-                    self.reply(200,{'items':[{**comment(i),'content':user+' private content','owner_user_id':user} for i in range(2 if user=='private-a' else 1)],'has_more':False,'next_cursor':None}); return
-                self.reply(200,{'items':[comment(i) for i in (range(20) if not cursor else range(19,22))],'has_more':not cursor,'next_cursor':'next | comments' if not cursor else None}); return
+            if path.path=='/dynamics': self.reply_posts(user, query, cursor); return
+            if path.path=='/dynamics/d0/comments': self.reply_comments(user, query, cursor); return
             if path.path.startswith('/dynamics/') and path.path.endswith('/comments'):
                 self.reply(200,{'items':[],'has_more':False,'next_cursor':None}); return
             self.reply(404,{})

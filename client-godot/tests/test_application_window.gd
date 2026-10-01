@@ -62,29 +62,29 @@ func _run() -> void:
 	app.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	await process_frame
 	await process_frame
-	check(root.size == Vector2i(480, 690) and root.min_size == Vector2i(480, 690), "login window is fixed and compact")
+	_check_login_window_is_fixed_and_compact()
 	check(app.find_children("*", "TextEdit", true, false).is_empty(), "signed-out window has no chat composer")
 	check(app.find_children("*", "Node2D", true, false).is_empty(), "first login does not create or render avatar")
-	check(field(app, "服务器地址").text == DEFAULT_SERVER and not field(app, "服务器地址").is_visible_in_tree(), "default server is available only in its editor")
+	_check_default_server_is_available_only_in_its_editor(app)
 	var endpoint := OS.get_environment("GODOT_TEST_SERVER")
 	await session.set_server(endpoint)
 	field(app, "用户名").text = "reject"
 	field(app, "密码").text = "synthetic-password"
 	button(app, "登录")
 	check(await until(func(): return field(app, "密码").editable), "failed login settles")
-	check(session.get_session().is_empty() and root.size == Vector2i(480, 690), "failed login stays compact")
+	_check_failed_login_stays_compact(session)
 	field(app, "用户名").text = "test"
 	field(app, "密码").text = "synthetic-password"
 	button(app, "登录")
 	check(await until(func(): return not session.get_session().is_empty()), "real account login succeeds")
 	await process_frame
-	check(root.size == Vector2i(1280, 800) and root.min_size == Vector2i(960, 640), "successful login expands window")
+	_check_successful_login_expands_window()
 	var composers: Array = app.find_children("*", "TextEdit", true, false)
-	check(composers.size() == 1 and composers[0].is_visible_in_tree(), "expanded window shows chat")
+	_check_expanded_window_shows_chat(composers)
 	check(app.find_children("Driver", "", true, false).size() == 1, "expanded window renders avatar panel from scene")
 	check(not field(app, "服务器地址").is_visible_in_tree(), "expanded window hides account form")
 	var volumes: Array = app.find_children("*", "HSlider", true, false)
-	check(volumes.size() == 1 and volumes[0].value == 1.0, "invalid saved volume uses automatic playback default")
+	_check_invalid_saved_volume_uses_automatic_playback_default(volumes)
 	if volumes.size() == 1:
 		volumes[0].value = .35
 		layout.load(folder + "/layout.cfg")
@@ -135,3 +135,20 @@ func _run() -> void:
 	DirAccess.remove_absolute(folder)
 	print("Application window: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+func _check_login_window_is_fixed_and_compact() -> void:
+	check(root.size == Vector2i(480, 690) and root.min_size == Vector2i(480, 690), "login window is fixed and compact")
+
+func _check_default_server_is_available_only_in_its_editor(app: Variant) -> void:
+	check(field(app, "服务器地址").text == DEFAULT_SERVER and not field(app, "服务器地址").is_visible_in_tree(), "default server is available only in its editor")
+
+func _check_failed_login_stays_compact(session: Variant) -> void:
+	check(session.get_session().is_empty() and root.size == Vector2i(480, 690), "failed login stays compact")
+
+func _check_successful_login_expands_window() -> void:
+	check(root.size == Vector2i(1280, 800) and root.min_size == Vector2i(960, 640), "successful login expands window")
+
+func _check_expanded_window_shows_chat(composers: Variant) -> void:
+	check(composers.size() == 1 and composers[0].is_visible_in_tree(), "expanded window shows chat")
+
+func _check_invalid_saved_volume_uses_automatic_playback_default(volumes: Variant) -> void:
+	check(volumes.size() == 1 and volumes[0].value == 1.0, "invalid saved volume uses automatic playback default")

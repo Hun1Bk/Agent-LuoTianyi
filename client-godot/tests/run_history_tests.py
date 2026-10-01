@@ -3,6 +3,19 @@ import argparse, asyncio, json, os, struct, zlib, base64, tempfile
 from pathlib import Path
 from aiohttp import web
 PROJECT = Path(__file__).resolve().parents[1]
+def check_result(proc, text, errors, script, requests, image_calls):
+    if proc.returncode != 0 or 'ERROR:' in text or 'FAIL:' in text or ': FAIL' in text or ': PASS' not in text or errors:
+        raise RuntimeError(str(errors) or f'Godot history test failed (exit {proc.returncode})')
+    check_requests(script, requests, image_calls)
+
+def check_requests(script, requests, image_calls):
+    if script.endswith('test_history_sync.gd'):
+        if requests.get('normal') != [-1,70,20]: raise AssertionError(f'fixed boundary: {requests}')
+        if requests.get('skip') != [-1]: raise AssertionError('skip reimported history')
+    elif script.endswith('test_history_media.gd'):
+        assert image_calls.get(('images','sample')) == 1, 'cache re-downloaded'
+        assert image_calls.get(('other','sample')) == 1, 'account isolation not exercised'
+
 async def run(godot, script, gpu=False):
     errors, requests, opened = [], {}, set()
     image_calls = {}
@@ -17,6 +30,24 @@ async def run(godot, script, gpu=False):
         key=(data['username'],data['uuid']); image_calls[key]=image_calls.get(key,0)+1
         if data['uuid']=='slow': await asyncio.sleep(.3)
         return web.Response(body=b'broken' if data['uuid']=='broken' and image_calls[key]==1 else png,content_type='image/png')
+    def history_response(user, end):
+        stop = 120 if end == -1 else end
+        start = max(0,stop-50)
+        rows = [{'uuid':f'history-{i}','content':f'{user} record {i}','source':'agent' if i%2 else 'user','timestamp':float(i),'type':'text'} for i in range(start,stop)]
+        for row in rows:
+            if row['uuid']=='history-116': row.update(type='image',content='C:\\old-device\\private-image.png')
+        if user == 'invalid': start = -2
+        if user == 'duplicate' and end == 70: rows[-1]['uuid'] = 'history-119'
+        if end == -1: opened.add(user)
+        return web.json_response({'history':rows,'start_index':start})
+
+    def history_failure(user, end, seen):
+        if user in ('first_fail','skip') and end == -1 and seen.count(-1) == 1:
+            return web.json_response({'detail':'synthetic failure'},status=503)
+        if user == 'late_fail' and end == 70 and seen.count(70) == 1:
+            return web.json_response({},status=503)
+        return None
+
     async def history(request):
         try:
             assert request.headers.get('Authorization') == 'Bearer message-test'
@@ -26,22 +57,19 @@ async def run(godot, script, gpu=False):
             seen = requests.setdefault(user, [])
             seen.append(end)
             await asyncio.sleep(.25 if end == -1 else .05)
-            if user in ('first_fail','skip') and end == -1 and seen.count(-1) == 1:
-                return web.json_response({'detail':'synthetic failure'},status=503)
-            if user == 'late_fail' and end == 70 and seen.count(70) == 1:
-                return web.json_response({},status=503)
-            stop = 120 if end == -1 else end
-            start = max(0,stop-50)
-            rows = [{'uuid':f'history-{i}','content':f'{user} record {i}','source':'agent' if i%2 else 'user','timestamp':float(i),'type':'text'} for i in range(start,stop)]
-            for row in rows:
-                if row['uuid']=='history-116': row.update(type='image',content='C:\\old-device\\private-image.png')
-            if user == 'invalid': start = -2
-            if user == 'duplicate' and end == 70: rows[-1]['uuid'] = 'history-119'
-            if end == -1: opened.add(user)
-            return web.json_response({'history':rows,'start_index':start})
+            failure = history_failure(user, end, seen)
+            if failure is not None: return failure
+            return history_response(user, end)
         except AssertionError:
             errors.append('history protocol mismatch')
             return web.json_response({},status=400)
+    async def receive_image(ws, user, value, payload):
+        if user not in opened: errors.append('image sent before first history boundary')
+        if payload.get('mime_type') != 'image/png' or payload.get('image_client_path') != '' or not base64.b64decode(payload.get('image_base64','')).startswith(b'\x89PNG\r\n\x1a\n'):
+            errors.append('invalid image payload')
+        if payload.get('llm_mode') != {'types': []}: errors.append('missing image model capabilities')
+        await ws.send_json({'type':'server_ack','reply_to':value['client_msg_id'],'payload':{'ok':True}})
+
     async def websocket(request):
         ws = web.WebSocketResponse()
         await ws.prepare(request)
@@ -60,11 +88,7 @@ async def run(godot, script, gpu=False):
                 await ws.send_json({'type':'server_ack','reply_to':value['client_msg_id'],'payload':{'ok':True}})
                 await ws.send_json({'type':'agent_message','payload':{'uuid':'history-119','text':'live reply','is_final_package':True}})
             elif kind == 'user_image':
-                if user not in opened: errors.append('image sent before first history boundary')
-                if payload.get('mime_type') != 'image/png' or payload.get('image_client_path') != '' or not base64.b64decode(payload.get('image_base64','')).startswith(b'\x89PNG\r\n\x1a\n'):
-                    errors.append('invalid image payload')
-                if payload.get('llm_mode') != {'types': []}: errors.append('missing image model capabilities')
-                await ws.send_json({'type':'server_ack','reply_to':value['client_msg_id'],'payload':{'ok':True}})
+                await receive_image(ws, user, value, payload)
             elif kind in ('user_image_selecting', 'user_image_selecting_cancel'):
                 await ws.send_json({'type':'server_ack','reply_to':value['client_msg_id'],'payload':{'ok':True}})
         return ws
@@ -89,14 +113,7 @@ async def run(godot, script, gpu=False):
                 proc.kill(); await proc.wait(); raise
         text=(out+err).decode('utf8',errors='replace')
         print(text)
-        if proc.returncode != 0 or 'ERROR:' in text or 'FAIL:' in text or ': FAIL' in text or ': PASS' not in text or errors:
-            raise RuntimeError(str(errors) or f'Godot history test failed (exit {proc.returncode})')
-        if script.endswith('test_history_sync.gd'):
-            if requests.get('normal') != [-1,70,20]: raise AssertionError(f'fixed boundary: {requests}')
-            if requests.get('skip') != [-1]: raise AssertionError('skip reimported history')
-        elif script.endswith('test_history_media.gd'):
-            assert image_calls.get(('images','sample')) == 1, 'cache re-downloaded'
-            assert image_calls.get(('other','sample')) == 1, 'account isolation not exercised'
+        check_result(proc, text, errors, script, requests, image_calls)
         print('HTTP + WebSocket history: PASS')
     finally: await runner.cleanup()
 if __name__=='__main__':

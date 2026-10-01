@@ -44,48 +44,16 @@ func record(event: String, fields: Dictionary = {}) -> Error:
 		return ERR_INVALID_PARAMETER
 	var entry := {"time":Time.get_datetime_string_from_system(true) + "Z", "elapsed_ms":Time.get_ticks_msec() - _started, "event":event,
 		"level":"ERROR" if event.contains("error") else "INFO", "module":_module(event), "message":EXPLANATIONS.get(event, "客户端活动")}
-	for key in METRICS:
-		var value: Variant = fields.get(key)
-		if value is bool or value is int or (value is float and is_finite(value)):
-			entry[key] = value
-	for key in ["phase", "code"]:
-		if fields.get(key) is String and _token.search(fields[key]) != null:
-			entry[key] = _safe_code(key, fields[key])
-	if fields.get("level") in ["INFO", "WARN", "ERROR"]:
-		entry.level = fields.level
-	if fields.get("module") in MODULES:
-		entry.module = fields.module
-	if fields.get("reply_id") is String:
-		entry.reply_id = fields.reply_id.sha256_text().left(12)
+	_apply_fields(entry, fields)
 	var serialized := JSON.stringify(entry).to_utf8_buffer()
 	var error := ERR_OUT_OF_MEMORY if _entries.size() >= _max_entries else OK
 	var limit_rejected := error == ERR_OUT_OF_MEMORY
 	if not limit_rejected:
 		error = _ensure_directory()
 	if error == OK:
-		var path := _path(_id, ".jsonl")
-		if _archive_bytes < 0:
-			_archive_bytes = _jsonl_size(path)
-		if _entries.size() >= _max_entries or _archive_bytes + serialized.size() + 1 > _max_bytes:
-			error = ERR_OUT_OF_MEMORY
-			_meta.complete = false
-			limit_rejected = true
-		else:
-			var file := FileAccess.open(path, FileAccess.READ_WRITE if FileAccess.file_exists(path) else FileAccess.WRITE)
-			if file == null:
-				error = FileAccess.get_open_error()
-				_archive_bytes = -1
-			else:
-				file.seek_end()
-				file.store_buffer(serialized)
-				file.store_8(10)
-				file.flush()
-				error = file.get_error()
-				file.close()
-				if error == OK:
-					_archive_bytes += serialized.size() + 1
-				else:
-					_archive_bytes = -1
+		var written := _write_entry(serialized)
+		error = written.error
+		limit_rejected = written.limit_rejected
 	if error == OK:
 		_entries.append(entry)
 	if error != OK:
@@ -98,7 +66,6 @@ func record(event: String, fields: Dictionary = {}) -> Error:
 		write_failed.emit(error)
 	entry_added.emit(entry.duplicate(true))
 	return error
-
 func get_directory() -> String:
 	return ProjectSettings.globalize_path(_directory)
 
@@ -124,14 +91,13 @@ func list_runs() -> Array[Dictionary]:
 		if not file.ends_with(".json") or _id_pattern.search(id) == null:
 			continue
 		var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(_path(id, ".json")))
-		if not data is Dictionary or data.get("id") != id or not data.get("pid") is float and not data.get("pid") is int:
+		if not _valid_run_metadata(data, id):
 			continue
 		data.active = not data.get("closed",false) and _environment.process_running(int(data.pid))
 		data.complete = data.get("complete",false) and _read_archive(id).complete
 		runs.append(data)
 	runs.sort_custom(func(a,b): return a.id > b.id)
 	return runs
-
 func read_entries(run_id: String = "") -> Array[Dictionary]:
 	if run_id.is_empty() or run_id == _id:
 		return _entries.duplicate(true)
@@ -160,25 +126,7 @@ func export_run(run_id: String, destination_zip: String) -> Error:
 	var summary := {"release":metadata.get("release",Release.get_info()), "engine":Engine.get_version_info().string,
 		"os":_environment.os_name(), "architecture":Engine.get_architecture_name(), "closed":metadata.get("closed",false),
 		"complete":metadata.get("complete",false) and read.complete, "count":read.entries.size()}
-	var zip := ZIPPacker.new()
-	var error := zip.open(destination_zip)
-	if error != OK:
-		return error
-	for pair in [["events.jsonl",events],["readable.txt",readable],["environment.json",JSON.stringify(summary)]]:
-		error = zip.start_file(pair[0])
-		if error == OK:
-			error = zip.write_file(pair[1].to_utf8_buffer())
-		if error == OK:
-			error = zip.close_file()
-		if error != OK:
-			break
-	var closed := zip.close()
-	if error == OK:
-		error = closed
-	if error != OK:
-		DirAccess.remove_absolute(destination_zip)
-	return error
-
+	return _write_export(destination_zip, [["events.jsonl",events],["readable.txt",readable],["environment.json",JSON.stringify(summary)]])
 func _ensure_directory() -> Error:
 	if _initialized:
 		return OK
@@ -277,19 +225,98 @@ func _read_archive(id: String) -> Dictionary:
 		return result
 	while file.get_position() < file.get_length():
 		var value: Variant = JSON.parse_string(file.get_line())
-		if not value is Dictionary or not value.get("event") is String or _token.search(value.event) == null or not value.get("time") is String or not value.get("level") in ["INFO","WARN","ERROR"] or not value.get("module") in MODULES:
+		if not _valid_archive_entry(value):
 			result.complete = false
 			continue
-		var safe := {"event":value.event,"time":value.time.left(32),"level":value.level,"module":value.module,"message":EXPLANATIONS.get(value.event,"客户端活动")}
-		for key in METRICS + ["elapsed_ms"]:
-			if value.get(key) is bool or value.get(key) is int or value.get(key) is float:
-				safe[key] = value[key]
-		for key in ["code","phase","reply_id"]:
-			if value.get(key) is String and _token.search(value[key]) != null:
-				safe[key] = value[key] if key == "reply_id" else _safe_code(key, value[key])
+		var safe := _safe_archive_entry(value)
 		result.entries.append(safe)
 	file.close()
 	return result
-
 func _safe_code(key: String, value: String) -> String:
 	return value if value in (CODES if key == "code" else PHASES).split(" ") else "UNKNOWN"
+
+func _apply_fields(entry: Dictionary, fields: Dictionary) -> void:
+	_apply_metrics(entry, fields)
+	for key in ["phase", "code"]:
+		if fields.get(key) is String and _token.search(fields[key]) != null:
+			entry[key] = _safe_code(key, fields[key])
+	if fields.get("level") in ["INFO", "WARN", "ERROR"]:
+		entry.level = fields.level
+	if fields.get("module") in MODULES:
+		entry.module = fields.module
+	if fields.get("reply_id") is String:
+		entry.reply_id = fields.reply_id.sha256_text().left(12)
+func _write_entry(serialized: PackedByteArray) -> Dictionary:
+	var error := OK
+	var limit_rejected := false
+	var path := _path(_id, ".jsonl")
+	if _archive_bytes < 0:
+		_archive_bytes = _jsonl_size(path)
+	if _entries.size() >= _max_entries or _archive_bytes + serialized.size() + 1 > _max_bytes:
+		error = ERR_OUT_OF_MEMORY
+		_meta.complete = false
+		limit_rejected = true
+	else:
+		error = _append_entry_file(path, serialized)
+	return {"error":error,"limit_rejected":limit_rejected}
+
+func _append_entry_file(path: String, serialized: PackedByteArray) -> Error:
+	var error := OK
+	var file := FileAccess.open(path, FileAccess.READ_WRITE if FileAccess.file_exists(path) else FileAccess.WRITE)
+	if file == null:
+		error = FileAccess.get_open_error()
+		_archive_bytes = -1
+	else:
+		file.seek_end()
+		file.store_buffer(serialized)
+		file.store_8(10)
+		file.flush()
+		error = file.get_error()
+		file.close()
+		if error == OK:
+			_archive_bytes += serialized.size() + 1
+		else:
+			_archive_bytes = -1
+	return error
+
+func _apply_metrics(entry: Dictionary, fields: Dictionary) -> void:
+	for key in METRICS:
+		var value: Variant = fields.get(key)
+		if value is bool or value is int or (value is float and is_finite(value)):
+			entry[key] = value
+
+func _valid_run_metadata(data: Variant, id: String) -> bool:
+	return data is Dictionary and data.get("id") == id and (data.get("pid") is float or data.get("pid") is int)
+
+func _write_export(destination_zip: String, files: Array) -> Error:
+	var zip := ZIPPacker.new()
+	var error := zip.open(destination_zip)
+	if error != OK:
+		return error
+	for pair in files:
+		error = zip.start_file(pair[0])
+		if error == OK:
+			error = zip.write_file(pair[1].to_utf8_buffer())
+		if error == OK:
+			error = zip.close_file()
+		if error != OK:
+			break
+	var closed := zip.close()
+	if error == OK:
+		error = closed
+	if error != OK:
+		DirAccess.remove_absolute(destination_zip)
+	return error
+
+func _valid_archive_entry(value: Variant) -> bool:
+	return value is Dictionary and value.get("event") is String and _token.search(value.event) != null and value.get("time") is String and value.get("level") in ["INFO","WARN","ERROR"] and value.get("module") in MODULES
+
+func _safe_archive_entry(value: Dictionary) -> Dictionary:
+	var safe := {"event":value.event,"time":value.time.left(32),"level":value.level,"module":value.module,"message":EXPLANATIONS.get(value.event,"客户端活动")}
+	for key in METRICS + ["elapsed_ms"]:
+		if value.get(key) is bool or value.get(key) is int or value.get(key) is float:
+			safe[key] = value[key]
+	for key in ["code","phase","reply_id"]:
+		if value.get(key) is String and _token.search(value[key]) != null:
+			safe[key] = value[key] if key == "reply_id" else _safe_code(key, value[key])
+	return safe

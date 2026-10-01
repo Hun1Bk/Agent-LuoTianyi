@@ -28,13 +28,7 @@ func _ready() -> void:
 	_build()
 
 func set_items(items: Array) -> Error:
-	var ids := {}
-	for item in items:
-		if not item is Dictionary: return ERR_INVALID_PARAMETER
-		if item.get("separator",false): continue
-		if not item.get("id") is String or item.id.is_empty() or not item.get("label") is String or ids.has(item.id):
-			return ERR_INVALID_PARAMETER
-		ids[item.id] = true
+	if not _valid_items(items): return ERR_INVALID_PARAMETER
 	_items = items.duplicate(true)
 	if not _available(_selected):
 		_selected = ""
@@ -45,7 +39,6 @@ func set_items(items: Array) -> Error:
 	_caption()
 	if is_node_ready(): _build()
 	return OK
-
 func get_items() -> Array:
 	return _items.duplicate(true)
 
@@ -117,15 +110,7 @@ func open_menu() -> void:
 	_popup.content_scale_size = Vector2i.ZERO
 	_popup.content_scale_factor = 1.0
 	_popup.popup(Rect2i(Vector2i(clampi(origin.x, shadow, maxi(shadow, int(available.x) - width - shadow)), y), Vector2i(width,height)))
-	_focus_index = -1
-	for index in _buttons.size():
-		var row := _buttons[index]
-		row.text = ("✓  " if not action_menu and row.get_meta("id") == _selected else "    ") + _label(row.get_meta("id"))
-		for state in ["font_color","font_focus_color","font_hover_color","font_pressed_color"]:
-			row.add_theme_color_override(state,get_theme_color("font_selected_color", "DropdownItem") if not action_menu and row.get_meta("id") == _selected else get_theme_color("font_color", "DropdownItem"))
-		if row.get_meta("id") == _selected: _focus_index = index
-	if _focus_index >= 0: _buttons[_focus_index].grab_focus()
-
+	_focus_menu_items()
 func _label(id: String) -> String:
 	for item in _items:
 		if item.get("id","") == id: return item.label
@@ -165,3 +150,23 @@ func _process(_delta: float) -> void:
 	var owner := get_window()
 	if not is_visible_in_tree() or disabled or window_system.minimized(owner) or window_system.geometry(owner) != _owner_geometry:
 		close_menu()
+
+func _valid_items(items: Array) -> bool:
+	var ids := {}
+	for item in items:
+		if not item is Dictionary: return false
+		if item.get("separator",false): continue
+		if not item.get("id") is String or item.id.is_empty() or not item.get("label") is String or ids.has(item.id):
+			return false
+		ids[item.id] = true
+	return true
+
+func _focus_menu_items() -> void:
+	_focus_index = -1
+	for index in _buttons.size():
+		var row := _buttons[index]
+		row.text = ("✓  " if not action_menu and row.get_meta("id") == _selected else "    ") + _label(row.get_meta("id"))
+		for state in ["font_color","font_focus_color","font_hover_color","font_pressed_color"]:
+			row.add_theme_color_override(state,get_theme_color("font_selected_color", "DropdownItem") if not action_menu and row.get_meta("id") == _selected else get_theme_color("font_color", "DropdownItem"))
+		if row.get_meta("id") == _selected: _focus_index = index
+	if _focus_index >= 0: _buttons[_focus_index].grab_focus()

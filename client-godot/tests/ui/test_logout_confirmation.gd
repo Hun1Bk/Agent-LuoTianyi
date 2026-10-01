@@ -79,7 +79,7 @@ func run() -> void:
 		await RenderingServer.frame_post_draw
 		check(settings.get_texture().get_image().save_png(ARTIFACT) == OK, "capture decision in settings")
 	await click(dialog.get_cancel_button())
-	check(not dialog.visible and settings.is_dirty() and not session.get_session().is_empty(), "cancel keeps account and draft")
+	_check_cancel_keeps_account_and_draft(dialog, settings, session)
 	settings.close_requested.emit()
 	await click(settings.get_node("%UnsavedDialog").get_ok_button())
 	await process_frame
@@ -100,7 +100,7 @@ func run() -> void:
 	await inspect_dialog(dialog, settings)
 	await click(dialog.get_ok_button())
 	await process_frame
-	check(session.get_session().is_empty() and logs.visible and is_instance_valid(dialog), "discard logs out, preserves logs and reusable decision")
+	_check_discard_logs_out_preserves_logs_and_reusable_decision(session, logs, dialog)
 	await session.perform("login", OS.get_environment("GODOT_TEST_SERVER"), {"username":"fail_save", "password":"synthetic", "request_token":false}, false)
 	app.get_node("%NavSettings").pressed.emit()
 	settings = app.find_child("SettingsWindow", true, false)
@@ -114,7 +114,7 @@ func run() -> void:
 	check(await until(func(): return not settings.is_saving()), "failed save settles")
 	await inspect_dialog(dialog, settings)
 	await click(dialog.get_cancel_button())
-	check(settings.is_dirty() and field.text == "failed save must retain this" and not session.get_session().is_empty(), "failed-save logout cancellation preserves draft and account")
+	_check_failed_save_logout_cancellation_preserves_draft_and_account(settings, field, session)
 	# A public save request may arrive after the original close snapshot.
 	settings.get_node("%LogoutButton").pressed.emit()
 	settings.save_changes()
@@ -136,8 +136,16 @@ func run() -> void:
 	remove_folder(path)
 	print("Logout confirmation: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
-
 func remove_folder(path: String) -> void:
 	for folder in DirAccess.get_directories_at(path): remove_folder(path.path_join(folder))
 	for file in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(file))
 	DirAccess.remove_absolute(path)
+
+func _check_cancel_keeps_account_and_draft(dialog: Variant, settings: Variant, session: Variant) -> void:
+	check(not dialog.visible and settings.is_dirty() and not session.get_session().is_empty(), "cancel keeps account and draft")
+
+func _check_discard_logs_out_preserves_logs_and_reusable_decision(session: Variant, logs: Variant, dialog: Variant) -> void:
+	check(session.get_session().is_empty() and logs.visible and is_instance_valid(dialog), "discard logs out, preserves logs and reusable decision")
+
+func _check_failed_save_logout_cancellation_preserves_draft_and_account(settings: Variant, field: Variant, session: Variant) -> void:
+	check(settings.is_dirty() and field.text == "failed save must retain this" and not session.get_session().is_empty(), "failed-save logout cancellation preserves draft and account")

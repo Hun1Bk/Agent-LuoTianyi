@@ -46,11 +46,7 @@ def run(godot, script="res://tests/test_account_api.gd", gpu=False):
                 return
             self.reply(200, {"public_key": "bad-key" if self.path.startswith("/badkey/") else crypto.get_public_key_pem()})
 
-        def do_POST(self):
-            fields = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            if self.path.startswith("/slowpost/"):
-                time.sleep(0.5)
-            operation = self.path.rsplit("/", 1)[-1]
+        def validate_fields(self, operation, fields):
             allowed = {"login":{"username", "password", "request_token"}, "register":{"username", "password", "invite_code"},
                        "reset_account":{"invite_code", "new_username", "new_password"}, "auto_login":{"username", "token"}}
             try:
@@ -61,11 +57,20 @@ def run(godot, script="res://tests/test_account_api.gd", gpu=False):
                 else:
                     if fields["token"] == "invalid":
                         self.reply(401, {"detail":"expired login token"})
-                        return
+                        return False
                     assert fields["token"] in {"login-test", "login-rotated"}, "wrong token type"
             except Exception as error:
                 protocol_errors.append(type(error).__name__)
                 self.reply(400, {"detail":"fixture protocol mismatch"})
+                return False
+            return True
+
+        def do_POST(self):
+            fields = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            if self.path.startswith("/slowpost/"):
+                time.sleep(0.5)
+            operation = self.path.rsplit("/", 1)[-1]
+            if not self.validate_fields(operation, fields):
                 return
             username = fields.get("username", "test")
             if username in {"reject", "busy"}:

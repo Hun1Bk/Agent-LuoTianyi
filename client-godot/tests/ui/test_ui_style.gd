@@ -57,7 +57,7 @@ func run() -> void:
 	check(store.save_settings() == OK, "isolated store created")
 	var style := Style.new()
 	style.configure(store)
-	check(style.ui_style == "flat" and style.icon_style == "svg", "fresh configuration defaults to flat/svg")
+	_check_fresh_configuration_defaults_to_flat_svg(style)
 	var notifications: Array[bool] = []
 	style.style_changed.connect(func(): notifications.append(true))
 	var own := make_bubble(style, true)
@@ -72,6 +72,84 @@ func run() -> void:
 	var messages: Array[Dictionary] = []
 	for index in 80: messages.append(message(str(index), index % 2 == 0))
 	scroll.set_messages(messages)
+	await _check_style_combinations(style, notifications, own, other, chat, scroll, path)
+	_check_scene_stylebox_asset_is_not_mutated(source)
+	check(store.get_value("layout", "ratio") == .45, "unrelated settings survive")
+	check(other.get_node("%Avatar").texture.resource_path.ends_with("tianyi_icon.png"), "original Tianyi avatar retained")
+	check(style.save_preferences("invalid", "svg") == ERR_INVALID_PARAMETER, "invalid input rejected")
+	var original_count := style._icon_registry.size()
+	for index in 10: style.register_icon(chat.get_node("%Send"), "action_send")
+	check(style._icon_registry.size() <= original_count, "repeated registration does not accumulate entries")
+	own.free()
+	other.free()
+	chat.free()
+	_check_freed_controls_are_pruned_safely(style)
+	store.set_value("ui", "style", "unknown")
+	store.set_value("ui", "icons", 42)
+	store.save_settings()
+	style.configure(Store.new(path))
+	_check_invalid_persisted_values_fall_back(style)
+	await check_failed_save()
+	DirAccess.remove_absolute(path)
+	print("UI style preferences: ", "PASS" if failures.is_empty() else "FAIL: " + str(failures))
+	quit(0 if failures.is_empty() else 1)
+func check_failed_save() -> void:
+	var store := FailingStore.new()
+	var style := Style.new()
+	style.configure(store)
+	var changes: Array[bool] = []
+	style.style_changed.connect(func(): changes.append(true))
+	var window = load("res://scenes/ui/settings_window.tscn").instantiate()
+	window.set_ui_style(style)
+	window.setup(null, null)
+	root.add_child(window)
+	window.open()
+	var page = window.get_node("%StylePage")
+	page.get_node("%UiStylePresets").activated.emit("crystal")
+	page.get_node("%IconStylePresets").activated.emit("emoji")
+	check(window.is_dirty() and style.ui_style == "flat", "selection stays a draft until saved")
+	window.close_requested.emit()
+	check(window.get_node("%UnsavedDialog").visible, "local appearance drafts guard close")
+	window.get_node("%UnsavedDialog").get_cancel_button().pressed.emit()
+	var result: Dictionary = await window.save_changes()
+	check(not result.ok and window.is_dirty(), "failed save retains appearance draft")
+	_check_failure_does_not_change_runtime_appearance(style, changes)
+	check(store.values == {"style":"flat","icons":"svg","unrelated":"keep"}, "failure restores store values")
+	check(window.get_node("%Result").text.contains("本地保存失败"), "window reports local persistence failure")
+	check(store.saves == 1, "two settings use one write")
+	window.close_requested.emit()
+	window.get_node("%UnsavedDialog").get_node("%SaveAndClose").pressed.emit()
+	await process_frame
+	check(is_instance_valid(window) and window.is_dirty() and store.saves == 2, "failed save-and-close keeps window and draft")
+	store.fail = false
+	result = await window.save_changes()
+	check(result.ok and not window.is_dirty() and changes.size() == 1, "retry saves both settings and clears draft")
+	check(store.saves == 3 and style.ui_style == "crystal" and style.icon_style == "emoji", "retry applies the retained selection")
+	page.get_node("%UiStylePresets").activated.emit("flat")
+	window.close_requested.emit()
+	window.get_node("%UnsavedDialog").get_node("%SaveAndClose").pressed.emit()
+	await process_frame
+	check(not is_instance_valid(window) and style.ui_style == "flat", "successful save-and-close applies appearance and closes")
+	check(style.save_preferences("flat", "svg") == OK, "restore flat shared theme after verification")
+func _check_restart_restores_both_preferences(restored: Variant, pair: Variant) -> void:
+	check(restored.ui_style == pair[0] and restored.icon_style == pair[1], "restart restores both preferences")
+
+func _check_fresh_configuration_defaults_to_flat_svg(style: Variant) -> void:
+	check(style.ui_style == "flat" and style.icon_style == "svg", "fresh configuration defaults to flat/svg")
+
+func _check_scene_stylebox_asset_is_not_mutated(source: Variant) -> void:
+	check(source.corner_radius_top_left == 8 and source.shadow_size == 0, "scene stylebox asset is not mutated")
+
+func _check_freed_controls_are_pruned_safely(style: Variant) -> void:
+	check(style.save_preferences("crystal", "emoji") == OK and style._icon_registry.is_empty(), "freed controls are pruned safely")
+
+func _check_invalid_persisted_values_fall_back(style: Variant) -> void:
+	check(style.ui_style == "flat" and style.icon_style == "svg", "invalid persisted values fall back")
+
+func _check_failure_does_not_change_runtime_appearance(style: Variant, changes: Variant) -> void:
+	check(style.ui_style == "flat" and style.icon_style == "svg" and changes.is_empty(), "failure does not change runtime appearance")
+
+func _check_style_combinations(style: Variant, notifications: Array, own: Variant, other: Variant, chat: Variant, scroll: Variant, path: String) -> void:
 	for pair in [["flat","svg"],["flat","emoji"],["crystal","svg"],["crystal","emoji"],["flat","svg"]]:
 		var changed: bool = style.ui_style != pair[0] or style.icon_style != pair[1]
 		var before := notifications.size()
@@ -99,63 +177,4 @@ func run() -> void:
 		for bubble in scroll.get_node("%Canvas").get_children(): check_bubble(bubble, pair[0])
 		var restored := Style.new()
 		restored.configure(Store.new(path))
-		check(restored.ui_style == pair[0] and restored.icon_style == pair[1], "restart restores both preferences")
-	check(source.corner_radius_top_left == 8 and source.shadow_size == 0, "scene stylebox asset is not mutated")
-	check(store.get_value("layout", "ratio") == .45, "unrelated settings survive")
-	check(other.get_node("%Avatar").texture.resource_path.ends_with("tianyi_icon.png"), "original Tianyi avatar retained")
-	check(style.save_preferences("invalid", "svg") == ERR_INVALID_PARAMETER, "invalid input rejected")
-	var original_count := style._icon_registry.size()
-	for index in 10: style.register_icon(chat.get_node("%Send"), "action_send")
-	check(style._icon_registry.size() <= original_count, "repeated registration does not accumulate entries")
-	own.free()
-	other.free()
-	chat.free()
-	check(style.save_preferences("crystal", "emoji") == OK and style._icon_registry.is_empty(), "freed controls are pruned safely")
-	store.set_value("ui", "style", "unknown")
-	store.set_value("ui", "icons", 42)
-	store.save_settings()
-	style.configure(Store.new(path))
-	check(style.ui_style == "flat" and style.icon_style == "svg", "invalid persisted values fall back")
-	await check_failed_save()
-	DirAccess.remove_absolute(path)
-	print("UI style preferences: ", "PASS" if failures.is_empty() else "FAIL: " + str(failures))
-	quit(0 if failures.is_empty() else 1)
-
-func check_failed_save() -> void:
-	var store := FailingStore.new()
-	var style := Style.new()
-	style.configure(store)
-	var changes: Array[bool] = []
-	style.style_changed.connect(func(): changes.append(true))
-	var window = load("res://scenes/ui/settings_window.tscn").instantiate()
-	window.set_ui_style(style)
-	window.setup(null, null)
-	root.add_child(window)
-	window.open()
-	var page = window.get_node("%StylePage")
-	page.get_node("%UiStylePresets").activated.emit("crystal")
-	page.get_node("%IconStylePresets").activated.emit("emoji")
-	check(window.is_dirty() and style.ui_style == "flat", "selection stays a draft until saved")
-	window.close_requested.emit()
-	check(window.get_node("%UnsavedDialog").visible, "local appearance drafts guard close")
-	window.get_node("%UnsavedDialog").get_cancel_button().pressed.emit()
-	var result: Dictionary = await window.save_changes()
-	check(not result.ok and window.is_dirty(), "failed save retains appearance draft")
-	check(style.ui_style == "flat" and style.icon_style == "svg" and changes.is_empty(), "failure does not change runtime appearance")
-	check(store.values == {"style":"flat","icons":"svg","unrelated":"keep"}, "failure restores store values")
-	check(window.get_node("%Result").text.contains("本地保存失败"), "window reports local persistence failure")
-	check(store.saves == 1, "two settings use one write")
-	window.close_requested.emit()
-	window.get_node("%UnsavedDialog").get_node("%SaveAndClose").pressed.emit()
-	await process_frame
-	check(is_instance_valid(window) and window.is_dirty() and store.saves == 2, "failed save-and-close keeps window and draft")
-	store.fail = false
-	result = await window.save_changes()
-	check(result.ok and not window.is_dirty() and changes.size() == 1, "retry saves both settings and clears draft")
-	check(store.saves == 3 and style.ui_style == "crystal" and style.icon_style == "emoji", "retry applies the retained selection")
-	page.get_node("%UiStylePresets").activated.emit("flat")
-	window.close_requested.emit()
-	window.get_node("%UnsavedDialog").get_node("%SaveAndClose").pressed.emit()
-	await process_frame
-	check(not is_instance_valid(window) and style.ui_style == "flat", "successful save-and-close applies appearance and closes")
-	check(style.save_preferences("flat", "svg") == OK, "restore flat shared theme after verification")
+		_check_restart_restores_both_preferences(restored, pair)

@@ -117,7 +117,7 @@ func send_text(text: String) -> String:
 	if id.is_empty():
 		_system_error("SEND_REJECTED")
 		return ""
-	var message := {"id":id, "role":"user", "text":text, "status":"waiting_history" if _waiting_history else "queued", "code":""}
+	var message := {"id":id, "role":"user", "text":text, "timestamp":Time.get_unix_time_from_system(), "status":"waiting_history" if _waiting_history else "queued", "code":""}
 	_messages.append(message)
 	_by_id[id] = message
 	if _logger != null:
@@ -146,7 +146,7 @@ func send_image(bytes: PackedByteArray, mime: String) -> String:
 	if id.is_empty():
 		_system_error("SEND_REJECTED")
 		return ""
-	var message := {"id":id,"role":"user","type":"image","text":"","status":"waiting_history" if _waiting_history else "queued","code":""}
+	var message := {"id":id,"role":"user","type":"image","text":"","timestamp":Time.get_unix_time_from_system(),"status":"waiting_history" if _waiting_history else "queued","code":""}
 	_messages.append(message)
 	_by_id[id] = message
 	_images.store_local(id, normalized_bytes)
@@ -262,38 +262,27 @@ func _receive(event: Dictionary) -> void:
 			_state.thinking = payload.state == "thinking"
 			state_changed.emit(get_state())
 	elif event.type == "agent_message":
-		_receive_reply(payload)
+		_receive_reply(payload, event.get("ts"))
 	elif event.type == "llm_request" and _models != null:
 		_models.submit(payload)
 
-func _receive_reply(payload: Dictionary) -> void:
+func _receive_reply(payload: Dictionary, event_timestamp: Variant = null) -> void:
 	var id: Variant = payload.get("uuid")
 	if not id is String or id.is_empty() or (payload.get("text") != null and not payload.text is String):
 		_system_error("INVALID_RESPONSE")
 		return
-	if _logger != null:
-		_logger.record("reply_received", {"reply_id":id, "has_audio":payload.get("audio") is String and not payload.audio.is_empty(),
-			"audio_chars":payload.audio.length() if payload.get("audio") is String else 0,
-			"final":payload.get("is_final_package", true), "audio_error":payload.get("audio_error", false)})
+	_log_reply(id, payload)
 	if _finished.has(id):
 		return
 	if not _replies.has(id):
-		_replies[id] = {"text":"", "expression":"", "display":true, "final":false, "audio_error":false, "played":false,"ephemeral":false}
+		_replies[id] = {"text":"", "expression":"", "display":true, "final":false, "audio_error":false, "played":false,"ephemeral":false, "timestamp":_reply_timestamp(event_timestamp)}
 	var reply: Dictionary = _replies[id]
 	reply.ephemeral = reply.ephemeral or payload.get("is_ephemeral",false) == true
 	if reply.final:
 		return
-	if payload.get("text") is String and not payload.text.is_empty():
-		reply.text = payload.text
-	if payload.get("expression") is String and not payload.expression.is_empty():
-		reply.expression = payload.expression
-	if payload.get("display_in_chat", true) == false:
-		reply.display = false
-	reply.audio_error = reply.audio_error or payload.get("audio_error", false) == true
-	reply.final = reply.final or payload.get("is_final_package", true) == true or reply.audio_error
+	_update_reply(reply, payload)
 	_media.append_reply_audio(id, payload.audio if payload.get("audio") is String else "", reply.final, reply.audio_error, payload.get("is_ephemeral",false) == true)
 	_present_replies()
-
 func _audio_finished(id: String, code: String) -> void:
 	if not _replies.has(id):
 		return
@@ -308,7 +297,7 @@ func _present_replies() -> void:
 		var reply: Dictionary = _replies[id]
 		if reply.display and not reply.text.is_empty():
 			if not _by_id.has(id):
-				var message := {"id":id, "role":"assistant", "text":reply.text, "status":"received", "code":"","is_ephemeral":reply.ephemeral}
+				var message := {"id":id, "role":"assistant", "text":reply.text, "timestamp":reply.timestamp, "status":"received", "code":"","is_ephemeral":reply.ephemeral}
 				_by_id[id] = message
 				_messages.append(message)
 			else:
@@ -325,6 +314,11 @@ func _present_replies() -> void:
 			break
 		_finished[id] = true
 		_replies.erase(id)
+
+func _reply_timestamp(raw: Variant) -> float:
+	if (raw is int or raw is float) and is_finite(float(raw)) and raw > 0:
+		return float(raw) / 1000.0
+	return Time.get_unix_time_from_system()
 
 func _exit_tree() -> void:
 	stop()
@@ -385,6 +379,7 @@ func _history_page(messages: Array[Dictionary]) -> void:
 			# History UUID is authoritative identity, never text/time matching.
 			# Preserve live content while moving the item into its history position.
 			var existing: Dictionary = _by_id[message.id]
+			existing.timestamp = message.timestamp
 			_messages.erase(existing)
 			prepend.append(existing)
 		else:
@@ -427,3 +422,19 @@ func preview_message_image(id: String) -> Texture2D:
 
 func _model_types() -> Array:
 	return _models.enabled_types() if _models != null else []
+
+func _log_reply(id: String, payload: Dictionary) -> void:
+	if _logger != null:
+		_logger.record("reply_received", {"reply_id":id, "has_audio":payload.get("audio") is String and not payload.audio.is_empty(),
+			"audio_chars":payload.audio.length() if payload.get("audio") is String else 0,
+			"final":payload.get("is_final_package", true), "audio_error":payload.get("audio_error", false)})
+
+func _update_reply(reply: Dictionary, payload: Dictionary) -> void:
+	if payload.get("text") is String and not payload.text.is_empty():
+		reply.text = payload.text
+	if payload.get("expression") is String and not payload.expression.is_empty():
+		reply.expression = payload.expression
+	if payload.get("display_in_chat", true) == false:
+		reply.display = false
+	reply.audio_error = reply.audio_error or payload.get("audio_error", false) == true
+	reply.final = reply.final or payload.get("is_final_package", true) == true or reply.audio_error

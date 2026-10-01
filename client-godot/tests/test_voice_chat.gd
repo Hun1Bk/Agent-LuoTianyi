@@ -41,16 +41,16 @@ func _run() -> void:
 	check(await until(func(): return session.get_state().phase == "ready"), "loopback voice connection authenticates")
 	session.send_text("stream")
 	check(await until(func(): return session.get_state().get("speaking",false)), "received WAV reaches actual playing state")
-	check(session.get_messages().size() == 2 and expressions == ["微笑脸"], "later text and expression wait for preceding sound")
+	_check_later_text_and_expression_wait_for_preceding_sound(session)
 	check(await until(func(): return session.get_messages().size() == 3 and session.get_audio_state().queued == 0), "both replies finish in order")
-	check(peak > .05 and expressions == ["微笑脸","normal"], "real network audio reaches mixer")
-	check(mouth_max > .05 and mouth == -1.0, "chat forwards actual mouth progress and restoration")
+	_check_real_network_audio_reaches_mixer()
+	_check_chat_forwards_actual_mouth_progress_and_restoration()
 	peak = 0
 	capture.clear_buffer()
 	session.send_text("hidden")
 	check(await until(func(): return session.get_state().get("speaking",false)), "hidden ephemeral voice still plays")
 	check(await until(func(): return session.get_audio_state().queued == 0), "hidden reply finishes")
-	check(peak > .05 and session.get_messages().size() == 4, "hidden audio has output without bubble")
+	_check_hidden_audio_has_output_without_bubble(session)
 	session.send_text("bad")
 	check(await until(func(): return session.get_state().code == "AUDIO_ERROR"), "decode failure reported to UI")
 	check(session.get_messages().any(func(message): return message.text == "voice-bad"), "malformed audio preserves text")
@@ -66,8 +66,7 @@ func _run() -> void:
 	await process_frame
 	var list: ScrollContainer = view.find_children("*","ScrollContainer",true,false).filter(func(n): return n.has_method("scroll_to_message"))[0]
 	list.scroll_to_message("voice-first")
-	for _frame in 4:
-		await process_frame
+	await _wait_frames(4)
 	check(button(view,"重放") != null,"completed voice exposes visible replay control")
 	if button(view,"重放") != null:
 		var label: RichTextLabel
@@ -85,8 +84,8 @@ func _run() -> void:
 			check(button(view,"继续") != null,"pause exposes resume")
 			button(view,"继续").pressed.emit()
 		await until(func(): return button(view,"暂停") == null)
-		check(label.get_instance_id() == original and label.get_selected_text() == "voice-first","progress preserves bubble and selected text")
-		check(session.get_messages() == snapshot and expressions.size() == expression_count,"local replay creates no messages or expression events")
+		_check_progress_preserves_bubble_and_selected_text(label, original)
+		_check_local_replay_creates_no_messages_or_expression_events(session, snapshot, expression_count)
 		check(session.replay("missing") != OK,"session rejects undisplayed voice")
 	var sliders = view.find_children("*", "HSlider",true,false)
 	check(sliders.size() == 1, "chat exposes volume control")
@@ -95,11 +94,9 @@ func _run() -> void:
 		check(is_equal_approx(session.get_audio_state().volume,.35), "volume UI calls public controller")
 	session.send_text("stop")
 	check(await until(func(): return session.get_state().speaking), "stop test begins real voice")
-	for button in view.find_children("*", "Button",true,false):
-		if button.text == "停止语音":
-			button.pressed.emit()
+	_press_stop_button(view)
 	await process_frame
-	check(not session.get_state().speaking and mouth == -1.0, "stop button silences and restores mouth")
+	_check_stop_button_silences_and_restores_mouth(session)
 	check(not session.get_messages().any(func(message): return message.text == "stop-next"), "stop before terminal does not advance next reply")
 	session.send_text("continue")
 	check(await until(func(): return session.get_messages().any(func(message): return message.text == "stop-final")), "stop still accepts final text update")
@@ -109,10 +106,64 @@ func _run() -> void:
 	session.send_text("close")
 	check(await until(func(): return session.get_state().phase != "ready"), "fixture disconnect observed")
 	check(not session.get_state().get("speaking",false), "disconnect releases active voice")
-	check(mouth == -1.0 and session.get_audio_state().queued == 0, "disconnect releases streams and mouth")
+	_check_disconnect_releases_streams_and_mouth(session)
 	check(session.get_messages().any(func(message): return message.text == "voice-disconnect"), "disconnect preserves displayed voice text")
 	var logs := JSON.stringify(logger.read_entries())
+	_check_network_to_playback_has_diagnostic_trail(logs)
+	await _check_clear_cache_settings(session, view, cache)
+	view.queue_free()
+	session.queue_free()
+	await process_frame
+	AudioServer.remove_bus_effect(0,AudioServer.get_bus_effect_count(0)-1)
+	logger.finish()
+	_remove_test_files(directory)
+	DirAccess.remove_absolute(directory)
+	print("Voice chat: ", "PASS" if failures.is_empty() else "FAIL")
+	quit(0 if failures.is_empty() else 1)
+func button(view: Node, text: String) -> Button:
+	for item in view.find_children("*","Button",true,false):
+		if item.text == text and item.is_visible_in_tree():
+			return item
+	return null
+
+func _check_network_to_playback_has_diagnostic_trail(logs: Variant) -> void:
 	check(logs.contains("audio_playback_started") and logs.contains("audio_playback_finished") and logs.contains("audio_error"), "network to playback has diagnostic trail")
+
+func _check_progress_preserves_bubble_and_selected_text(label: Variant, original: Variant) -> void:
+	check(label.get_instance_id() == original and label.get_selected_text() == "voice-first","progress preserves bubble and selected text")
+
+func _check_local_replay_creates_no_messages_or_expression_events(session: Variant, snapshot: Variant, expression_count: Variant) -> void:
+	check(session.get_messages() == snapshot and expressions.size() == expression_count,"local replay creates no messages or expression events")
+
+func _check_confirmed_clear_removes_replay_buttons_but_keeps_text(button: Variant, view: Variant, cache: Variant) -> void:
+	check(button(view,"重放") == null and cache.lookup("voice-first").is_empty(),"confirmed clear removes replay buttons but keeps text")
+
+func _check_later_text_and_expression_wait_for_preceding_sound(session: Variant) -> void:
+	check(session.get_messages().size() == 2 and expressions == ["微笑脸"], "later text and expression wait for preceding sound")
+
+func _check_real_network_audio_reaches_mixer() -> void:
+	check(peak > .05 and expressions == ["微笑脸","normal"], "real network audio reaches mixer")
+
+func _check_chat_forwards_actual_mouth_progress_and_restoration() -> void:
+	check(mouth_max > .05 and mouth == -1.0, "chat forwards actual mouth progress and restoration")
+
+func _check_hidden_audio_has_output_without_bubble(session: Variant) -> void:
+	check(peak > .05 and session.get_messages().size() == 4, "hidden audio has output without bubble")
+
+func _check_stop_button_silences_and_restores_mouth(session: Variant) -> void:
+	check(not session.get_state().speaking and mouth == -1.0, "stop button silences and restores mouth")
+
+func _check_disconnect_releases_streams_and_mouth(session: Variant) -> void:
+	check(mouth == -1.0 and session.get_audio_state().queued == 0, "disconnect releases streams and mouth")
+
+func _check_clear_cache_requires_confirmation(dialogs: Variant) -> void:
+	check(dialogs.size() == 1 and dialogs[0].visible,"clear cache requires confirmation")
+
+func _wait_frames(count: int) -> void:
+	for _frame in count:
+		await process_frame
+
+func _check_clear_cache_settings(session: Variant, view: Variant, cache: Variant) -> void:
 	var settings = load("res://scenes/ui/settings_window.tscn").instantiate()
 	settings.setup(null, null, null, session.clear_cache)
 	root.add_child(settings)
@@ -123,7 +174,7 @@ func _run() -> void:
 	var menu = page.get_node("%ClearCache")
 	menu.pressed.emit()
 	var dialogs = page.find_children("*Dialog","Window",true,false)
-	check(dialogs.size() == 1 and dialogs[0].visible,"clear cache requires confirmation")
+	_check_clear_cache_requires_confirmation(dialogs)
 	if not dialogs.is_empty():
 		check(cache.lookup("voice-first").has("path"),"opening clear dialog does not delete cache")
 		dialogs[0].get_cancel_button().pressed.emit()
@@ -131,28 +182,21 @@ func _run() -> void:
 		menu.pressed.emit()
 		dialogs[0].confirmed.emit()
 		await create_timer(0.1).timeout
-		check(button(view,"重放") == null and cache.lookup("voice-first").is_empty(),"confirmed clear removes replay buttons but keeps text")
+		_check_confirmed_clear_removes_replay_buttons_but_keeps_text(button, view, cache)
 	check(session.get_messages().any(func(message): return message.text == "voice-first"),"clearing cache preserves chat text")
 	session.stop()
 	check(cache.lookup("voice-first").is_empty(),"logout closes cache scope")
 	settings.queue_free()
-	view.queue_free()
-	session.queue_free()
-	await process_frame
-	AudioServer.remove_bus_effect(0,AudioServer.get_bus_effect_count(0)-1)
-	logger.finish()
+
+func _remove_test_files(directory: String) -> void:
 	for file in DirAccess.get_files_at(directory):
 		DirAccess.remove_absolute(directory.path_join(file))
 	if DirAccess.dir_exists_absolute(directory + "/audio"):
 		for scope in DirAccess.get_directories_at(directory + "/audio"):
 			DirAccess.remove_absolute(directory + "/audio/" + scope)
 		DirAccess.remove_absolute(directory + "/audio")
-	DirAccess.remove_absolute(directory)
-	print("Voice chat: ", "PASS" if failures.is_empty() else "FAIL")
-	quit(0 if failures.is_empty() else 1)
 
-func button(view: Node, text: String) -> Button:
-	for item in view.find_children("*","Button",true,false):
-		if item.text == text and item.is_visible_in_tree():
-			return item
-	return null
+func _press_stop_button(view: Node) -> void:
+	for button in view.find_children("*", "Button",true,false):
+		if button.text == "停止语音":
+			button.pressed.emit()

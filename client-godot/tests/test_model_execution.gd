@@ -64,17 +64,11 @@ func _run() -> void:
 	root.add_child(http)
 	var stats: Dictionary = await http.send(base+"/provider-stats",HTTPClient.METHOD_GET)
 	check(stats.data.calls.size()==2,"duplicate ID never repeats supplier request")
-	check(stats.data.calls[0].model == "snapshot" and stats.data.calls[0].temperature == 0.25,"inflight snapshot and local parameter precedence")
+	_check_inflight_snapshot_and_local_parameter_precedence(stats)
 	check(stats.data.calls[0].messages == [{"role":"system","content":"fixed-private-prompt"}],"advanced parameters cannot override prompt")
-	check(stats.data.calls[0].stop == ["END"] and stats.data.calls[0].response_format.type == "json_object","request parameters and JSON enforcement")
+	_check_request_parameters_and_json_enforcement(stats)
 	check(stats.data.calls[1].messages[0].content[1].image_url.detail == "auto","VLM image payload")
-	for scenario in ["bad-json","error","slow"]:
-		config.model = scenario
-		settings.save("text-purpose",config)
-		request.request_id = scenario
-		executor.submit(request)
-		await wait_for(scenario)
-		check(responses[scenario].get("error") == {"bad-json":"INVALID_JSON","error":"HTTP_ERROR","slow":"TIMEOUT"}[scenario],"safe error: "+scenario)
+	await _check_provider_failures(config, settings, request, executor)
 	request.request_id = "cancel"
 	executor.submit(request)
 	executor.stop()
@@ -83,7 +77,7 @@ func _run() -> void:
 	executor.start()
 	config.model = "manual"
 	var tested: Dictionary = await executor.test_config("text-purpose",config)
-	check(tested.ok and not tested.has("content"),"manual fixed probe returns status only")
+	_check_manual_fixed_probe_returns_status_only(tested)
 	settings.save("text-purpose",config)
 	var chat = load("res://src/session/chat_session.gd").new(load("res://src/network/websocket_transport.gd").new(),null,null,null,null,null,load("res://src/session/model_executor.gd").new(settings))
 	root.add_child(chat)
@@ -98,7 +92,7 @@ func _run() -> void:
 		if not stats.data.delegated.is_empty():
 			break
 		await create_timer(0.01).timeout
-	check(stats.data.delegated.size()==1 and stats.data.delegated[0].get("request_id")=="ws-delegate" and stats.data.delegated[0].has("content"),"real WS request executes and returns llm_response")
+	_check_real_ws_request_executes_and_returns_llm_response(stats)
 	chat.queue_free()
 	executor.queue_free()
 	settings.queue_free()
@@ -111,3 +105,23 @@ func _run() -> void:
 	DirAccess.remove_absolute(directory)
 	print("Model execution: ","PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+func _check_real_ws_request_executes_and_returns_llm_response(stats: Variant) -> void:
+	check(stats.data.delegated.size()==1 and stats.data.delegated[0].get("request_id")=="ws-delegate" and stats.data.delegated[0].has("content"),"real WS request executes and returns llm_response")
+
+func _check_inflight_snapshot_and_local_parameter_precedence(stats: Variant) -> void:
+	check(stats.data.calls[0].model == "snapshot" and stats.data.calls[0].temperature == 0.25,"inflight snapshot and local parameter precedence")
+
+func _check_request_parameters_and_json_enforcement(stats: Variant) -> void:
+	check(stats.data.calls[0].stop == ["END"] and stats.data.calls[0].response_format.type == "json_object","request parameters and JSON enforcement")
+
+func _check_manual_fixed_probe_returns_status_only(tested: Variant) -> void:
+	check(tested.ok and not tested.has("content"),"manual fixed probe returns status only")
+
+func _check_provider_failures(config: Dictionary, settings: Variant, request: Dictionary, executor: Variant) -> void:
+	for scenario in ["bad-json","error","slow"]:
+		config.model = scenario
+		settings.save("text-purpose",config)
+		request.request_id = scenario
+		executor.submit(request)
+		await wait_for(scenario)
+		check(responses[scenario].get("error") == {"bad-json":"INVALID_JSON","error":"HTTP_ERROR","slow":"TIMEOUT"}[scenario],"safe error: "+scenario)

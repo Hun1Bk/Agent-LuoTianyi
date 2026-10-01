@@ -37,40 +37,25 @@ func _initialize() -> void:
 	data.encode_u32(40, 0xffffffff)
 	var stream = decoder()
 	check(stream.has_method("get_waveform"), "native waveform API available")
-	if stream.has_method("get_waveform"):
-		var samples := PackedByteArray()
-		samples.resize(960)
-		for i in range(240,480):
-			samples.encode_s16(i*2,16384)
-		stream.append(wav(samples))
-		check(stream.get_waveform().is_empty(), "unfinished waveform unavailable")
-		stream.finish()
-		stream.read_frames(480)
-		check(stream.get_waveform(2) == PackedFloat32Array([0,.5]), "waveform represents real quiet and loud halves after consumption")
-		check(stream.get_waveform(0).is_empty() and stream.get_waveform(129).is_empty(), "waveform bucket bounds")
-		stream = decoder()
-		stream.append(wav(PackedByteArray([0,64])))
-		stream.finish()
-		var tiny: PackedFloat32Array = stream.get_waveform(128)
-		check(tiny.size() == 128 and tiny[0] == .5 and tiny[127] == .5, "single RMS window safely covers many buckets")
+	_check_waveform_api(stream)
 	stream = decoder()
 	for part in [data.slice(0,3), data.slice(3,23), data.slice(23,45), data.slice(45)]:
 		check(stream.append(part).ok, "split header and partial sample accepted")
 	var status: Dictionary = stream.finish()
-	check(status.ok and status.finished and status.sample_rate == 24000 and status.decoded_frames == 3, "streamable mono completed")
+	_check_streamable_mono_completed(status)
 	check(stream.read_frames(2) == PackedVector2Array([Vector2(.5,.5), Vector2(-.5,-.5)]), "PCM16 normalized stereo frames")
 	check(stream.read_frames(8) == PackedVector2Array([Vector2.ZERO]), "reads consume only available frames")
 	check(is_equal_approx(stream.get_amplitude(0), sqrt(0.5/3.0)), "native RMS follows absolute frame")
 	check(stream.get_amplitude(3) == 0.0, "out of range amplitude zero")
-	check(stream.finish().ok and stream.append(data).code == "STREAM_FINISHED", "finish idempotent and rejects late append")
+	_check_finish_idempotent_and_rejects_late_append(stream, data)
 	for sample in [[8, PackedByteArray([192,64]), 1], [24, PackedByteArray([0,0,64,0,0,192]), 1], [32, PackedByteArray([0,0,0,64,0,0,0,192]), 1], [32, PackedByteArray([0,0,0,63,0,0,0,191]), 3]]:
 		stream = decoder()
-		check(stream.append(wav(sample[1], sample[0], 2, 48000, sample[2])).ok and stream.finish().ok, "supported stereo format")
+		_check_supported_stereo_format(stream, sample)
 		check(stream.read_frames(1) == PackedVector2Array([Vector2(.5,-.5)]), "stereo sign and scale")
 	for malformed in [PackedByteArray([1,2,3,4]), data.slice(0,43), data.slice(0,45), wav(PackedByteArray())]:
 		stream = decoder()
 		stream.append(malformed)
-		check(not stream.finish().ok and stream.read_frames(100).is_empty(), "truncated or empty rejected without partial data")
+		_check_truncated_or_empty_rejected_without_partial_data(stream)
 	stream = decoder()
 	check(not stream.append(wav(PackedByteArray([0,0]),16,1,24000,6)).ok, "compressed format rejected")
 	check(not stream.append(data).ok, "decode failure sticky")
@@ -83,14 +68,14 @@ func _initialize() -> void:
 	with_junk.append_array(PackedByteArray([74,85,78,75,1,0,0,0,42,0]))
 	with_junk.append_array(known.slice(12))
 	with_junk.append_array("LISTignored".to_utf8_buffer())
-	check(stream.append(with_junk).ok and stream.finish().ok and stream.read_frames(9).size() == 2, "odd auxiliary chunk and trailing metadata ignored")
+	_check_odd_auxiliary_chunk_and_trailing_metadata_ignored(stream, with_junk)
 	var extended := known.slice(0,36)
 	extended.encode_u32(16,40)
 	extended.encode_u16(20,0xfffe)
 	extended.append_array(PackedByteArray([22,0,16,0,4,0,0,0,1,0,0,0,0,0,16,0,128,0,0,170,0,56,155,113]))
 	extended.append_array(known.slice(36))
 	stream = decoder()
-	check(stream.append(extended).ok and stream.finish().ok, "extensible PCM GUID accepted")
+	_check_extensible_pcm_guid_accepted(stream, extended)
 	extended[59] = 0
 	stream = decoder()
 	check(stream.append(extended).code == "UNSUPPORTED_FORMAT", "unknown GUID rejected")
@@ -118,6 +103,54 @@ func _initialize() -> void:
 	check(stream.append(large_header).code == "BUFFER_LIMIT", "data header included in prefix bound")
 	var silence := PackedByteArray()
 	silence.resize(2*1024*1024)
+	_check_queue_limits(silence)
+	stream = decoder()
+	var enormous := PackedByteArray()
+	enormous.resize(8*1024*1024+1)
+	check(stream.append(enormous).code == "BUFFER_LIMIT", "input bound enforced")
+	print("PCM decoder: ", "PASS" if failures.is_empty() else "FAIL")
+	quit(0 if failures.is_empty() else 1)
+func _check_waveform_api(stream: Variant) -> void:
+	if stream.has_method("get_waveform"):
+		var samples := PackedByteArray()
+		samples.resize(960)
+		for i in range(240,480):
+			samples.encode_s16(i*2,16384)
+		stream.append(wav(samples))
+		check(stream.get_waveform().is_empty(), "unfinished waveform unavailable")
+		stream.finish()
+		stream.read_frames(480)
+		check(stream.get_waveform(2) == PackedFloat32Array([0,.5]), "waveform represents real quiet and loud halves after consumption")
+		check(stream.get_waveform(0).is_empty() and stream.get_waveform(129).is_empty(), "waveform bucket bounds")
+		stream = decoder()
+		stream.append(wav(PackedByteArray([0,64])))
+		stream.finish()
+		var tiny: PackedFloat32Array = stream.get_waveform(128)
+		check(tiny.size() == 128 and tiny[0] == .5 and tiny[127] == .5, "single RMS window safely covers many buckets")
+
+func _check_streamable_mono_completed(status: Variant) -> void:
+	check(status.ok and status.finished and status.sample_rate == 24000 and status.decoded_frames == 3, "streamable mono completed")
+
+func _check_odd_auxiliary_chunk_and_trailing_metadata_ignored(stream: Variant, with_junk: Variant) -> void:
+	check(stream.append(with_junk).ok and stream.finish().ok and stream.read_frames(9).size() == 2, "odd auxiliary chunk and trailing metadata ignored")
+
+func _check_supported_stereo_format(stream: Variant, sample: Variant) -> void:
+	check(stream.append(wav(sample[1], sample[0], 2, 48000, sample[2])).ok and stream.finish().ok, "supported stereo format")
+
+func _check_truncated_or_empty_rejected_without_partial_data(stream: Variant) -> void:
+	check(not stream.finish().ok and stream.read_frames(100).is_empty(), "truncated or empty rejected without partial data")
+
+func _check_duration_and_unread_queue_limits_discard_failed_buffer(stream: Variant) -> void:
+	check(stream.get_status().code == "BUFFER_LIMIT" and stream.read_frames(1).is_empty(), "duration and unread queue limits discard failed buffer")
+
+func _check_finish_idempotent_and_rejects_late_append(stream: Variant, data: Variant) -> void:
+	check(stream.finish().ok and stream.append(data).code == "STREAM_FINISHED", "finish idempotent and rejects late append")
+
+func _check_extensible_pcm_guid_accepted(stream: Variant, extended: Variant) -> void:
+	check(stream.append(extended).ok and stream.finish().ok, "extensible PCM GUID accepted")
+
+func _check_queue_limits(silence: PackedByteArray) -> void:
+	var stream: Variant
 	for rate in [8000,24000]:
 		stream = decoder()
 		var header := wav(PackedByteArray(),16,1,rate)
@@ -125,10 +158,4 @@ func _initialize() -> void:
 		stream.append(header)
 		for i in 17:
 			stream.append(silence)
-		check(stream.get_status().code == "BUFFER_LIMIT" and stream.read_frames(1).is_empty(), "duration and unread queue limits discard failed buffer")
-	stream = decoder()
-	var enormous := PackedByteArray()
-	enormous.resize(8*1024*1024+1)
-	check(stream.append(enormous).code == "BUFFER_LIMIT", "input bound enforced")
-	print("PCM decoder: ", "PASS" if failures.is_empty() else "FAIL")
-	quit(0 if failures.is_empty() else 1)
+		_check_duration_and_unread_queue_limits_discard_failed_buffer(stream)

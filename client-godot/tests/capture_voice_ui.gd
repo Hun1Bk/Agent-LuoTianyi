@@ -29,9 +29,7 @@ func _run() -> void:
 	session.expression_requested.connect(avatar.avatar.apply_expression)
 	session.mouth_changed.connect(avatar.avatar.set_mouth_openness)
 	session.start({"server":OS.get_environment("GODOT_TEST_SERVER")+"/prefix","username":"visual","message_token":"message-test"})
-	var deadline := Time.get_ticks_msec()+5000
-	while session.get_state().phase != "ready" and Time.get_ticks_msec() < deadline:
-		await process_frame
+	await _wait_connection(session)
 	session.send_text("今天忙了一整天，有点累了。")
 	await create_timer(3.2).timeout
 	if not session.get_message_audio("visual-voice").available:
@@ -64,7 +62,6 @@ func _run() -> void:
 	print(failures)
 	print("Voice UI screenshots/layout: ","PASS" if failures.is_empty() else "FAIL", " (content scaling; not OS DPI switching)")
 	quit(0 if failures.is_empty() else 1)
-
 func _capture(view: Control, filename: String) -> void:
 	await create_timer(.25).timeout
 	for control in view.find_children("*","Control",true,false):
@@ -80,3 +77,8 @@ func _capture(view: Control, filename: String) -> void:
 	var error := root.get_texture().get_image().save_png("res://artifacts/"+filename+".png")
 	if error != OK:
 		failures.append(filename+": save failed")
+
+func _wait_connection(session: Variant) -> void:
+	var deadline := Time.get_ticks_msec()+5000
+	while session.get_state().phase != "ready" and Time.get_ticks_msec() < deadline:
+		await process_frame

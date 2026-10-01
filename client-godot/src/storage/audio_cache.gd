@@ -39,44 +39,15 @@ func set_scope(server: String, username: String) -> Error:
 	return result
 
 func _cleanup_incomplete_and_orphans() -> Error:
-	var pairs: Dictionary = {}
-	for file in DirAccess.get_files_at(_directory):
-		if _owned.search(file) == null:
-			continue
-		var extension := ""
-		if file.ends_with(".part"):
-			extension = ".part"
-		elif file.ends_with(".json.tmp"):
-			extension = ".json.tmp"
-		elif file.ends_with(".audio"):
-			extension = ".audio"
-		elif file.ends_with(".json"):
-			extension = ".json"
-		if extension.is_empty():
-			continue
-		var stem := file.trim_suffix(extension)
-		if not pairs.has(stem):
-			pairs[stem] = {}
-		pairs[stem][extension] = file
+	var pairs := _cache_pairs()
 	for stem in pairs:
 		var files: Dictionary = pairs[stem]
-		var remove_names: Array[String] = []
-		for extension in [".part", ".json.tmp"]:
-			if files.has(extension):
-				remove_names.append(files[extension])
-		var has_audio := files.has(".audio")
-		var has_metadata := files.has(".json")
-		if has_audio != has_metadata:
-			if has_audio:
-				remove_names.append(files[".audio"])
-			if has_metadata:
-				remove_names.append(files[".json"])
+		var remove_names := _incomplete_files(files)
 		for file in remove_names:
 			var result := DirAccess.remove_absolute(_directory.path_join(file))
 			if result != OK:
 				return result
 	return OK
-
 func _path(id: String, extension: String) -> String:
 	return _directory.path_join(id.sha256_text() + extension)
 
@@ -117,9 +88,7 @@ func commit(id: String, status: Dictionary, waveform: PackedFloat32Array) -> Err
 	var metadata := {"version":1, "sample_rate":status.get("sample_rate",0), "channels":status.get("channels",0),
 		"bits":status.get("bits",0), "frames":status.get("decoded_frames",0), "bytes":file.get_position(), "waveform":Array(waveform)}
 	metadata.saved_at_unix = _now()
-	var completed: bool = status.get("ok") is bool and status.ok and status.get("finished") is bool and status.finished
-	var same_size: bool = (status.get("input_bytes") is int or status.get("input_bytes") is float) and status.input_bytes == metadata.bytes
-	if not completed or not same_size or not _valid(metadata):
+	if not _valid_completion(status, metadata):
 		abort(id)
 		return _error(id,ERR_INVALID_DATA)
 	file.flush()
@@ -129,14 +98,7 @@ func commit(id: String, status: Dictionary, waveform: PackedFloat32Array) -> Err
 	if result == OK:
 		result = DirAccess.rename_absolute(_path(id,".part"),_path(id,".audio"))
 	if result == OK:
-		var manifest := FileAccess.open(_path(id,".json.tmp"),FileAccess.WRITE)
-		if manifest == null:
-			result = FileAccess.get_open_error()
-		else:
-			manifest.store_string(JSON.stringify(metadata))
-			manifest.flush()
-			result = manifest.get_error()
-			manifest.close()
+		result = _write_manifest(id, metadata)
 	if result == OK:
 		result = DirAccess.rename_absolute(_path(id,".json.tmp"),_path(id,".json"))
 	if result != OK:
@@ -147,7 +109,6 @@ func commit(id: String, status: Dictionary, waveform: PackedFloat32Array) -> Err
 	if _logger != null:
 		_logger.record("cache_committed",{"reply_id":id,"bytes":metadata.bytes,"frames":metadata.frames})
 	return OK
-
 func lookup(id: String) -> Dictionary:
 	if _directory.is_empty() or id.is_empty() or not FileAccess.file_exists(_path(id,".json")):
 		return {}
@@ -169,24 +130,34 @@ func lookup(id: String) -> Dictionary:
 	return metadata
 
 func _valid(data: Dictionary) -> bool:
-	if data.has("saved_at_unix"):
-		var saved: Variant = data.saved_at_unix
-		if not (saved is int or saved is float) or not is_finite(float(saved)) or saved < 0: return false
-	if not (data.get("version") is int or data.get("version") is float) or data.version != 1 or not data.get("waveform") is Array or data.waveform.size() != 24:
-		return false
+	return _valid_saved_time(data) and _valid_metadata_shape(data) and _valid_integer_fields(data) and _valid_audio_ranges(data) and _valid_waveform(data.waveform)
+
+func _valid_saved_time(data: Dictionary) -> bool:
+	if not data.has("saved_at_unix"):
+		return true
+	var saved: Variant = data.saved_at_unix
+	return (saved is int or saved is float) and is_finite(float(saved)) and saved >= 0
+
+func _valid_metadata_shape(data: Dictionary) -> bool:
+	return (data.get("version") is int or data.get("version") is float) and data.version == 1 and data.get("waveform") is Array and data.waveform.size() == 24
+
+func _valid_integer_fields(data: Dictionary) -> bool:
 	for key in ["sample_rate","channels","bits","frames","bytes"]:
 		var value: Variant = data.get(key)
 		if not (value is int or value is float) or not is_finite(float(value)) or value != floor(value):
 			return false
+	return true
+
+func _valid_audio_ranges(data: Dictionary) -> bool:
 	if data.sample_rate < 8000 or data.sample_rate > 192000 or not int(data.channels) in [1,2] or not int(data.bits) in [8,16,24,32]:
 		return false
-	if data.frames <= 0 or data.frames > data.sample_rate * 1800 or data.bytes < 44:
-		return false
-	for value in data.waveform:
+	return data.frames > 0 and data.frames <= data.sample_rate * 1800 and data.bytes >= 44
+
+func _valid_waveform(waveform: Array) -> bool:
+	for value in waveform:
 		if not (value is int or value is float) or not is_finite(value) or value < 0 or value > 1:
 			return false
 	return true
-
 func abort(id: String) -> void:
 	if _pending.has(id):
 		_pending[id].close()
@@ -228,29 +199,11 @@ func _clear_older(days: int) -> Error:
 	var result := OK
 	for name in DirAccess.get_files_at(_directory):
 		if _owned.search(name) == null or not name.ends_with(".json"): continue
-		var manifest_path := _directory.path_join(name)
-		var file := FileAccess.open(manifest_path, FileAccess.READ)
-		if file == null:
-			result = FileAccess.get_open_error()
-			continue
-		if file.get_length() > 8192: continue
-		var parser := JSON.new()
-		var parsed := parser.parse(file.get_as_text())
-		file.close()
-		if parsed != OK or not parser.data is Dictionary or not _valid(parser.data): continue
-		var audio_path := manifest_path.get_basename() + ".audio"
-		var saved := _saved_at(parser.data, audio_path)
-		if saved < 0 or float(saved) >= cutoff: continue
-		if FileAccess.file_exists(audio_path):
-			var removed := DirAccess.remove_absolute(audio_path)
-			if removed != OK:
-				result = removed
-				continue
-		var removed := DirAccess.remove_absolute(manifest_path)
-		if removed != OK: result = removed
+		var removed := _clear_old_manifest(_directory.path_join(name), cutoff)
+		if removed != OK:
+			result = removed
 	if _logger != null: _logger.record("cache_cleared", {"code":"OK" if result == OK else "CACHE_CLEAR_FAILED"})
 	return result
-
 func _error(id: String, result: Error) -> Error:
 	if _logger != null:
 		_logger.record("cache_error",{"reply_id":id,"code":"CACHE_WRITE_FAILED"})
@@ -260,3 +213,78 @@ func open_stream(id: String) -> RefCounted:
 	if lookup(id).is_empty(): return null
 	var file := FileAccess.open(_path(id,".audio"),FileAccess.READ)
 	return preload("res://src/storage/godot_read_stream.gd").new(file) if file != null else null
+
+func _cache_pairs() -> Dictionary:
+	var pairs: Dictionary = {}
+	for file in DirAccess.get_files_at(_directory):
+		if _owned.search(file) == null:
+			continue
+		var extension := ""
+		if file.ends_with(".part"):
+			extension = ".part"
+		elif file.ends_with(".json.tmp"):
+			extension = ".json.tmp"
+		elif file.ends_with(".audio"):
+			extension = ".audio"
+		elif file.ends_with(".json"):
+			extension = ".json"
+		if extension.is_empty():
+			continue
+		var stem := file.trim_suffix(extension)
+		if not pairs.has(stem):
+			pairs[stem] = {}
+		pairs[stem][extension] = file
+	return pairs
+
+func _incomplete_files(files: Dictionary) -> Array[String]:
+	var remove_names: Array[String] = []
+	for extension in [".part", ".json.tmp"]:
+		if files.has(extension):
+			remove_names.append(files[extension])
+	var has_audio := files.has(".audio")
+	var has_metadata := files.has(".json")
+	if has_audio != has_metadata:
+		if has_audio:
+			remove_names.append(files[".audio"])
+		if has_metadata:
+			remove_names.append(files[".json"])
+	return remove_names
+
+func _valid_completion(status: Dictionary, metadata: Dictionary) -> bool:
+	var completed: bool = status.get("ok") is bool and status.ok and status.get("finished") is bool and status.finished
+	var same_size: bool = (status.get("input_bytes") is int or status.get("input_bytes") is float) and status.input_bytes == metadata.bytes
+	return completed and same_size and _valid(metadata)
+
+func _write_manifest(id: String, metadata: Dictionary) -> Error:
+	var result := OK
+	var manifest := FileAccess.open(_path(id,".json.tmp"),FileAccess.WRITE)
+	if manifest == null:
+		result = FileAccess.get_open_error()
+	else:
+		manifest.store_string(JSON.stringify(metadata))
+		manifest.flush()
+		result = manifest.get_error()
+		manifest.close()
+	return result
+
+func _clear_old_manifest(manifest_path: String, cutoff: float) -> Error:
+	var file := FileAccess.open(manifest_path, FileAccess.READ)
+	if file == null:
+		return FileAccess.get_open_error()
+	if file.get_length() > 8192: return OK
+	var parser := JSON.new()
+	var parsed := parser.parse(file.get_as_text())
+	file.close()
+	if parsed != OK or not parser.data is Dictionary or not _valid(parser.data): return OK
+	var audio_path := manifest_path.get_basename() + ".audio"
+	var saved := _saved_at(parser.data, audio_path)
+	if saved < 0 or float(saved) >= cutoff: return OK
+	return _remove_cache_pair(audio_path, manifest_path)
+
+func _remove_cache_pair(audio_path: String, manifest_path: String) -> Error:
+	if FileAccess.file_exists(audio_path):
+		var removed := DirAccess.remove_absolute(audio_path)
+		if removed != OK:
+			return removed
+	var removed := DirAccess.remove_absolute(manifest_path)
+	return removed

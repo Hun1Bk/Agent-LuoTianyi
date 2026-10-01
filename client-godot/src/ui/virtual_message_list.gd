@@ -5,12 +5,14 @@ signal audio_action(id: String, action: String)
 signal image_opened(texture: Texture2D)
 signal image_action(id: String, action: String)
 const Bubble = preload("res://scenes/ui/message_bubble.tscn")
+const ChatTime = preload("res://src/ui/chat_time.gd")
 @onready var _canvas: Control = %Canvas
 var _messages: Array[Dictionary] = []
 var _offsets: Array[float] = []
 var _heights: Dictionary = {}
 var _nodes: Dictionary = {}
 var _indices: Dictionary = {}
+var _time_markers: Dictionary = {}
 var _total := 0.0
 var _width := 0.0
 var _laying := false
@@ -37,6 +39,10 @@ func set_messages(messages: Array[Dictionary]) -> void:
 	var follow := is_at_latest()
 	var anchor := get_reading_anchor()
 	_messages = messages
+	var next_markers := ChatTime.markers(messages)
+	for id in _heights.keys():
+		if _time_markers.get(id, "") != next_markers.get(id, ""): _heights.erase(id)
+	_time_markers = next_markers
 	_indices.clear()
 	for index in messages.size():
 		_indices[messages[index].id] = index
@@ -178,16 +184,10 @@ func _render() -> void:
 			var id: String = message.id
 			wanted[id] = true
 			if not _nodes.has(id):
-				var bubble = Bubble.instantiate()
-				if _ui_style != null: bubble.set_ui_style(_ui_style)
-				_canvas.add_child(bubble)
-				bubble.configure(message)
-				bubble.audio_action.connect(func(action): audio_action.emit(id,action))
-				bubble.image_opened.connect(func(texture): image_opened.emit(texture))
-				bubble.image_action.connect(func(action): image_action.emit(id,action))
-				_nodes[id] = bubble
+				_create_bubble(id, message)
 			else:
 				_nodes[id].update_message(message)
+			_nodes[id].set_time_marker(_time_markers.get(id, ""))
 			var spacing := 4.0 if message.role == "system" else 17.0
 			var height := float(_heights.get(id,100))-spacing
 			_nodes[id].position = Vector2(0,_offsets[index])
@@ -200,7 +200,6 @@ func _render() -> void:
 	if visible != _visible:
 		_visible = visible
 		visible_messages.emit(get_visible_ids())
-
 func _remove(id: String) -> void:
 	var node: Node = _nodes[id]
 	_canvas.remove_child(node)
@@ -217,3 +216,13 @@ func _at(position_y: float) -> int:
 		else:
 			high = middle-1
 	return low
+
+func _create_bubble(id: String, message: Dictionary) -> void:
+	var bubble = Bubble.instantiate()
+	if _ui_style != null: bubble.set_ui_style(_ui_style)
+	_canvas.add_child(bubble)
+	bubble.configure(message)
+	bubble.audio_action.connect(func(action): audio_action.emit(id,action))
+	bubble.image_opened.connect(func(texture): image_opened.emit(texture))
+	bubble.image_action.connect(func(action): image_action.emit(id,action))
+	_nodes[id] = bubble

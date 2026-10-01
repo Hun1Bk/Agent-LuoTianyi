@@ -143,10 +143,14 @@ func run() -> void:
 	check(window.get_node_or_null("%More") == null, "feed has no manual load-more button")
 	check(window.get_selected_id().is_empty(), "opening still has no selected post")
 	await click(window, window._rows["review-0"])
-	await settle()
-	check(window.get_selected_id() == "review-0" and controller.comment_calls.get("review-0", 0) == 1, "clicking cached post refreshes comments")
-	check(controller.get_comments("review-0").items.size() == 19, "new comment appears without toolbar refresh")
 	var detail = window._details["review-0"]
+	check(detail.get_node_or_null("%LoadMore") == null, "detail has no loading box or manual comment-load button")
+	check(controller.get_comments("review-0").busy, "comment request is really running")
+	check(detail.find_children("LoadMore", "Button", true, false).is_empty(), "busy comments do not insert a loading box")
+	await capture(window, "dynamics-comments-no-loading-box")
+	await settle()
+	_check_clicking_cached_post_refreshes_comments(window, controller)
+	check(controller.get_comments("review-0").items.size() == 19, "new comment appears without toolbar refresh")
 	var draft: TextEdit = detail.get_node("%CommentDraft")
 	draft.text = "保留我的评论草稿"
 	detail.scroll_vertical = 80
@@ -155,7 +159,7 @@ func run() -> void:
 	await click(window, window._rows["review-0"])
 	await settle()
 	check(controller.comment_calls["review-0"] == 2, "clicking selected post refreshes again")
-	check(draft.text == "保留我的评论草稿" and detail.scroll_vertical == reading_position, "refresh preserves draft and reading position")
+	_check_refresh_preserves_draft_and_reading_position(draft, detail, reading_position)
 	window._rows["review-0"].pressed.emit()
 	window._rows["review-0"].pressed.emit()
 	await settle()
@@ -164,15 +168,15 @@ func run() -> void:
 	await settle()
 	await click(window, window._rows["review-0"])
 	await settle()
-	check(controller.comment_calls["review-1"] == 1 and draft.text == "保留我的评论草稿", "switching posts refreshes without discarding drafts")
+	_check_switching_posts_refreshes_without_discarding_drafts(controller, draft)
 	controller.fail_next_comments = true
 	var prior_count: int = controller.get_comments("review-0").items.size()
 	await click(window, window._rows["review-0"])
 	await settle()
-	check(controller.get_comments("review-0").items.size() == prior_count and detail.get_node("%Status").text.contains("HTTP_ERROR"), "failed auto-refresh preserves comments and reports failure")
+	_check_failed_auto_refresh_preserves_comments_and_reports_failure(controller, prior_count, detail)
 	await click(window, window._rows["review-0"])
 	await settle()
-	check(detail.get_node("%Status").text.is_empty() and draft.text == "保留我的评论草稿", "another click retries failed comments")
+	_check_another_click_retries_failed_comments(detail, draft)
 	check(controller.refresh_calls == 0 and controller.state.unread == 1, "card refresh needs no manual feed refresh and does not mark read")
 	var list_scroll: ScrollContainer = window.get_node("%ListScroll")
 	controller.fail_next_page = true
@@ -193,7 +197,7 @@ func run() -> void:
 		await capture(window, "dynamics-actions-" + variant + "-1100x800")
 		var body: RichTextLabel = detail.get_node("%Body")
 		body.select_all()
-		check(body.get_theme_color("selection_color").is_equal_approx(Color("0078d7")) and body.get_theme_color("font_selected_color").is_equal_approx(Color.WHITE), "selected body uses blue and white: " + variant)
+		_check_run_result(body, variant)
 		await capture(window, "dynamics-selection-" + variant + "-1100x800")
 		body.deselect()
 		await click(window, window.get_node("%Publish"))
@@ -230,3 +234,20 @@ func run() -> void:
 	DirAccess.remove_absolute(path)
 	print("Dynamics review actions: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+func _check_run_result(body: Variant, variant: Variant) -> void:
+	check(body.get_theme_color("selection_color").is_equal_approx(Color("0078d7")) and body.get_theme_color("font_selected_color").is_equal_approx(Color.WHITE), "selected body uses blue and white: " + variant)
+
+func _check_clicking_cached_post_refreshes_comments(window: Variant, controller: Variant) -> void:
+	check(window.get_selected_id() == "review-0" and controller.comment_calls.get("review-0", 0) == 1, "clicking cached post refreshes comments")
+
+func _check_refresh_preserves_draft_and_reading_position(draft: Variant, detail: Variant, reading_position: Variant) -> void:
+	check(draft.text == "保留我的评论草稿" and detail.scroll_vertical == reading_position, "refresh preserves draft and reading position")
+
+func _check_switching_posts_refreshes_without_discarding_drafts(controller: Variant, draft: Variant) -> void:
+	check(controller.comment_calls["review-1"] == 1 and draft.text == "保留我的评论草稿", "switching posts refreshes without discarding drafts")
+
+func _check_failed_auto_refresh_preserves_comments_and_reports_failure(controller: Variant, prior_count: Variant, detail: Variant) -> void:
+	check(controller.get_comments("review-0").items.size() == prior_count and detail.get_node("%Status").text.contains("HTTP_ERROR"), "failed auto-refresh preserves comments and reports failure")
+
+func _check_another_click_retries_failed_comments(detail: Variant, draft: Variant) -> void:
+	check(detail.get_node("%Status").text.is_empty() and draft.text == "保留我的评论草稿", "another click retries failed comments")

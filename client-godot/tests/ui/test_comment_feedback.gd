@@ -24,10 +24,13 @@ func run() -> void:
 			check(detail.get_node("%CommentDraft").text.is_empty() and not status.visible, "success clears draft without status text or space")
 			check(controller.get_comments("d0").items.any(func(item): return item.content == "feedback fixture"), "posted comment remains visible in the list")
 		else:
-			check(status.visible and status.text.contains("草稿已保留") and not detail.get_node("%CommentDraft").text.is_empty(), "failed or uncertain writes retain visible feedback and draft")
+			_check_failed_or_uncertain_writes_retain_visible_feedback_and_draft(status, detail)
 			if username == "uncertain-write": check(status.text.contains("不确定"), "uncertain delivery is not shown as success")
 		detail.queue_free()
 		controller.queue_free()
 		await process_frame
 	print("Comment feedback: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+
+func _check_failed_or_uncertain_writes_retain_visible_feedback_and_draft(status: Variant, detail: Variant) -> void:
+	check(status.visible and status.text.contains("草稿已保留") and not detail.get_node("%CommentDraft").text.is_empty(), "failed or uncertain writes retain visible feedback and draft")

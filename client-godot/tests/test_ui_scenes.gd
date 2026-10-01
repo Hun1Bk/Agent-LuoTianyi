@@ -34,7 +34,7 @@ const SCENES := {
 		"root":"MessageAudio","type":"VBoxContainer","setup":"","unique":["Row","Play","Wave","Time","Stop","Error"]
 	},
 	"res://scenes/ui/message_bubble.tscn": {
-		"root":"MessageBubble","type":"HBoxContainer","setup":"","unique":["System","Avatar","Body","Bubble","Content","Text","HistoryPicture","ImageButton","Picture","Caption"]
+		"root":"MessageBubble","type":"VBoxContainer","setup":"","unique":["Row","TimeMarker","TimeText","System","Avatar","Body","Bubble","Content","Text","HistoryPicture","ImageButton","Picture","Caption"]
 	},
 	"res://scenes/ui/virtual_message_list.tscn": {
 		"root":"VirtualMessageList","type":"ScrollContainer","setup":"","unique":["Canvas"]
@@ -55,7 +55,7 @@ const SCENES := {
 		"root":"DynamicCommentRow","type":"VBoxContainer","setup":"setup","unique":["Avatar","Author","Body","Time","Reply"]
 	},
 	"res://scenes/ui/dynamic_detail.tscn": {
-		"root":"DynamicDetail","type":"ScrollContainer","setup":"setup","unique":["Column","Avatar","Author","CreatedAt","Body","Notice","CommentDraft","Send","Comments","ReplyBox","ReplyLabel","ReplyDraft","CancelReply","ReplySend","Status","LoadMore"]
+		"root":"DynamicDetail","type":"ScrollContainer","setup":"setup","unique":["Column","Avatar","Author","CreatedAt","Body","Notice","CommentDraft","Send","Comments","ReplyBox","ReplyLabel","ReplyDraft","CancelReply","ReplySend","Status"]
 	},
 	"res://scenes/avatar/avatar_panel.tscn": {
 		"root":"AvatarPanel","type":"Control","setup":"","unique":["Driver","Error","Reset"]
@@ -120,31 +120,25 @@ func check_scene(path: String, spec: Dictionary) -> void:
 	var instance := scene.instantiate()
 	check(instance != null, "scene instantiates without constructor arguments: " + path)
 	if instance == null: return
-	check(instance.name == spec.root and instance.is_class(spec.type), "public root name and type: " + path)
+	_check_check_scene_result_3(instance, spec, path)
 	if not spec.setup.is_empty(): check(instance.has_method(spec.setup), "public injection method: " + path)
 	# These checks precede add_child/ready: controls must exist in the authored scene.
 	for name in spec.unique:
 		var control := instance.get_node_or_null("%" + name)
-		check(control != null and control.unique_name_in_owner, "authored public control %" + name + ": " + path)
+		_check_check_scene_result(control, name, path)
 	var kind := path.get_file().get_basename()
 	for name in INPUT_HINTS.get(kind, []): check_hint(instance, name, "placeholder_text")
 	for name in TOOL_HINTS.get(kind, []): check_hint(instance, name, "tooltip_text")
 	for name in DROPDOWNS.get(kind, []):
 		var dropdown := instance.get_node_or_null("%" + name)
-		check(dropdown is Button and dropdown.scene_file_path == "res://scenes/ui/unified_dropdown.tscn", "editable dropdown before ready: " + name)
-	for key: String in PROPERTIES.get(kind, {}):
-		var control := instance.get_node_or_null(key)
-		check(control != null, "semantic control exists: " + key)
-		if control == null: continue
-		for property: String in PROPERTIES[kind][key]:
-			check(control.get(property) == PROPERTIES[kind][key][property], "semantic property %s.%s: %s" % [kind,key,property])
+		_check_check_scene_result_2(dropdown, name)
+	_check_semantic_properties(instance, kind)
 	if spec.get("inject_layout", false): instance.callv(spec.setup, [null, _temp.path_join("window.cfg")])
 	root.add_child(instance)
 	await process_frame
 	check(instance.theme == load(THEME_PATH), "view uses the shared theme: " + path)
 	instance.queue_free()
 	await process_frame
-
 func check_hint(instance: Node, name: String, property: String) -> void:
 	var control := instance.get_node_or_null("%" + name)
 	check(control != null, "hint control exists: %" + name)
@@ -157,3 +151,20 @@ func remove_folder(path: String) -> void:
 	for folder in DirAccess.get_directories_at(path): remove_folder(path.path_join(folder))
 	for file in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(file))
 	DirAccess.remove_absolute(path)
+
+func _check_check_scene_result(control: Variant, name: Variant, path: Variant) -> void:
+	check(control != null and control.unique_name_in_owner, "authored public control %" + name + ": " + path)
+
+func _check_check_scene_result_2(dropdown: Variant, name: Variant) -> void:
+	check(dropdown is Button and dropdown.scene_file_path == "res://scenes/ui/unified_dropdown.tscn", "editable dropdown before ready: " + name)
+
+func _check_check_scene_result_3(instance: Variant, spec: Variant, path: Variant) -> void:
+	check(instance.name == spec.root and instance.is_class(spec.type), "public root name and type: " + path)
+
+func _check_semantic_properties(instance: Node, kind: String) -> void:
+	for key: String in PROPERTIES.get(kind, {}):
+		var control := instance.get_node_or_null(key)
+		check(control != null, "semantic control exists: " + key)
+		if control == null: continue
+		for property: String in PROPERTIES[kind][key]:
+			check(control.get(property) == PROPERTIES[kind][key][property], "semantic property %s.%s: %s" % [kind,key,property])

@@ -40,7 +40,7 @@ func run() -> void:
 			if DisplayServer.get_name() != "headless": presenter.open_image(root,provider,confirm))
 		view.attachment_cleared.connect(func(): presenter.close_confirmation(root))
 		view.get_node("%Input").image_pasted.emit(image)
-		check(view.is_dirty() and view.get_node("%AttachmentBar").visible and preview.size() == 1, "clipboard image becomes a retained pending attachment")
+		_check_clipboard_image_becomes_a_retained_pending_attachment(view, preview)
 		if DisplayServer.get_name() != "headless":
 			await create_timer(0.2).timeout
 			await RenderingServer.frame_post_draw
@@ -70,3 +70,6 @@ func remove_folder(path: String) -> void:
 	for folder in DirAccess.get_directories_at(path): remove_folder(path.path_join(folder))
 	for file in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(file))
 	DirAccess.remove_absolute(path)
+
+func _check_clipboard_image_becomes_a_retained_pending_attachment(view: Variant, preview: Variant) -> void:
+	check(view.is_dirty() and view.get_node("%AttachmentBar").visible and preview.size() == 1, "clipboard image becomes a retained pending attachment")

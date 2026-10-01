@@ -146,23 +146,27 @@ func _decode(bytes: PackedByteArray) -> Image:
 		return null
 	var image := Image.new()
 	var result := ERR_INVALID_DATA
-	if bytes.slice(0,8).hex_encode() == "89504e470d0a1a0a":
-		var header := Attachment.header_dimensions(bytes,"image/png")
-		if not _header_safe(header): return null
-		result = image.load_png_from_buffer(bytes)
-	elif bytes[0] == 255 and bytes[1] == 216:
-		var jpeg_header := Attachment.header_dimensions(bytes,"image/jpeg")
-		if not _header_safe(jpeg_header): return null
-		result = image.load_jpg_from_buffer(bytes)
-	elif bytes.slice(0,4).get_string_from_ascii() == "RIFF" and bytes.slice(8,12).get_string_from_ascii() == "WEBP":
-		var webp_header := Attachment.header_dimensions(bytes,"image/webp")
-		if not _header_safe(webp_header): return null
-		result = image.load_webp_from_buffer(bytes)
+	result = _decode_image(bytes, image)
 	if result != OK or image.get_width()>8192 or image.get_height()>8192 or image.get_width()*image.get_height()>16000000:
 		return null
 	return image
-
 func _header_safe(header: Dictionary) -> bool:
 	return header.get("ok",false) and header.get("width",0) > 0 and header.get("height",0) > 0 and header.width <= 8192 and header.height <= 8192 and header.width * header.height <= 16000000
 func _exit_tree() -> void:
 	stop()
+
+func _decode_image(bytes: PackedByteArray, image: Image) -> Error:
+	var result := ERR_INVALID_DATA
+	if bytes.slice(0,8).hex_encode() == "89504e470d0a1a0a":
+		var header := Attachment.header_dimensions(bytes,"image/png")
+		if not _header_safe(header): return ERR_INVALID_DATA
+		result = image.load_png_from_buffer(bytes)
+	elif bytes[0] == 255 and bytes[1] == 216:
+		var jpeg_header := Attachment.header_dimensions(bytes,"image/jpeg")
+		if not _header_safe(jpeg_header): return ERR_INVALID_DATA
+		result = image.load_jpg_from_buffer(bytes)
+	elif bytes.slice(0,4).get_string_from_ascii() == "RIFF" and bytes.slice(8,12).get_string_from_ascii() == "WEBP":
+		var webp_header := Attachment.header_dimensions(bytes,"image/webp")
+		if not _header_safe(webp_header): return ERR_INVALID_DATA
+		result = image.load_webp_from_buffer(bytes)
+	return result

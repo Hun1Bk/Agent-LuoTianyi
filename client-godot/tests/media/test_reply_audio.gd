@@ -56,7 +56,7 @@ func test_mixer() -> void:
 	audio.append_reply_audio("first", Marshalls.raw_to_base64(bytes.slice(5001)), true)
 	check(received.has("first") and not played.has("first"), "reception completes before actual playback")
 	check(await until(func(): return played.has("first")), "generator drains after final")
-	check(peak > .05 and mouth_max > .05 and mouth == -1.0, "mixer has nonzero audio and mouth restores")
+	_check_mixer_has_nonzero_audio_and_mouth_restores()
 	check(codes.get("first") == "", "valid audio completes without failure")
 	audio.play_reply("second")
 	check(await until(func(): return played.has("second")), "different sample rate next reply plays")
@@ -84,7 +84,7 @@ func test_mixer() -> void:
 		audio.append_reply_audio(id, "" if id == "empty" else ("%%%" if id == "bad" else Marshalls.raw_to_base64(bytes)), true, id == "error")
 		audio.play_reply(id)
 		check(await until(func(): return played.has(id)), "empty or failed reply terminates")
-	check(codes.get("empty") == "" and codes.get("bad") == "INVALID_BASE64" and codes.get("error") == "AUDIO_ERROR", "terminal error codes distinguish no audio")
+	_check_terminal_error_codes_distinguish_no_audio()
 	audio.append_reply_audio("reset", Marshalls.raw_to_base64(bytes), false)
 	audio.play_reply("reset")
 	audio.reset()
@@ -101,7 +101,6 @@ func test_mixer() -> void:
 	for file in DirAccess.get_files_at(directory):
 		DirAccess.remove_absolute(directory.path_join(file))
 	DirAccess.remove_absolute(directory)
-
 func test_lifecycle() -> void:
 	var clock: Array[int] = [0]
 	var lifecycle_received: Array[String] = []
@@ -166,3 +165,9 @@ func test_lifecycle() -> void:
 	audio.reset()
 	audio.queue_free()
 	await process_frame
+
+func _check_mixer_has_nonzero_audio_and_mouth_restores() -> void:
+	check(peak > .05 and mouth_max > .05 and mouth == -1.0, "mixer has nonzero audio and mouth restores")
+
+func _check_terminal_error_codes_distinguish_no_audio() -> void:
+	check(codes.get("empty") == "" and codes.get("bad") == "INVALID_BASE64" and codes.get("error") == "AUDIO_ERROR", "terminal error codes distinguish no audio")

@@ -29,32 +29,13 @@ func start(session: Dictionary) -> void:
 		_state = {"phase":"error","code":result.code if not result.ok else "INVALID_RESPONSE","count":0}
 		_notify()
 		return
-	var types := {}
-	for item in result.data.types:
-		if not item is Dictionary or not item.get("id") is String or item.id.is_empty() or not item.get("name") is String or item.name.is_empty() or not item.get("model_kind") in ["llm","vlm"] or not item.get("requires_json") is bool or not item.get("requires_thinking") is bool or types.has(item.id):
-			_state = {"phase":"error","code":"INVALID_RESPONSE","count":0}
-			_notify()
-			return
-		types[item.id] = item.duplicate(true)
-		if not item.get("description") is String:
-			_state = {"phase":"error","code":"INVALID_RESPONSE","count":0}
-			_notify()
-			return
+	var types := _parse_types(result.data.types)
+	if types.size() != result.data.types.size():
+		_state = {"phase":"error","code":"INVALID_RESPONSE","count":0}
+		_notify()
+		return
 	_types = types
-	var code := "OK"
-	for id in _types:
-		_configs[id] = _default(_types[id])
-		var stored: Dictionary = _store.read(id)
-		if not stored.config.is_empty():
-			_configs[id].merge(stored.config,true)
-		if not validate(id,_configs[id]).ok:
-			var disabled: Dictionary = _configs[id].duplicate(true)
-			disabled.enabled = false
-			disabled.model_kind = _types[id].model_kind
-			_configs[id] = disabled if validate(id,disabled).ok else _default(_types[id])
-			code = "INVALID_CONFIG"
-		if not stored.ok and stored.code != "NOT_FOUND":
-			code = stored.code
+	var code := _restore_configs()
 	_state = {"phase":"ready","code":code,"count":_types.size()}
 	_notify()
 func reload() -> void:
@@ -71,23 +52,14 @@ func get_state() -> Dictionary:
 func validate(type_id: String,config: Dictionary) -> Dictionary:
 	if not _types.has(type_id):
 		return {"ok":false,"code":"UNKNOWN_MODEL_TYPE"}
-	if not config.get("enabled") is bool or not config.get("params") is Dictionary or not config.get("model_capabilities") is Dictionary:
+	if not _valid_config_fields(config):
 		return {"ok":false,"code":"INVALID_CONFIG"}
-	for field in ["provider","base_url","api_key","model","model_kind"]:
-		if not config.get(field) is String:
-			return {"ok":false,"code":"INVALID_CONFIG"}
-	for flag in ["can_use_json","can_enable_thinking"]:
-		if not config.model_capabilities.get(flag) is bool:
-			return {"ok":false,"code":"INVALID_CONFIG"}
 	if config.model_kind != _types[type_id].model_kind:
 		return {"ok":false,"code":"MODEL_KIND_MISMATCH"}
 	if (config.params.has("stream") and (not config.params.stream is bool or config.params.stream != false)) or config.params.has("stream_options"):
 		return {"ok":false,"code":"STREAMING_NOT_SUPPORTED"}
 	if config.enabled:
-		if config.provider.strip_edges().is_empty() or ServerAddress.normalize(config.base_url).is_empty() or config.api_key.strip_edges().is_empty() or config.model.strip_edges().is_empty():
-			return {"ok":false,"code":"MODEL_FIELDS_REQUIRED"}
-		if (_types[type_id].requires_json and not config.model_capabilities.can_use_json) or (_types[type_id].requires_thinking and not config.model_capabilities.can_enable_thinking):
-			return {"ok":false,"code":"MODEL_CAPABILITY_MISMATCH"}
+		return _validate_enabled(type_id, config)
 	return {"ok":true,"code":"OK"}
 func save(type_id: String,config: Dictionary,allow_plain: bool = false) -> Dictionary:
 	var valid := validate(type_id,config)
@@ -128,3 +100,55 @@ func _notify() -> void:
 	changed.emit(get_state())
 func _exit_tree() -> void:
 	stop()
+
+func _valid_config_fields(config: Dictionary) -> bool:
+	if not config.get("enabled") is bool or not config.get("params") is Dictionary or not config.get("model_capabilities") is Dictionary:
+		return false
+	for field in ["provider","base_url","api_key","model","model_kind"]:
+		if not config.get(field) is String:
+			return false
+	for flag in ["can_use_json","can_enable_thinking"]:
+		if not config.model_capabilities.get(flag) is bool:
+			return false
+	return true
+
+func _validate_enabled(type_id: String, config: Dictionary) -> Dictionary:
+	if config.provider.strip_edges().is_empty() or ServerAddress.normalize(config.base_url).is_empty() or config.api_key.strip_edges().is_empty() or config.model.strip_edges().is_empty():
+		return {"ok":false,"code":"MODEL_FIELDS_REQUIRED"}
+	if (_types[type_id].requires_json and not config.model_capabilities.can_use_json) or (_types[type_id].requires_thinking and not config.model_capabilities.can_enable_thinking):
+		return {"ok":false,"code":"MODEL_CAPABILITY_MISMATCH"}
+	return {"ok":true,"code":"OK"}
+
+func _parse_types(items: Array) -> Dictionary:
+	var types := {}
+	for item in items:
+		if not _valid_model_type(item) or types.has(item.id):
+			return {}
+		types[item.id] = item.duplicate(true)
+		if not item.get("description") is String:
+			return {}
+	return types
+
+func _valid_model_type(item: Variant) -> bool:
+	if not item is Dictionary or not item.get("id") is String or item.id.is_empty():
+		return false
+	if not item.get("name") is String or item.name.is_empty():
+		return false
+	return item.get("model_kind") in ["llm","vlm"] and item.get("requires_json") is bool and item.get("requires_thinking") is bool
+
+func _restore_configs() -> String:
+	var code := "OK"
+	for id in _types:
+		_configs[id] = _default(_types[id])
+		var stored: Dictionary = _store.read(id)
+		if not stored.config.is_empty():
+			_configs[id].merge(stored.config,true)
+		if not validate(id,_configs[id]).ok:
+			var disabled: Dictionary = _configs[id].duplicate(true)
+			disabled.enabled = false
+			disabled.model_kind = _types[id].model_kind
+			_configs[id] = disabled if validate(id,disabled).ok else _default(_types[id])
+			code = "INVALID_CONFIG"
+		if not stored.ok and stored.code != "NOT_FOUND":
+			code = stored.code
+	return code

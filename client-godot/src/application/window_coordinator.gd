@@ -51,24 +51,12 @@ func request_close(action: String) -> void:
 				_waiting_save = false
 				request_close(_action),CONNECT_ONE_SHOT)
 		return
-	var drafts: Array[String] = []
-	if _chat_dirty.call(): drafts.append("聊天输入中的未发送文字或图片")
-	for key in _windows:
-		var window = _windows[key]
-		if is_instance_valid(window) and window.is_dirty():
-			drafts.append("设置中的未保存修改" if key == "settings" else "动态发布或评论草稿")
+	var drafts := _collect_drafts()
 	_action = action
 	if drafts.is_empty():
 		_confirmed()
 		return
-	_dialog.hide()
-	var owner: Node = settings if action == "logout" and is_instance_valid(settings) else _host
-	if _dialog.get_parent() != owner: _dialog.reparent(owner)
-	_dialog.title = "退出应用前请确认" if action == "exit" else "退出登录前请确认"
-	_dialog.dialog_text = "以下内容尚未提交：\n• " + "\n• ".join(drafts) + "\n不会自动保存或发送。"
-	_dialog.popup_centered()
-	_dialog.get_cancel_button().grab_focus()
-
+	_show_close_dialog(action, settings, drafts)
 func _confirmed() -> void:
 	var action := _action
 	if _disposed or action not in ["exit","logout"]: return
@@ -108,3 +96,21 @@ func dispose() -> void:
 	_settings_factory = Callable()
 	_dynamics_factory = Callable()
 	_chat_dirty = Callable()
+
+func _collect_drafts() -> Array[String]:
+	var drafts: Array[String] = []
+	if _chat_dirty.call(): drafts.append("聊天输入中的未发送文字或图片")
+	for key in _windows:
+		var window = _windows[key]
+		if is_instance_valid(window) and window.is_dirty():
+			drafts.append("设置中的未保存修改" if key == "settings" else "动态发布或评论草稿")
+	return drafts
+
+func _show_close_dialog(action: String, settings: Variant, drafts: Array[String]) -> void:
+	_dialog.hide()
+	var owner: Node = settings if action == "logout" and is_instance_valid(settings) else _host
+	if _dialog.get_parent() != owner: _dialog.reparent(owner)
+	_dialog.title = "退出应用前请确认" if action == "exit" else "退出登录前请确认"
+	_dialog.dialog_text = "以下内容尚未提交：\n• " + "\n• ".join(drafts) + "\n不会自动保存或发送。"
+	_dialog.popup_centered()
+	_dialog.get_cancel_button().grab_focus()

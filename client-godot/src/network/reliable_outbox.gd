@@ -20,14 +20,7 @@ func enqueue(type: String, payload: Dictionary, durable: bool, now_ms: int) -> S
 
 func take_ready(now_ms: int, connected: bool) -> Array[Dictionary]:
 	# Expiry runs even without a connection, so queued work cannot live forever.
-	for id in _pending.keys():
-		var entry: Dictionary = _pending[id]
-		if entry.durable and now_ms - entry.created >= MAX_AGE_MS:
-			_finish(id, "uncertain", "DELIVERY_UNCERTAIN")
-		elif not connected and not entry.durable:
-			_finish(id, "failed", "DISCONNECTED")
-		elif entry.waiting and now_ms >= entry.deadline:
-			_retry_or_finish(id, now_ms, "ACK_TIMEOUT")
+	_expire_pending(now_ms, connected)
 	var packets: Array[Dictionary] = []
 	if not connected:
 		return packets
@@ -47,7 +40,6 @@ func take_ready(now_ms: int, connected: bool) -> Array[Dictionary]:
 		packets.append(entry.packet.duplicate(true))
 		delivery_changed.emit(id, "sending", "")
 	return packets
-
 func acknowledge(reply_to: String, payload: Dictionary, now_ms: int) -> void:
 	if not _pending.has(reply_to) or _pending[reply_to].attempts == 0:
 		return
@@ -58,16 +50,7 @@ func acknowledge(reply_to: String, payload: Dictionary, now_ms: int) -> void:
 	if typeof(payload.get("ok")) != TYPE_BOOL or payload.ok:
 		_finish(reply_to, "sent", "OK")
 		return
-	var code: String = payload.code if payload.get("code") is String else "REJECTED"
-	if code.is_empty():
-		code = "REJECTED"
-	if typeof(payload.get("retryable")) == TYPE_BOOL and payload.retryable:
-		# Duplicate NACKs during backoff must not consume retry attempts.
-		if _pending[reply_to].waiting:
-			_retry_or_finish(reply_to, now_ms, code)
-	else:
-		_finish(reply_to, "failed", code)
-
+	_reject_delivery(reply_to, payload, now_ms)
 func disconnected(now_ms: int) -> void:
 	for id in _pending.keys():
 		var entry: Dictionary = _pending[id]
@@ -102,3 +85,24 @@ func _retry_or_finish(id: String, now_ms: int, code: String) -> void:
 func _finish(id: String, state: String, code: String) -> void:
 	_pending.erase(id)
 	delivery_changed.emit(id, state, code)
+
+func _expire_pending(now_ms: int, connected: bool) -> void:
+	for id in _pending.keys():
+		var entry: Dictionary = _pending[id]
+		if entry.durable and now_ms - entry.created >= MAX_AGE_MS:
+			_finish(id, "uncertain", "DELIVERY_UNCERTAIN")
+		elif not connected and not entry.durable:
+			_finish(id, "failed", "DISCONNECTED")
+		elif entry.waiting and now_ms >= entry.deadline:
+			_retry_or_finish(id, now_ms, "ACK_TIMEOUT")
+
+func _reject_delivery(reply_to: String, payload: Dictionary, now_ms: int) -> void:
+	var code: String = payload.code if payload.get("code") is String else "REJECTED"
+	if code.is_empty():
+		code = "REJECTED"
+	if typeof(payload.get("retryable")) == TYPE_BOOL and payload.retryable:
+		# Duplicate NACKs during backoff must not consume retry attempts.
+		if _pending[reply_to].waiting:
+			_retry_or_finish(reply_to, now_ms, code)
+	else:
+		_finish(reply_to, "failed", code)

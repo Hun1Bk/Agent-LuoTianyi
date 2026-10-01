@@ -41,10 +41,7 @@ func run() -> void:
 		await key(false)
 		check(editor.text.is_empty(), "Enter submits and clears composer")
 		await process_frame
-		var found := false
-		for label in scene.find_children("*", "RichTextLabel", true, false):
-			found = found or label.get_parsed_text() == "界面输入回归"
-		check(found, "submitted text visible in bubble")
+		_check_submitted_text(scene)
 		editor.text = "第一行"
 		editor.set_caret_column(3)
 		await key(true)
@@ -80,3 +77,9 @@ func run() -> void:
 	await process_frame
 	print("Preview input: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+
+func _check_submitted_text(scene: Node) -> void:
+	var found := false
+	for label in scene.find_children("*", "RichTextLabel", true, false):
+		found = found or label.get_parsed_text() == "界面输入回归"
+	check(found, "submitted text visible in bubble")

@@ -27,7 +27,7 @@
     "sha256": "073f623fc3fb06c192e68bb5287fdb9dab1952164c2a956dec6d4b45fd342ffb"
   },
   "windows_security": {
-    "binary_sha256": "a949b18b56e642a4ab3879503b88fe47d79c0cdc9ec0f74c24a6b0b12cbc1ab4",
+    "binary_sha256": "b6c270c557b15f303d0d80cac89f42962f0d62268b474c46db47d20f4de0e8bc",
     "source": "native/windows_security.cpp",
     "audio_sources": ["native/pcm_stream_decoder.h", "native/pcm_stream_decoder.cpp"],
     "storage_sources": ["native/storage_volume.h", "native/storage_volume.cpp"],

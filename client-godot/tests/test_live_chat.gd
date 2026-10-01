@@ -30,8 +30,8 @@ func _run() -> void:
 	session.state_changed.connect(func(state): thinking_seen = thinking_seen or state.thinking)
 	check(session.start({"server":OS.get_environment("GODOT_TEST_SERVER") + "/prefix", "username":"conversation", "message_token":"message-test"}) == OK, "chat starts real transport")
 	check(await until(func(): return session.get_state().phase == "ready"), "chat reports authenticated connection")
-	check(session.set_typing(true, 2) == OK and session.set_typing(false) == OK, "typing is a transient chat event")
-	check(session.send_text(" \n ").is_empty() and session.get_messages().is_empty(), "blank chat rejected")
+	_check_typing_is_a_transient_chat_event(session)
+	_check_blank_chat_rejected(session)
 	check(ResourceLoader.exists(VIEW_SCENE),"chat view scene exists")
 	if not ResourceLoader.exists(VIEW_SCENE):
 		quit(1)
@@ -58,15 +58,16 @@ func _run() -> void:
 	check(await until(func(): return session.get_messages().size() == 4), "UUID aggregation hides reflection and retains ephemeral text")
 	var messages: Array[Dictionary] = session.get_messages()
 	if messages.size() == 4:
-		check(messages[0].role == "user" and messages[0].status == "sent", "real ACK updates original bubble")
-		check(messages[1].text == "第一句" and messages[2].text == "第二句", "audio error preserves text and reply ordering")
+		check(messages.all(func(item): return item.get("timestamp") is float and item.timestamp > 0), "real outgoing and incoming messages retain their arrival times")
+		_check_real_ack_updates_original_bubble(messages)
+		_check_audio_error_preserves_text_and_reply_ordering(messages)
 		check(messages[3].text == "临时可见消息", "ephemeral is independent of display flag")
 		messages[0].text = "mutated"
 		check(session.get_messages()[0].text == "你好", "message snapshots are independent")
 	check(expressions == ["微笑脸", "温柔脸", "normal"], "expressions follow reply order and duplicate terminal is ignored")
-	check(thinking_seen and not session.get_state().thinking, "thinking and waiting propagated")
+	_check_thinking_and_waiting_propagated(session)
 	var log_text := JSON.stringify(logger.read_entries())
-	check(log_text.contains("reply_received") and log_text.contains("audio_chars"), "actual reply arrival is diagnosable")
+	_check_actual_reply_arrival_is_diagnosable(log_text)
 	check(not log_text.contains("message-test") and not log_text.contains("第一句"), "chat logs exclude tokens and text")
 	await process_frame
 	await process_frame
@@ -100,3 +101,20 @@ func _run() -> void:
 	DirAccess.remove_absolute(directory)
 	print("Live text chat: ", "PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+func _check_real_ack_updates_original_bubble(messages: Variant) -> void:
+	check(messages[0].role == "user" and messages[0].status == "sent", "real ACK updates original bubble")
+
+func _check_audio_error_preserves_text_and_reply_ordering(messages: Variant) -> void:
+	check(messages[1].text == "第一句" and messages[2].text == "第二句", "audio error preserves text and reply ordering")
+
+func _check_typing_is_a_transient_chat_event(session: Variant) -> void:
+	check(session.set_typing(true, 2) == OK and session.set_typing(false) == OK, "typing is a transient chat event")
+
+func _check_blank_chat_rejected(session: Variant) -> void:
+	check(session.send_text(" \n ").is_empty() and session.get_messages().is_empty(), "blank chat rejected")
+
+func _check_thinking_and_waiting_propagated(session: Variant) -> void:
+	check(thinking_seen and not session.get_state().thinking, "thinking and waiting propagated")
+
+func _check_actual_reply_arrival_is_diagnosable(log_text: Variant) -> void:
+	check(log_text.contains("reply_received") and log_text.contains("audio_chars"), "actual reply arrival is diagnosable")

@@ -30,7 +30,7 @@ func run() -> void:
 		mutable.available = true
 		check(not capability.get_capabilities().available, "capability snapshots do not leak state")
 	for result in [appearance.request_change("a","luotianyi","outfit","ai"),appearance.request_change("u","luotianyi","outfit","user"),world.apply_state({"sample":[1]}),world.request_action("w",{}),devices.request_control("d","device",{})]:
-		check(not result.ok and result.code == "NOT_IMPLEMENTED", "reserved operations explicitly reject")
+		_check_reserved_operations_explicitly_reject(result)
 	for capability in [appearance,world,devices]:
 		capability.cancel("unknown")
 		capability.stop()
@@ -56,7 +56,7 @@ func run() -> void:
 		var login: Dictionary = await session.perform("login",OS.get_environment("GODOT_TEST_SERVER"),{"username":username,"password":"synthetic-password","request_token":false},false)
 		check(login.ok, "real account enters extension lifecycle")
 		check(first.contexts[-1] == second.contexts[-1], "one adapter cannot mutate another adapter's context")
-		check(first.contexts[-1].keys().size() == 3 and first.contexts[-1].character_id == "luotianyi", "extensions receive only scope generation and character identity")
+		_check_extensions_receive_only_scope_generation_and_character_identity(first)
 		var starts := first.contexts.size()
 		check(session.set_login_options(username,false,false).ok, "login options can update without leaving the account")
 		check(first.contexts.size() == starts, "repeated signed-in state does not restart capabilities")
@@ -69,9 +69,14 @@ func run() -> void:
 	_remove_tree(directory)
 	print("Extension contracts: ","PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
-
 func _remove_tree(path: String) -> void:
 	assert(path.begins_with("user://extension-contract-"))
 	for child in DirAccess.get_directories_at(path): _remove_tree(path.path_join(child))
 	for file in DirAccess.get_files_at(path): DirAccess.remove_absolute(path.path_join(file))
 	DirAccess.remove_absolute(path)
+
+func _check_reserved_operations_explicitly_reject(result: Variant) -> void:
+	check(not result.ok and result.code == "NOT_IMPLEMENTED", "reserved operations explicitly reject")
+
+func _check_extensions_receive_only_scope_generation_and_character_identity(first: Variant) -> void:
+	check(first.contexts[-1].keys().size() == 3 and first.contexts[-1].character_id == "luotianyi", "extensions receive only scope generation and character identity")
