@@ -4,6 +4,7 @@ extends HBoxContainer
 @export var remaining_color := Color("9eb6c4")
 var values := PackedFloat32Array():
 	set(value):
+		if values == value: return
 		values = value
 		_refresh()
 var progress := 0.0:
@@ -21,5 +22,8 @@ func _refresh() -> void:
 		slot.visible = index < count
 		if index >= count: continue
 		var bar := slot.get_node("Bar") as ColorRect
-		bar.custom_minimum_size.y = maxf(2,clampf(values[index],0,1)*size.y)
-		bar.color = played_color if float(index)/count < progress else remaining_color
+		var height := maxf(2, clampf(values[index], 0, 1) * size.y)
+		bar.pivot_offset = bar.size * 0.5
+		var blend := smoothstep(-1.0, 1.0, progress * count - index - 0.5)
+		bar.color = remaining_color.lerp(played_color, blend)
+		bar.scale.y = height / maxf(2, bar.size.y) * lerpf(1.0, 1.12, 1.0 - absf(blend * 2.0 - 1.0))

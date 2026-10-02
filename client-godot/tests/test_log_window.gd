@@ -36,6 +36,7 @@ func _run() -> void:
 			_check_late_opening_retains_first_startup_entry(texts)
 			open_button.pressed.emit()
 			window.close_requested.emit()
+			await _wait_hidden(window)
 			check(not window.visible,"close hides log window")
 			open_button.pressed.emit()
 			check(window.visible,"reopen retains same window")
@@ -101,3 +102,7 @@ func _check_filter_widths(viewer: Variant) -> void:
 		if control.has_method("get_selected_id") and control.is_visible_in_tree():
 			var caption_width: float = control.get_theme_font("font").get_string_size(control.text,HORIZONTAL_ALIGNMENT_LEFT,-1,control.get_theme_font_size("font_size")).x
 			check(control.size.x >= caption_width+12,"current log filter remains readable")
+
+func _wait_hidden(window: Window) -> void:
+	var deadline := Time.get_ticks_msec() + 2000
+	while window.visible and Time.get_ticks_msec() < deadline: await process_frame

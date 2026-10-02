@@ -5,6 +5,7 @@ signal image_requested(provider: Callable)
 signal attachment_requested(provider: Callable, confirm: Callable)
 signal attachment_cleared
 const Attachment = preload("res://src/media/image_attachment.gd")
+const UiMotion = preload("res://src/ui/ui_motion.gd")
 var _attachment: Dictionary = {}
 @onready var _margin: MarginContainer = %Margin
 @onready var _status: Label = %Status
@@ -24,6 +25,10 @@ var _ui_style: RefCounted
 var _card_style: StyleBoxFlat
 var _composer_style: StyleBoxFlat
 var _input_style: StyleBoxFlat
+var _thinking_tween: Tween = null
+var _was_thinking := false
+var _fresh_ids: Array[String] = []
+var _typing_replied := false
 
 func set_ui_style(style: RefCounted) -> void:
 	if _ui_style != null and _ui_style.style_changed.is_connected(_apply_ui_style):
@@ -53,6 +58,7 @@ func is_dirty() -> bool:
 	return not _input.text.strip_edges().is_empty() or not _attachment.is_empty()
 
 func _ready() -> void:
+	visibility_changed.connect(_refresh_thinking_motion)
 	%VolumeButton.pressed.connect(_show_volume)
 	_card_style = get_node("Background").get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	get_node("Background").add_theme_stylebox_override("panel", _card_style)
@@ -84,7 +90,10 @@ func _initialize() -> void:
 	_history_skip.pressed.connect(_session.skip_history)
 	_scroll.audio_action.connect(_audio_action)
 	_scroll.image_action.connect(_image_action)
+	_scroll.retry_requested.connect(func(id):
+		if _session.retry_message(id) != OK: _status.text = "这条消息暂时无法重发，请检查连接后重试。")
 	_scroll.visible_messages.connect(_visible_audio)
+	_scroll.get_v_scroll_bar().value_changed.connect(func(_value): _update_latest())
 	_scroll.interacted.connect(_session.note_read_interaction)
 	_latest.pressed.connect(_to_latest)
 	_unread.pressed.connect(_jump_reading)
@@ -111,6 +120,7 @@ func _initialize() -> void:
 	_send_button.pressed.connect(_send)
 	_session.message_audio_changed.connect(_audio_changed)
 	_session.message_image_changed.connect(func(id,state): _scroll.set_image_state(id,state))
+	_session.live_message_added.connect(_live_message_added)
 	_session.changed.connect(_refresh)
 	_session.state_changed.connect(_state_changed)
 	_state_changed(_session.get_state())
@@ -169,7 +179,8 @@ func _clear_attachment(canceled: bool) -> void:
 func _refresh() -> void:
 	var messages: Array[Dictionary] = _session.get_messages()
 	_empty.visible = messages.is_empty()
-	_scroll.set_messages(messages)
+	_scroll.set_messages(messages, _fresh_ids)
+	_fresh_ids.clear()
 	_visible_audio(_scroll.get_visible_ids())
 	_apply_reading()
 
@@ -178,33 +189,52 @@ func _visible_audio(ids: Array[String]) -> void:
 		_scroll.set_audio_state(id,_session.get_message_audio(id))
 		_session.request_message_image(id)
 		_scroll.set_image_state(id,_session.get_message_image(id))
-	_latest.visible = not _scroll.is_at_latest()
+	_update_latest()
 	_report_reading()
 
 func _to_latest() -> void:
-	_scroll.scroll_to_latest()
-	_latest.hide()
+	_scroll.smooth_scroll_to_latest()
+	_set_floating(_latest, false)
+
+func _update_latest() -> void:
+	_set_floating(_latest, not _scroll.is_at_latest() and not _scroll.is_scrolling_to_latest())
 
 func _state_changed(state: Dictionary) -> void:
 	_update_history_status(state)
-	_status.text = {"idle":"连接已关闭", "connecting":"正在连接…", "authenticating":"正在验证账户…",
-		"ready":"已连接", "reconnecting":"正在重新连接 · 可以继续输入", "auth_rejected":"聊天凭据已失效，请退出后重新登录。"}.get(state.phase, "")
+	_status.text = {"idle":"连接已关闭", "connecting":"正在连接…", "authenticating":"正在验证账户…", "ready":"已连接", "reconnecting":"正在重新连接 · 可以继续输入", "auth_rejected":"聊天凭据已失效，请退出后重新登录。"}.get(state.phase, "")
+	_update_thinking(state)
+	if state.get("speaking", false): _status.text += " · 正在播放语音"
+	var error_text: String = {"REMOTE_AUDIO_ERROR":"服务端语音生成失败，可继续文字聊天。", "AUDIO_ERROR":"本条语音暂时无法播放，文字已保留。", "CACHE_CLEAR_FAILED":"部分语音未能清理，请关闭占用文件后重试。", "SEND_REJECTED":"暂时无法发送，内容已保留。", "INVALID_RESPONSE":"收到的数据不完整。"}.get(state.code, "")
+	if error_text.is_empty() and state.phase == "ready" and not state.code.is_empty(): error_text = "服务器暂时无法处理请求，请稍后重试。"
+	if not error_text.is_empty(): _status.text += " · " + error_text
+
+func _update_thinking(state: Dictionary) -> void:
 	if state.thinking:
+		if not _was_thinking: _typing_replied = false
 		_status.text = "天依正在想一想…"
-	if state.get("speaking", false):
-		_status.text += " · 正在播放语音"
-	if state.code == "REMOTE_AUDIO_ERROR":
-		_status.text += " · 服务端语音生成失败，可继续文字聊天。"
-	elif state.code == "AUDIO_ERROR":
-		_status.text += " · 本条语音暂时无法播放，文字已保留。"
-	elif state.code == "CACHE_CLEAR_FAILED":
-		_status.text += " · 部分语音未能清理，请关闭占用文件后重试。"
-	elif state.code == "SEND_REJECTED":
-		_status.text += " · 暂时无法发送，内容已保留。"
-	elif state.code == "INVALID_RESPONSE":
-		_status.text += " · 收到的数据不完整。"
-	elif state.phase == "ready" and not state.code.is_empty():
-		_status.text += " · 服务器暂时无法处理请求，请稍后重试。"
+		if not _was_thinking: _start_thinking_anim()
+	elif _was_thinking:
+		_stop_thinking_anim()
+	_scroll.set_typing(state.thinking and not _typing_replied and state.phase == "ready")
+
+func _start_thinking_anim() -> void:
+	_was_thinking = true
+	if _thinking_tween != null: _thinking_tween.kill()
+	if is_visible_in_tree(): _thinking_tween = UiMotion.pulse(_status, 0.45, 1.0, 1.1)
+
+func _stop_thinking_anim() -> void:
+	_was_thinking = false
+	UiMotion.cancel(_status, "pulse")
+	_thinking_tween = null
+	_status.modulate.a = 1.0
+
+func _refresh_thinking_motion() -> void:
+	if _was_thinking and is_visible_in_tree():
+		_thinking_tween = UiMotion.pulse(_status, 0.45, 1.0, 1.1)
+	else:
+		UiMotion.cancel(_status, "pulse")
+		_thinking_tween = null
+
 func _audio_changed(id: String, state: Dictionary) -> void:
 	_scroll.set_audio_state(id,state)
 
@@ -220,7 +250,7 @@ func _apply_reading() -> void:
 	if reading.pending or reading.located:
 		return
 	if reading.manual:
-		_unread.visible = not reading.target_id.is_empty()
+		_set_floating(_unread, not reading.target_id.is_empty())
 		_session.reading_located()
 	else:
 		_jump_reading()
@@ -232,7 +262,7 @@ func _jump_reading() -> void:
 	if not reading.target_id.is_empty() and not _scroll.scroll_to_message(reading.target_id):
 		return
 	_session.reading_located()
-	_unread.hide()
+	_set_floating(_unread, false)
 	_report_reading.call_deferred()
 
 func _report_reading() -> void:
@@ -249,6 +279,7 @@ func _image_action(id: String, action: String) -> void:
 			return texture)
 
 func _exit_tree() -> void:
+	_stop_thinking_anim()
 	files.cancel()
 
 func _update_density() -> void:
@@ -271,3 +302,28 @@ func _update_history_status(state: Dictionary) -> void:
 	elif reading.reason == "SAVE_FAILED":
 		_history_status.text += " 本机阅读位置未能保存。"
 	%HistoryRow.visible = not _history_status.text.is_empty() or _history_retry.visible or _history_skip.visible
+
+
+
+
+func _live_message_added(id: String, role: String) -> void:
+	_fresh_ids.append(id)
+	if role == "assistant":
+		_typing_replied = true
+		_scroll.set_typing(false)
+
+func _set_floating(button: Button, shown: bool) -> void:
+	if button.get_meta("motion_shown", button.visible) == shown: return
+	button.set_meta("motion_shown", shown)
+	button.disabled = not shown
+	button.mouse_filter = Control.MOUSE_FILTER_STOP if shown else Control.MOUSE_FILTER_IGNORE
+	UiMotion.cancel_all(button)
+	if shown:
+		button.show()
+		UiMotion.slide_fade_in(button, 6.0)
+	else:
+		var tween := UiMotion.fade_out(button)
+		tween.finished.connect(func():
+			if not button.get_meta("motion_shown", false):
+				button.hide()
+				button.modulate.a = 1.0)

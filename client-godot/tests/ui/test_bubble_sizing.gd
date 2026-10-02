@@ -42,7 +42,7 @@ func run() -> void:
 		own.update_message(update)
 		await settle()
 		_check_run_result(own, status)
-		check(is_equal_approx(own.get_combined_minimum_size().y, normal_height), status + " reserves no delivery caption height")
+		check(is_equal_approx(own.get_combined_minimum_size().y, normal_height), status + " keeps a stable delivery row height")
 	update.status = "failed"
 	own.update_message(update)
 	await settle()
@@ -55,7 +55,7 @@ func run() -> void:
 	update.status = "sent"
 	own.update_message(update)
 	await settle()
-	check(not own.get_node("%Caption").visible and is_equal_approx(own.get_combined_minimum_size().y, normal_height), "successful delivery clears previous error without blank space")
+	check(own.get_node("%Caption").text == "✓ 服务器已接收" and is_equal_approx(own.get_combined_minimum_size().y, normal_height), "ACK replaces the error with a stable accepted caption")
 	own.set_audio_state({"available":true,"code":"","status":"idle","blocked":false,"duration":2.4,"position":0.0,"waveform":PackedFloat32Array([.1,.5,.9])})
 	await settle()
 	check(is_equal_approx(own.get_node("%Bubble").size.x,own_width) and own.find_child("MessageAudio",true,false).size.x > own_width, "audio remains usable without widening short text")
@@ -93,7 +93,8 @@ func run() -> void:
 	print("Adaptive text bubbles: ","PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
 func _check_run_result(own: Variant, status: Variant) -> void:
-	check(not own.get_node("%Caption").visible and own.get_node("%Caption").text.is_empty(), status + " has no delivery caption or demo suffix")
+	var expected: String = {"waiting_history":"等待历史同步", "queued":"排队中…", "sending":"发送中…", "sent":"✓ 服务器已接收"}[status]
+	check(own.get_node("%Caption").visible and own.get_node("%Caption").text == expected, status + " shows accurate inline delivery feedback")
 
 func _check_short_text_fits_content_instead_of_a_fixed_minimum(short_width: Variant, medium_width: Variant) -> void:
 	check(short_width < medium_width and short_width < 140, "short text fits content instead of a fixed minimum")

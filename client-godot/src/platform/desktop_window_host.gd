@@ -78,6 +78,11 @@ func open_window() -> void:
 	_window.grab_focus()
 	_clamp_visible_frame.call_deferred()
 
+func is_presentation_active() -> bool:
+	if not is_instance_valid(_window) or not _window.visible: return false
+	# Dummy DisplayServer reports minimized mode for otherwise active headless windows.
+	return DisplayServer.get_name() == "headless" or _window.mode != Window.MODE_MINIMIZED
+
 func _clamp_visible_frame() -> void:
 	if DisplayServer.get_name() == "headless" or not is_instance_valid(_window) or _window.is_embedded() or not _window.visible or _window.mode != Window.MODE_WINDOWED: return
 	var outer_position := _window.get_position_with_decorations()

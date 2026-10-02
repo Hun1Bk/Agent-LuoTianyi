@@ -1,6 +1,7 @@
 extends Node
 signal message_audio_changed(id: String, state: Dictionary)
 signal message_image_changed(id: String, state: Dictionary)
+signal live_message_added(id: String, role: String)
 signal changed
 signal state_changed(state: Dictionary)
 signal expression_requested(command: String)
@@ -19,6 +20,8 @@ var _history: Node
 var _waiting_history := false
 var _pending_history: Dictionary = {}
 var _wire_ids: Dictionary = {}
+var _message_wires: Dictionary = {}
+var _unsent_requests: Dictionary = {}
 var _reading: RefCounted
 var _images: Node
 var _models: Node
@@ -122,6 +125,7 @@ func send_text(text: String) -> String:
 	_by_id[id] = message
 	if _logger != null:
 		_logger.record("message_queued", {"reply_id":id})
+	live_message_added.emit(id, "user")
 	changed.emit()
 	return id
 
@@ -154,6 +158,7 @@ func send_image(bytes: PackedByteArray, mime: String) -> String:
 		_state.code = ""
 		state_changed.emit(get_state())
 	if _logger != null: _logger.record("message_queued", {"reply_id":id})
+	live_message_added.emit(id, "user")
 	changed.emit()
 	return id
 
@@ -180,7 +185,32 @@ func record_touch(areas: Array[String]) -> void:
 	_touch_areas.clear()
 
 func get_messages() -> Array[Dictionary]:
-	return _messages.duplicate(true)
+	var messages: Array[Dictionary] = _messages.duplicate(true)
+	for message in messages:
+		message.can_retry = can_retry_message(message.id)
+	return messages
+
+func can_retry_message(id: String) -> bool:
+	if _state.phase != "ready" or not _by_id.has(id): return false
+	var message: Dictionary = _by_id[id]
+	if message.role != "user" or message.status != "failed": return false
+	if _unsent_requests.has(id): return true
+	return _transport.has_method("can_retry_event") and _transport.can_retry_event(_message_wires.get(id, id))
+
+func retry_message(id: String) -> Error:
+	if not can_retry_message(id): return ERR_UNAVAILABLE
+	if not _unsent_requests.has(id):
+		return _transport.retry_event(_message_wires.get(id, id))
+	var request: Dictionary = _unsent_requests[id]
+	var wire: String = _transport.send_event(request.type, request.payload, true)
+	if wire.is_empty(): return ERR_BUSY
+	_wire_ids[wire] = id
+	_message_wires[id] = wire
+	_unsent_requests.erase(id)
+	_by_id[id].status = "queued"
+	_by_id[id].code = ""
+	changed.emit()
+	return OK
 
 func get_state() -> Dictionary:
 	var result := _state.duplicate(true)
@@ -210,6 +240,8 @@ func stop() -> void:
 	_waiting_history = false
 	_pending_history.clear()
 	_wire_ids.clear()
+	_message_wires.clear()
+	_unsent_requests.clear()
 	if _history != null:
 		_history.stop()
 	if _reading != null:
@@ -303,6 +335,7 @@ func _present_replies() -> void:
 				var message := {"id":id, "role":"assistant", "text":reply.text, "timestamp":reply.timestamp, "status":"received", "code":"","is_ephemeral":reply.ephemeral}
 				_by_id[id] = message
 				_messages.append(message)
+				live_message_added.emit(id, "assistant")
 			else:
 				_by_id[id].text = reply.text
 				_by_id[id].is_ephemeral = reply.ephemeral
@@ -374,8 +407,10 @@ func _release_history_sends() -> void:
 		if wire.is_empty():
 			_by_id[id].status = "failed"
 			_by_id[id].code = "SEND_REJECTED"
+			_unsent_requests[id] = pending.duplicate(true)
 		else:
 			_wire_ids[wire] = id
+			_message_wires[id] = wire
 			_by_id[id].status = "queued"
 	_pending_history.clear()
 	changed.emit()

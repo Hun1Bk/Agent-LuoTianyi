@@ -49,6 +49,13 @@ func send_event(type: String, payload: Dictionary, durable: bool = false) -> Str
 func get_state() -> Dictionary:
 	return _state.duplicate()
 
+func can_retry_event(id: String) -> bool:
+	return _state.phase == "ready" and _outbox.can_retry(id)
+
+func retry_event(id: String) -> Error:
+	if not can_retry_event(id): return ERR_UNAVAILABLE
+	return _outbox.retry(id, _clock.call())
+
 func stop() -> void:
 	_close_socket()
 	_session.clear()

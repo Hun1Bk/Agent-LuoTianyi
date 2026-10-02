@@ -16,6 +16,7 @@
 
 
 
+[ext_resource type="Script" path="res://src/ui/motion_slot.gd" id="motion_slot"]
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_avatar"]
 shader = ExtResource("3_shader")
 
@@ -170,13 +171,21 @@ tooltip_text = "语音音量"
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="Latest" type="Button" parent="Margin/Column/ComposerSurface/ComposerMargin/Composer/AudioControls"]
+[node name="LatestSlot" type="Control" parent="Margin/Column/ComposerSurface/ComposerMargin/Composer/AudioControls"]
+mouse_filter = 2
+script = ExtResource("motion_slot")
+
+[node name="Latest" type="Button" parent="Margin/Column/ComposerSurface/ComposerMargin/Composer/AudioControls/LatestSlot"]
 unique_name_in_owner = true
 visible = false
 theme_override_font_sizes/font_size = 11
 text = "回到最新 ↓"
 
-[node name="Unread" type="Button" parent="Margin/Column/ComposerSurface/ComposerMargin/Composer/AudioControls"]
+[node name="UnreadSlot" type="Control" parent="Margin/Column/ComposerSurface/ComposerMargin/Composer/AudioControls"]
+mouse_filter = 2
+script = ExtResource("motion_slot")
+
+[node name="Unread" type="Button" parent="Margin/Column/ComposerSurface/ComposerMargin/Composer/AudioControls/UnreadSlot"]
 unique_name_in_owner = true
 visible = false
 theme_override_font_sizes/font_size = 11

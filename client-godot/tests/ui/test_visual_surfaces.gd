@@ -25,8 +25,14 @@ func run() -> void:
 	if wave.get_child_count() == 24:
 		wave.values = PackedFloat32Array([.2,.8])
 		wave.progress = .5
-		check(wave.get_child(0).get_node("Bar").color == wave.played_color and wave.get_child(1).get_node("Bar").color == wave.remaining_color,"waveform data updates control appearance")
+		_check_wave(wave)
 	audio.queue_free()
 	await process_frame
 	print("Visual surfaces: ","PASS" if failures.is_empty() else "FAIL")
 	quit(0 if failures.is_empty() else 1)
+
+func _check_wave(wave: Control) -> void:
+	var first: ColorRect = wave.get_child(0).get_node("Bar")
+	var second: ColorRect = wave.get_child(1).get_node("Bar")
+	check(first.color.b > second.color.b and first.color != wave.remaining_color and second.color != wave.played_color,"waveform smoothly blends across the playback boundary")
+	check(first.custom_minimum_size.y == 2 and second.custom_minimum_size.y == 2 and first.scale.y != second.scale.y,"waveform height uses transforms without changing layout sizes")

@@ -173,7 +173,7 @@ func _apply_shadow(stylebox: StyleBoxFlat) -> void:
 		stylebox.shadow_offset = Vector2.ZERO
 
 func _apply_panel_themes() -> void:
-	for kind in ["AppSurface", "PanelContainer", "DialogSurface", "DropdownPopup", "PopupPanel", "PopupMenu", "LoginSurface", "LoginDialog", "ModelCard"]:
+	for kind in ["AppSurface", "PanelContainer", "DialogSurface", "DropdownPopup", "PopupPanel", "PopupMenu", "LoginDialog", "ModelCard"]:
 		if _theme.has_stylebox("panel", kind):
 			var panel := _theme.get_stylebox("panel", kind) as StyleBoxFlat
 			if panel != null: apply_surface_style(panel)

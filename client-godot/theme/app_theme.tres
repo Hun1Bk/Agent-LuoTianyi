@@ -142,7 +142,7 @@ border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.84, 0.90, 0.95, 0.9)
+border_color = Color(0.84, 0.9, 0.95, 0.9)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -155,10 +155,10 @@ content_margin_right = 10.0
 content_margin_bottom = 10.0
 bg_color = Color(0.8901961, 0.9607843, 1, 1)
 border_width_left = 4
-border_color = Color(0.4, 0.8, 1, 1)
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
+border_color = Color(0.4, 0.8, 1, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -276,20 +276,22 @@ corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="LoginAvatar"]
-content_margin_left = 8.0
-content_margin_top = 8.0
-content_margin_right = 8.0
-content_margin_bottom = 8.0
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
 bg_color = Color(1, 1, 1, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.88, 0.93, 0.96, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.8, 1, 1)
 corner_radius_top_left = 64
 corner_radius_top_right = 64
 corner_radius_bottom_right = 64
 corner_radius_bottom_left = 64
+shadow_color = Color(0.4, 0.8, 1, 0.35)
+shadow_size = 14
 
 [sub_resource type="StyleBoxFlat" id="LoginDialog"]
 content_margin_left = 20.0
@@ -306,6 +308,24 @@ corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="LoginFieldFocus"]
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.8, 1, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0.4, 0.8, 1, 0.28)
+shadow_size = 10
 
 [sub_resource type="StyleBoxFlat" id="LoginField"]
 content_margin_left = 12.0
@@ -358,38 +378,47 @@ content_margin_left = 12.0
 content_margin_top = 12.0
 content_margin_right = 12.0
 content_margin_bottom = 12.0
-bg_color = Color(0.62, 0.85, 1, 1)
+bg_color = Color(1, 1, 1, 0)
 corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
+shadow_color = Color(0.31, 0.66, 0.94, 0.18)
+shadow_size = 10
+shadow_offset = Vector2(0, 4)
 
 [sub_resource type="StyleBoxFlat" id="LoginPrimary"]
 content_margin_left = 12.0
 content_margin_top = 12.0
 content_margin_right = 12.0
 content_margin_bottom = 12.0
-bg_color = Color(0.4, 0.8, 1, 1)
+bg_color = Color(1, 1, 1, 0)
 corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
+shadow_color = Color(0.31, 0.66, 0.94, 0.35)
+shadow_size = 18
+shadow_offset = Vector2(0, 8)
 
 [sub_resource type="StyleBoxFlat" id="LoginSurface"]
 content_margin_left = 0.0
 content_margin_top = 0.0
 content_margin_right = 0.0
 content_margin_bottom = 0.0
-bg_color = Color(1, 1, 1, 1)
+bg_color = Color(1, 1, 1, 0.96)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.85, 0.88, 0.91, 1)
+border_color = Color(1, 1, 1, 0.85)
 corner_radius_top_left = 16
 corner_radius_top_right = 16
 corner_radius_bottom_right = 16
 corner_radius_bottom_left = 16
+shadow_color = Color(0.27, 0.43, 0.59, 0.22)
+shadow_size = 24
+shadow_offset = Vector2(0, 12)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j0l8r"]
 content_margin_left = 9.0
@@ -477,6 +506,7 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+
 [sub_resource type="StyleBoxFlat" id="NavigationNormal"]
 content_margin_left = 10.0
 content_margin_top = 10.0
@@ -487,6 +517,7 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+
 [sub_resource type="StyleBoxFlat" id="NavigationPressed"]
 content_margin_left = 10.0
 content_margin_top = 10.0
@@ -497,6 +528,7 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mge78"]
 content_margin_left = 9.0
 content_margin_top = 9.0
@@ -589,6 +621,7 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_l5skj"]
 content_margin_left = 10.0
 content_margin_top = 10.0
@@ -599,6 +632,7 @@ corner_radius_top_left = 9
 corner_radius_top_right = 9
 corner_radius_bottom_right = 9
 corner_radius_bottom_left = 9
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_o1a41"]
 content_margin_left = 10.0
 content_margin_top = 10.0
@@ -609,6 +643,7 @@ corner_radius_top_left = 9
 corner_radius_top_right = 9
 corner_radius_bottom_right = 9
 corner_radius_bottom_left = 9
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_p0fcb"]
 content_margin_left = 10.0
 content_margin_top = 10.0
@@ -646,6 +681,7 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+
 [sub_resource type="StyleBoxFlat" id="ScrollGrabber"]
 content_margin_left = 3.0
 content_margin_top = 3.0
@@ -712,8 +748,8 @@ Label/colors/font_color = Color(0.1882353, 0.27058825, 0.3254902, 1)
 LineEdit/colors/caret_color = Color(0.1882353, 0.27058825, 0.3254902, 1)
 LineEdit/colors/font_color = Color(0.1882353, 0.27058825, 0.3254902, 1)
 LineEdit/colors/font_placeholder_color = Color(0.50980395, 0.6, 0.6509804, 1)
-LineEdit/colors/font_uneditable_color = Color(0.31764707, 0.41960785, 0.47843137, 1)
 LineEdit/colors/font_selected_color = Color(1, 1, 1, 1)
+LineEdit/colors/font_uneditable_color = Color(0.31764707, 0.41960785, 0.47843137, 1)
 LineEdit/colors/selection_color = Color(0, 0.47058824, 0.84313726, 1)
 LineEdit/styles/focus = SubResource("StyleBoxFlat_h83jl")
 LineEdit/styles/normal = SubResource("StyleBoxFlat_rckq1")
@@ -725,7 +761,7 @@ LoginAccountField/base_type = &"LineEdit"
 LoginAccountField/colors/font_color = Color(0, 0, 0, 1)
 LoginAccountField/colors/font_placeholder_color = Color(0.6, 0.6, 0.6, 1)
 LoginAccountField/colors/font_uneditable_color = Color(0, 0, 0, 1)
-LoginAccountField/font_sizes/font_size = 24
+LoginAccountField/font_sizes/font_size = 16
 LoginAccountField/fonts/font = SubResource("LoginRegularFont")
 LoginAccountField/styles/focus = SubResource("LoginNoFocus")
 LoginAccountField/styles/normal = SubResource("LoginClear")
@@ -743,7 +779,7 @@ LoginCheck/colors/font_hover_pressed_color = Color(0.6, 0.6, 0.6, 1)
 LoginCheck/colors/font_pressed_color = Color(0.6, 0.6, 0.6, 1)
 LoginCheck/colors/icon_disabled_color = Color(1, 1, 1, 1)
 LoginCheck/constants/h_separation = 6
-LoginCheck/font_sizes/font_size = 18
+LoginCheck/font_sizes/font_size = 12
 LoginCheck/fonts/font = SubResource("LoginRegularFont")
 LoginCheck/icons/checked = ExtResource("login_on")
 LoginCheck/icons/checked_disabled = ExtResource("login_on")
@@ -764,15 +800,16 @@ LoginField/base_type = &"LineEdit"
 LoginField/colors/font_color = Color(0, 0, 0, 1)
 LoginField/colors/font_placeholder_color = Color(0.6, 0.6, 0.6, 1)
 LoginField/colors/font_uneditable_color = Color(0, 0, 0, 1)
-LoginField/font_sizes/font_size = 24
+LoginField/font_sizes/font_size = 16
 LoginField/fonts/font = SubResource("LoginRegularFont")
+LoginField/styles/field_focus = SubResource("LoginFieldFocus")
 LoginField/styles/focus = SubResource("LoginNoFocus")
 LoginField/styles/normal = SubResource("LoginField")
 LoginField/styles/read_only = SubResource("LoginField")
 LoginFieldPanel/base_type = &"PanelContainer"
 LoginFieldPanel/styles/panel = SubResource("LoginAccountPanel")
 LoginFooterLink/base_type = &"LoginLink"
-LoginFooterLink/font_sizes/font_size = 20
+LoginFooterLink/font_sizes/font_size = 12
 LoginFooterLink/fonts/font = SubResource("LoginRegularFont")
 LoginFormMargin/base_type = &"MarginContainer"
 LoginFormMargin/constants/margin_left = 48
@@ -792,6 +829,7 @@ LoginLink/colors/font_disabled_color = Color(0.086275, 0.541176, 0.760784, 1)
 LoginLink/colors/font_hover_color = Color(0.04, 0.36, 0.53, 1)
 LoginLink/colors/font_hover_pressed_color = Color(0.1882353, 0.27058825, 0.3254902, 1)
 LoginLink/colors/icon_disabled_color = Color(1, 1, 1, 1)
+LoginLink/font_sizes/font_size = 12
 LoginLink/styles/disabled = SubResource("LoginClear")
 LoginLink/styles/hover = SubResource("LoginHover")
 LoginLink/styles/normal = SubResource("LoginClear")
@@ -808,12 +846,12 @@ LoginPrimary/colors/font_focus_color = Color(1, 1, 1, 1)
 LoginPrimary/colors/font_hover_color = Color(1, 1, 1, 1)
 LoginPrimary/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
 LoginPrimary/colors/font_pressed_color = Color(1, 1, 1, 1)
-LoginPrimary/font_sizes/font_size = 24
+LoginPrimary/font_sizes/font_size = 16
 LoginPrimary/fonts/font = SubResource("LoginButtonFont")
 LoginPrimary/styles/disabled = SubResource("LoginPrimaryDisabled")
 LoginPrimary/styles/hover = SubResource("LoginPrimary")
 LoginPrimary/styles/normal = SubResource("LoginPrimary")
-LoginPrimary/styles/pressed = SubResource("CheckSelected")
+LoginPrimary/styles/pressed = SubResource("LoginPrimary")
 LoginServerField/base_type = &"LineEdit"
 LoginServerField/font_sizes/font_size = 15
 LoginServerField/styles/focus = SubResource("CheckFocus")

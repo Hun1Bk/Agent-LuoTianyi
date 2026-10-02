@@ -206,7 +206,9 @@ func _check_back_keeps_name_and_clears_secrets(view: Variant) -> void:
 	check(view.get_node("%Username").text == "test" and view.get_node("%Password").text.is_empty() and view.get_node("%Invite").text.is_empty(), "back keeps name and clears secrets")
 
 func _check_rounded_outside_is_transparent_and_body_is_white(pixels: Variant) -> void:
-	check(pixels.get_pixel(0,0).a < .1 and pixels.get_pixel(12,100).is_equal_approx(Color.WHITE), "rounded outside is transparent and body is white")
+	var body: Color = pixels.get_pixel(12,100)
+	# Transparent viewport pixels contain premultiplied RGB.
+	check(pixels.get_pixel(0,0).a < .1 and body.a > .94 and absf(body.r-body.a) < .02 and absf(body.g-body.a) < .02 and absf(body.b-body.a) < .02, "rounded outside is transparent and body is translucent white")
 
 func _check_logout_restores_compact_presentation() -> void:
 	check(root.borderless and root.unresizable, "logout restores compact presentation")
@@ -225,6 +227,7 @@ func _check_external_link_failure_is_reported_without_platform_calls_in_the_view
 
 func _check_busy_login_still_blocks_duplicate_input(view: Variant) -> void:
 	check(view.get_node("%Submit").disabled and not view.get_node("%Password").editable, "busy login still blocks duplicate input")
+	check(view.get_node("%SubmitSpinner").visible and view.get_node("%Submit").text.is_empty(), "busy login shows a spinner inside its button")
 
 func _check_user_can_explicitly_return_to_password_input(view: Variant) -> void:
 	check(view.get_node("%Password").visible and not view.get_node("%SavedLogin").visible, "user can explicitly return to password input")
@@ -251,7 +254,7 @@ func _check_authored_login() -> bool:
 	var option: CheckBox = candidate.get_node("%AutoLogin")
 	var circle := option.get_theme_icon("unchecked").get_image()
 	_check_login_checkbox_is_a_24px_hollow_circle_not_a_square(circle)
-	check(option.get_theme_font_size("font_size") == 18, "login options use reference-sized regular text")
+	check(option.get_theme_font_size("font_size") == 12, "login options use compact reference-sized regular text")
 	for control_name in ["AutoLogin","Remember","ResetLink","RegisterLink","HistoryButton"]:
 		var control: Control = candidate.get_node("%"+control_name)
 		check(control.get_theme_stylebox("disabled").bg_color.a == 0, "busy state keeps transparent control background: " + control_name)

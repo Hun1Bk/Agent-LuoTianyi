@@ -160,4 +160,5 @@ ok_button_text = "放弃修改"
 cancel_button_text = "取消"
 
 [node name="Chrome" parent="." instance=ExtResource("chrome")]
+motion_target_path = NodePath("../Body")
 unique_name_in_owner = true

@@ -4,6 +4,24 @@ signal delivery_changed(id: String, state: String, code: String)
 const MAX_AGE_MS := 240000
 const RETRY_DELAYS := [1000, 2000, 4000, 8000, 16000, 30000, 30000, 30000]
 var _pending: Dictionary = {}
+var _rejected: Dictionary = {}
+
+func can_retry(id: String) -> bool:
+	return _rejected.has(id) and not _pending.has(id)
+
+func retry(id: String, now_ms: int) -> Error:
+	if not can_retry(id): return ERR_UNAVAILABLE
+	if _pending.size() >= 128: return ERR_BUSY
+	var entry: Dictionary = _rejected[id]
+	_rejected.erase(id)
+	entry.created = now_ms
+	entry.ready = now_ms
+	entry.deadline = 0
+	entry.attempts = 0
+	entry.waiting = false
+	_pending[id] = entry
+	delivery_changed.emit(id, "queued", "")
+	return OK
 
 func enqueue(type: String, payload: Dictionary, durable: bool, now_ms: int) -> String:
 	if _pending.size() >= 128:
@@ -62,6 +80,7 @@ func disconnected(now_ms: int) -> void:
 func stop(code: String = "TRANSPORT_STOPPED") -> void:
 	var ids := _pending.keys()
 	_pending.clear()
+	_rejected.clear()
 	for id in ids:
 		delivery_changed.emit(id, "failed", code)
 
@@ -105,4 +124,8 @@ func _reject_delivery(reply_to: String, payload: Dictionary, now_ms: int) -> voi
 		if _pending[reply_to].waiting:
 			_retry_or_finish(reply_to, now_ms, code)
 	else:
+		# Only an explicit terminal NACK proves that a durable request was not accepted.
+		if _pending[reply_to].durable:
+			if _rejected.size() >= 128: _rejected.erase(_rejected.keys()[0])
+			_rejected[reply_to] = _pending[reply_to]
 		_finish(reply_to, "failed", code)

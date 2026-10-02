@@ -7,13 +7,15 @@ func _ready() -> void:
 	_discard.dialog_text = "关闭后，本窗口未保存的内容将被丢弃。"
 	_discard.ok_button_text = "放弃修改"
 	_discard.cancel_button_text = "取消"
-	_discard.confirmed.connect(queue_free)
+	_discard.confirmed.connect(_close_window)
 	close_requested.connect(func():
 		if is_dirty():
 			_discard.popup_centered()
 			_discard.get_cancel_button().grab_focus()
 		else:
-			queue_free())
+			_close_window())
+func _close_window() -> void:
+	%Chrome.close_window(queue_free)
 func open() -> void:
 	%Chrome.open_window()
 func is_dirty() -> bool:

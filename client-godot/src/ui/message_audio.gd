@@ -1,4 +1,5 @@
 extends VBoxContainer
+const UiMotion = preload("res://src/ui/ui_motion.gd")
 signal action(value: String)
 @onready var _row: HBoxContainer = %Row
 @onready var _play: Button = %Play
@@ -19,6 +20,7 @@ func _update_icon() -> void:
 		_ui_style.register_icon(get_node("%Play"), "media_pause" if _status == "playing" else "media_play")
 
 func _ready() -> void:
+	_play.pressed.connect(func(): UiMotion.press_bounce(_play))
 	_play.pressed.connect(func(): action.emit({"idle":"play","playing":"pause","paused":"resume"}[_status]))
 	_stop.pressed.connect(func(): action.emit("stop"))
 

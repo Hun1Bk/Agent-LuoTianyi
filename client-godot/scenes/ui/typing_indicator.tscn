@@ -1,0 +1,52 @@
+[gd_scene load_steps=6 format=3]
+[ext_resource type="Script" path="res://src/ui/typing_indicator.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/ui/tianyi_icon.png" id="avatar"]
+[ext_resource type="Shader" path="res://assets/ui/round_avatar.gdshader" id="round"]
+[sub_resource type="ShaderMaterial" id="avatar_material"]
+shader = ExtResource("round")
+[sub_resource type="StyleBoxFlat" id="surface"]
+bg_color = Color(0.945,0.969,0.984,1)
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_left = 12
+corner_radius_bottom_right = 12
+[node name="TypingIndicator" type="HBoxContainer"]
+visible = false
+mouse_filter = 2
+custom_minimum_size = Vector2(144,48)
+theme_override_constants/separation = 10
+script = ExtResource("script")
+[node name="Avatar" type="TextureRect" parent="."]
+custom_minimum_size = Vector2(40,40)
+size_flags_vertical = 0
+mouse_filter = 2
+texture = ExtResource("avatar")
+expand_mode = 1
+stretch_mode = 5
+material = SubResource("avatar_material")
+[node name="Panel" type="PanelContainer" parent="."]
+mouse_filter = 2
+size_flags_vertical = 0
+theme_override_styles/panel = SubResource("surface")
+[node name="Dots" type="HBoxContainer" parent="Panel"]
+mouse_filter = 2
+theme_override_constants/separation = 9
+[node name="First" type="Label" parent="Panel/Dots"]
+mouse_filter = 2
+text = "●"
+theme_override_colors/font_color = Color(0.4,0.8,1,1)
+theme_override_font_sizes/font_size = 10
+[node name="Second" type="Label" parent="Panel/Dots"]
+mouse_filter = 2
+text = "●"
+theme_override_colors/font_color = Color(0.4,0.8,1,1)
+theme_override_font_sizes/font_size = 10
+[node name="Third" type="Label" parent="Panel/Dots"]
+mouse_filter = 2
+text = "●"
+theme_override_colors/font_color = Color(0.4,0.8,1,1)
+theme_override_font_sizes/font_size = 10

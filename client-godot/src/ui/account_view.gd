@@ -4,6 +4,7 @@ signal log_requested
 signal feedback_requested
 signal exit_requested
 const Session = preload("res://src/session/account_session.gd")
+const UiMotion = preload("res://src/ui/ui_motion.gd")
 const HistoryRow = preload("res://scenes/ui/login_account_row.tscn")
 const PASSWORD_HINT := "密码只允许英文字母、数字和英文符号，不接受中文或其他字符。"
 var _password_drafts := {"password":"", "confirm":""}
@@ -17,6 +18,11 @@ var _checking_server := false
 var _syncing := false
 var _manual_password := false
 var _removing := ""
+var _spinner: TextureRect = null
+var _spin_tween: Tween = null
+var _avatar_tween: Tween = null
+var _suppress_mode_anim := true
+var _last_animated_mode := "login"
 var _menu_trigger: RefCounted
 var _history_trigger: RefCounted
 @onready var _form: VBoxContainer = %Form
@@ -30,6 +36,8 @@ func setup(session: Node) -> void:
 	if is_node_ready(): _initialize()
 
 func _ready() -> void:
+	_setup_motion()
+	visibility_changed.connect(_refresh_motion)
 	_menu_trigger = preload("res://src/ui/popup_trigger.gd").new(%MenuButton,%MenuPopup)
 	_history_trigger = preload("res://src/ui/popup_trigger.gd").new(%HistoryButton,%HistoryPopup)
 	%CloseLogin.pressed.connect(func(): exit_requested.emit())
@@ -72,6 +80,8 @@ func _initialize() -> void:
 	_session.changed.connect(_update_state)
 	for button in [%Submit,%Remember,%AutoLogin,%RegisterLink,%ResetLink,%SetServer,%HistoryButton]: button.disabled = false
 	_sync_selected()
+	_suppress_mode_anim = false
+	_refresh_motion.call_deferred()
 	if _session.get_login_defaults().storage_error: _status.text = _error_text("STORAGE_ERROR")
 
 func select_mode(mode: String) -> void:
@@ -79,9 +89,66 @@ func select_mode(mode: String) -> void:
 	_mode = mode
 	_clear_secrets()
 	_status.text = ""
+	_status.remove_theme_color_override("font_color")
 	%FeedbackAddress.hide()
 	_manual_password = false
 	_apply_mode()
+
+func _setup_motion() -> void:
+	_spinner = %SubmitSpinner
+	_setup_field_focus()
+
+func _setup_field_focus() -> void:
+	var focus_style := get_theme_stylebox("field_focus", "LoginField") as StyleBoxFlat
+	_bind_panel_focus(%Username, %UsernameFrame, focus_style)
+	for field in [%Password, %Confirm, %Invite]:
+		_bind_self_focus(field, focus_style)
+
+func _bind_panel_focus(edit: LineEdit, panel: PanelContainer, focus_style: StyleBoxFlat) -> void:
+	var normal_style := panel.get_theme_stylebox("panel")
+	panel.add_theme_stylebox_override("panel", normal_style)
+	edit.focus_entered.connect(func(): panel.add_theme_stylebox_override("panel", focus_style))
+	edit.focus_exited.connect(func(): panel.add_theme_stylebox_override("panel", normal_style))
+
+func _bind_self_focus(edit: LineEdit, focus_style: StyleBoxFlat) -> void:
+	edit.focus_entered.connect(func(): edit.add_theme_stylebox_override("normal", focus_style))
+	edit.focus_exited.connect(func(): edit.remove_theme_stylebox_override("normal"))
+
+func _animate_mode_change() -> void:
+	if _suppress_mode_anim or _last_animated_mode == _mode: return
+	_last_animated_mode = _mode
+	var delay := 0.0
+	for node in [%Confirm, %Invite, %SavedLogin, %BackToLogin, %ModeTitle, %ModeHelp]:
+		UiMotion.cancel_all(node)
+		if node.visible:
+			if node.get_parent() is Container: UiMotion.fade_in(node, UiMotion.DUR_FAST, 0.0, delay)
+			else: UiMotion.slide_fade_in(node, 8.0, UiMotion.DUR_FAST, delay)
+			delay += 0.05
+	if _mode == "login":
+		for node in [%AvatarBlock, %Options, %Footer.get_parent().get_parent()]: UiMotion.fade_in(node, 0.22)
+
+func _set_busy_visual(busy: bool) -> void:
+	_spinner.visible = busy
+	_submit.text = "" if busy else {"login":"登录", "register":"注册", "reset":"重置账号"}[_mode]
+	if busy and is_visible_in_tree():
+		if _spin_tween == null or not _spin_tween.is_valid(): _spin_tween = UiMotion.spin(_spinner)
+	else:
+		UiMotion.cancel(_spinner, "spin")
+		_spin_tween = null
+
+func _refresh_motion() -> void:
+	var frame: Control = %AvatarBlock.get_node("AvatarFrameSlot/AvatarFrame")
+	if _mode == "login" and is_visible_in_tree() and %AvatarBlock.visible:
+		if _avatar_tween == null or not _avatar_tween.is_valid(): _avatar_tween = UiMotion.floaty(frame, 3.0, 3.4)
+	else:
+		UiMotion.cancel(frame, "float")
+		_avatar_tween = null
+	_set_busy_visual(_busy and not %ServerDialog.visible)
+
+func _fail_feedback() -> void:
+	UiMotion.shake(%Form, 7.0, 0.38)
+	_status.add_theme_color_override("font_color", Color("bb5268"))
+	UiMotion.fade_in(_status, 0.16)
 
 func _apply_mode() -> void:
 	var login := _mode == "login"
@@ -104,9 +171,10 @@ func _apply_mode() -> void:
 	%HistoryButton.visible = login
 	%Options.visible = login
 	%Footer.visible = login and not signed_in
-	%Footer.get_parent().visible = login and not signed_in
+	%Footer.get_parent().get_parent().visible = login and not signed_in
+	_animate_mode_change()
 	_form.visible = not signed_in
-	_submit.text = {"login":"登录","register":"注册","reset":"重置账号"}[_mode]
+	_refresh_motion()
 
 func _remembered() -> Dictionary:
 	for entry in _session.get_history():
@@ -153,8 +221,10 @@ func _send() -> void:
 	if _busy: return
 	var operation := _mode
 	if not _validate_passwords(operation):
+		_fail_feedback()
 		return
 	%FeedbackAddress.hide()
+	_status.remove_theme_color_override("font_color")
 	var response: Dictionary
 	if operation == "login" and %SavedLogin.visible:
 		response = await _session.login_saved(_fields.username.text)
@@ -167,6 +237,7 @@ func _send() -> void:
 	_apply_mode()
 func _update_state(state: Dictionary) -> void:
 	_busy = state.phase == "busy"
+	_set_busy_visual(_busy and %ServerDialog.visible == false)
 	for name in ["username","password","confirm","invite","server"]: _fields[name].editable = not _busy
 	for button in [_submit,_remember,_automatic,%BackToLogin,%RegisterLink,%ResetLink,%HistoryButton,%UsePassword,%SetServer,%ServerSave,%ServerDefault]: button.disabled = _busy
 	%Cancel.visible = _busy and not %ServerDialog.visible
@@ -185,6 +256,13 @@ func _open_menu() -> void:
 	_popup(%MenuPopup, Vector2(available.x-192,bottom.y+6), Vector2i(168,152))
 	(%Logs if %SetServer.disabled else %SetServer).grab_focus.call_deferred()
 
+## 弹层入场：从透明轻微放大浮现。Popup 是独立 Window，对其根内容做动画。
+func _animate_popup(window: Window) -> void:
+	for child in window.get_children():
+		if child is Control:
+			UiMotion.pop_in(child, 0.16)
+			break
+
 func _popup(window: Window, position: Vector2, requested: Vector2i) -> void:
 	var available := get_window().get_visible_rect().size
 	var extent := Vector2i(mini(requested.x,int(available.x)-16),mini(requested.y,int(available.y)-16))
@@ -193,6 +271,7 @@ func _popup(window: Window, position: Vector2, requested: Vector2i) -> void:
 	window.content_scale_size = Vector2i.ZERO
 	window.content_scale_factor = 1
 	window.popup(Rect2i(Vector2i(position),extent))
+	_animate_popup(window)
 
 func _open_history() -> void:
 	if _busy: return
@@ -229,6 +308,7 @@ func _open_server() -> void:
 	%ServerStatus.text = "验证连接成功后才使用新地址。"
 	var available := Vector2i(get_window().get_visible_rect().size)-Vector2i(24,24)
 	%ServerDialog.popup_centered(Vector2i(mini(416,available.x),mini(280,available.y)))
+	_animate_popup(%ServerDialog)
 	%Server.grab_focus()
 
 func _save_server() -> void:
@@ -305,3 +385,4 @@ func _present_response(operation: String, response: Dictionary) -> void:
 			_status.text = "注册成功，请登录。" if operation == "register" else "账号重置成功，请使用新账号登录。"
 	elif not response.storage_error:
 		_status.text = _error_text(response.code, response.get("status",0))
+		if response.code != "CANCELLED": _fail_feedback()

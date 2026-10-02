@@ -65,7 +65,7 @@ func run() -> void:
 	check(window.is_saving(),"save is tracked while awaiting server")
 	window.close_requested.emit()
 	await window.saving_finished
-	await process_frame
+	await _wait_closed(window)
 	check(not is_instance_valid(window),"close while saving waits and closes only on success")
 	models.queue_free()
 	await process_frame
@@ -79,3 +79,7 @@ func remove_folder(path: String) -> void:
 
 func _check_invalid_model_prevents_every_write(result: Variant, models: Variant, name: Variant, prefs: Variant) -> void:
 	check(not result.ok and models.get_config("text-purpose").model != name.text and prefs.get_state().dirty,"invalid model prevents every write")
+
+func _wait_closed(window: Window) -> void:
+	var deadline := Time.get_ticks_msec() + 2000
+	while is_instance_valid(window) and Time.get_ticks_msec() < deadline: await process_frame

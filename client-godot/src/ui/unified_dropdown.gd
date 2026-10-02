@@ -1,4 +1,5 @@
 extends Button
+const UiMotion = preload("res://src/ui/ui_motion.gd")
 @export var window_system: Resource = preload("res://src/platform/window_system.gd").new()
 ## Shared stable-ID selector / action menu. Popup details remain private.
 signal activated(id: String)
@@ -110,6 +111,7 @@ func open_menu() -> void:
 	_popup.content_scale_size = Vector2i.ZERO
 	_popup.content_scale_factor = 1.0
 	_popup.popup(Rect2i(Vector2i(clampi(origin.x, shadow, maxi(shadow, int(available.x) - width - shadow)), y), Vector2i(width,height)))
+	UiMotion.pop_in(_scroll, UiMotion.DUR_FAST, 0.9)
 	_focus_menu_items()
 func _label(id: String) -> String:
 	for item in _items:
@@ -117,6 +119,7 @@ func _label(id: String) -> String:
 	return ""
 
 func close_menu() -> void:
+	UiMotion.cancel_all(_scroll)
 	_popup.hide()
 
 func is_menu_open() -> bool:

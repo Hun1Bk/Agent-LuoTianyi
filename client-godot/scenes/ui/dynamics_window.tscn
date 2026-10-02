@@ -122,6 +122,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Chrome" parent="." instance=ExtResource("WindowChrome")]
+motion_target_path = NodePath("../Panel")
 unique_name_in_owner = true
 
 [node name="DiscardDialog" parent="." instance=ExtResource("Discard")]

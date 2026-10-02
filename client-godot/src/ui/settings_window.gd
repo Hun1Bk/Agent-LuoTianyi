@@ -48,7 +48,7 @@ func _ready() -> void:
 	%CloseSettings.pressed.connect(func(): close_requested.emit())
 	%LogoutButton.pressed.connect(func(): logout_requested.emit())
 	close_requested.connect(_request_close)
-	%UnsavedDialog.confirmed.connect(queue_free)
+	%UnsavedDialog.confirmed.connect(_close_window)
 	%UnsavedDialog.custom_action.connect(func(action):
 		if action == "save":
 			%UnsavedDialog.hide()
@@ -96,7 +96,10 @@ func _request_close() -> void:
 		%UnsavedDialog.popup_centered()
 		%UnsavedDialog.get_cancel_button().grab_focus()
 	else:
-		queue_free()
+		_close_window()
+
+func _close_window() -> void:
+	%Chrome.close_window(queue_free)
 
 func save_changes() -> Dictionary:
 	if _saving: return {"ok":false,"results":[{"section":"settings","id":"设置","code":"BUSY","ok":false}]}
@@ -124,7 +127,7 @@ func save_changes() -> Dictionary:
 	var should_close := _close_after_save and ok and not is_dirty()
 	_close_after_save = false
 	saving_finished.emit(ok)
-	if should_close: queue_free()
+	if should_close: _close_window()
 	return {"ok":ok,"results":results}
 
 func _report(results: Array) -> void:

@@ -1,0 +1,1314 @@
+﻿client-godot/scenes/ui\account_view.tscn:137:[node name="HistoryButton" type="Button" parent="Column/BodyScroll/FormMargin/Body/Form/UsernameFrame/UsernameRow"]
+client-godot/scenes/ui\account_view.tscn:154:virtual_keyboard_type = 6
+client-godot/scenes/ui\account_view.tscn:165:virtual_keyboard_type = 6
+client-godot/scenes/ui\account_view.tscn:312:[node name="HistoryPopup" type="PopupPanel" parent="."]
+client-godot/scenes/ui\account_view.tscn:321:[node name="HistoryScroll" type="ScrollContainer" parent="HistoryPopup"]
+client-godot/scenes/ui\account_view.tscn:330:[node name="HistoryRows" type="VBoxContainer" parent="HistoryPopup/HistoryScroll"]
+client-godot/scenes/ui\account_view.tscn:335:[node name="HistoryEmpty" type="Label" parent="HistoryPopup/HistoryScroll/HistoryRows"]
+client-godot/src\application.gd:12:@export var runtime: Resource = preload("res://src/platform/runtime_environment.gd").new()
+client-godot/src\application.gd:84:	if "--preview" in runtime.arguments():
+client-godot/src\application.gd:99:	_services = Services.new(_layout_path,runtime)
+client-godot/src\application.gd:109:	runtime.register_logger(_engine_log)
+client-godot/src\application.gd:259:	var expanded: bool = _expanded or "--preview" in runtime.arguments()
+client-godot/src\application.gd:270:		runtime.unregister_logger(_engine_log)
+client-godot/src\application.gd:296:	for argument in runtime.arguments():
+client-godot/src\application.gd:301:		await get_tree().create_timer(1.0).timeout
+client-godot/src\application.gd:303:		var saved: Error = runtime.capture(get_viewport(),capture)
+client-godot/src\application.gd:305:	elif not runtime.is_headless():
+client-godot/scenes/ui\audio_settings_page.tscn:2:[ext_resource type="Script" path="res://src/ui/audio_settings_page.gd" id="script"]
+client-godot/scenes/ui\audio_settings_page.tscn:37:[node name="AudioSettingsPage" type="MarginContainer"]
+client-godot/tests\capture_dropdown_ui.gd:18:	await create_timer(.15).timeout
+client-godot/tests\capture_dropdown_ui.gd:31:	await create_timer(.2).timeout
+client-godot/tests\capture_dropdown_ui.gd:57:	await create_timer(.2).timeout
+client-godot/tests\capture_dropdown_ui.gd:59:	await create_timer(.2).timeout
+client-godot/tests\capture_dropdown_ui.gd:91:		await create_timer(.2).timeout
+client-godot/tests\capture_dynamics_ui.gd:13:	await controller.start({"server":OS.get_environment("GODOT_TEST_SERVER"),"username":"visual","message_token":"fixture-token"})
+client-godot/tests\capture_dynamics_ui.gd:15:	var path := "user://dynamics-visual-%s.cfg"%Time.get_ticks_usec()
+client-godot/tests\capture_dynamics_ui.gd:31:	await create_timer(.3).timeout
+client-godot/tests\capture_dynamics_ui.gd:56:	await create_timer(.15).timeout
+client-godot/tests\capture_dynamics_ui.gd:59:	await create_timer(.15).timeout
+client-godot/tests\capture_dynamics_ui.gd:61:	await create_timer(.3).timeout
+client-godot/tests\capture_dynamics_ui.gd:73:	await create_timer(.25).timeout
+client-godot/scenes/ui\chat_view.tscn:10:[ext_resource type="PackedScene" path="res://scenes/ui/virtual_message_list.tscn" id="7_messages"]
+client-godot/scenes/ui\chat_view.tscn:103:[node name="MessagesMargin" type="MarginContainer" parent="Margin/Column"]
+client-godot/scenes/ui\chat_view.tscn:110:[node name="Messages" type="VBoxContainer" parent="Margin/Column/MessagesMargin"]
+client-godot/scenes/ui\chat_view.tscn:113:[node name="HistoryRow" type="HBoxContainer" parent="Margin/Column/MessagesMargin/Messages"]
+client-godot/scenes/ui\chat_view.tscn:117:[node name="HistoryStatus" type="Label" parent="Margin/Column/MessagesMargin/Messages/HistoryRow"]
+client-godot/scenes/ui\chat_view.tscn:123:[node name="HistoryRetry" type="Button" parent="Margin/Column/MessagesMargin/Messages/HistoryRow"]
+client-godot/scenes/ui\chat_view.tscn:127:[node name="HistorySkip" type="Button" parent="Margin/Column/MessagesMargin/Messages/HistoryRow"]
+client-godot/scenes/ui\chat_view.tscn:131:[node name="Scroll" parent="Margin/Column/MessagesMargin/Messages" instance=ExtResource("7_messages")]
+client-godot/scenes/ui\chat_view.tscn:135:[node name="Empty" type="Label" parent="Margin/Column/MessagesMargin/Messages"]
+client-godot/tests\application\test_platform_degradation.gd:10:	var directory := "user://missing-encryption-%s" % Time.get_ticks_usec()
+client-godot/scenes/ui\decision_dialog.tscn:38:[node name="MessageScroll" type="ScrollContainer" parent="Panel/Column"]
+client-godot/scenes/ui\decision_dialog.tscn:42:[node name="Message" type="Label" parent="Panel/Column/MessageScroll"]
+client-godot/src\application\account_lifecycle.gd:25:	var identity := JSON.stringify([scope,session.get("message_token","")]).sha256_text()
+client-godot/src\application\account_lifecycle.gd:33:	# that advertise models, history or dynamics can observe the new account.
+client-godot/tests\capture_release_ui.gd:15:	var directory := "user://release-visual-%s"%Time.get_ticks_usec()
+client-godot/tests\capture_release_ui.gd:23:	await create_timer(.4).timeout
+client-godot/tests\capture_release_ui.gd:26:	await create_timer(.5).timeout
+client-godot/tests\capture_release_ui.gd:30:	await create_timer(2.8).timeout
+client-godot/tests\capture_release_ui.gd:35:	await create_timer(0.1).timeout
+client-godot/tests\capture_release_ui.gd:53:	await create_timer(.4).timeout
+client-godot/tests\capture_release_ui.gd:56:	await create_timer(.3).timeout
+client-godot/tests\capture_release_ui.gd:71:	await create_timer(.3).timeout
+client-godot/tests\capture_release_ui.gd:77:	await create_timer(.2).timeout
+client-godot/tests\capture_release_ui.gd:88:	var last := Time.get_ticks_usec()
+client-godot/tests\capture_release_ui.gd:91:		var now := Time.get_ticks_usec()
+client-godot/tests\capture_release_ui.gd:101:	await create_timer(.2).timeout
+client-godot/tests\capture_release_ui.gd:114:		await create_timer(.4).timeout
+client-godot/tests\application\test_account_lifecycle.gd:40:	var session := {"server":"https://example.invalid", "username":"alice", "message_token":"token"}
+client-godot/tests\application\test_extension_contracts.gd:42:	var directory := "user://extension-contract-%s" % Time.get_ticks_usec()
+client-godot/tests\capture_voice_ui.gd:20:	var directory := "user://capture-voice-%s" % Time.get_ticks_usec()
+client-godot/tests\capture_voice_ui.gd:31:	session.start({"server":OS.get_environment("GODOT_TEST_SERVER")+"/prefix","username":"visual","message_token":"message-test"})
+client-godot/tests\capture_voice_ui.gd:34:	await create_timer(3.2).timeout
+client-godot/tests\capture_voice_ui.gd:35:	if not session.get_message_audio("visual-voice").available:
+client-godot/tests\capture_voice_ui.gd:46:	await create_timer(.6).timeout
+client-godot/tests\capture_voice_ui.gd:66:	await create_timer(.25).timeout
+client-godot/tests\capture_voice_ui.gd:82:	var deadline := Time.get_ticks_msec()+5000
+client-godot/tests\capture_voice_ui.gd:83:	while session.get_state().phase != "ready" and Time.get_ticks_msec() < deadline:
+client-godot/tests\avatar\test_avatar_interaction.gd:27:		await create_timer(0.4).timeout
+client-godot/tests\avatar\test_avatar_interaction.gd:30:		await create_timer(0.4).timeout
+client-godot/tests\avatar\test_avatar_interaction.gd:41:		await create_timer(0.12).timeout
+client-godot/tests\avatar\test_avatar_interaction.gd:44:		await create_timer(0.6).timeout
+client-godot/src\composition\application_services.gd:18:func _init(layout_path: String, runtime: Resource) -> void:
+client-godot/src\composition\application_services.gd:23:	log = preload("res://src/storage/client_log.gd").new("user://logs" if layout_path == "user://window_layout.cfg" else layout_path.get_base_dir().path_join("logs"),2097152,runtime)
+client-godot/src\composition\application_services.gd:38:	var history = preload("res://src/session/history_sync.gd").new(preload("res://src/network/history_api.gd").new(),log)
+client-godot/src\composition\application_services.gd:40:	var images = preload("res://src/storage/history_images.gd").new(data_root.path_join("images"),log)
+client-godot/src\composition\application_services.gd:43:	chat = preload("res://src/session/chat_session.gd").new(preload("res://src/network/websocket_transport.gd").new(),log,audio,history,reading,images,executor)
+client-godot/tests\avatar\test_touch_delivery.gd:10:	var deadline := Time.get_ticks_msec() + 2500
+client-godot/tests\avatar\test_touch_delivery.gd:11:	while not predicate.call() and Time.get_ticks_msec() < deadline: await process_frame
+client-godot/tests\avatar\test_touch_delivery.gd:24:		var account := {"server":OS.get_environment("GODOT_TEST_SERVER") + "/prefix", "username":"touch", "message_token":"message-test"}
+client-godot/tests\avatar\test_touch_delivery.gd:32:		await create_timer(1.05).timeout
+client-godot/tests\avatar\test_touch_delivery.gd:42:		await create_timer(0.7).timeout
+client-godot/tests\drive_native_window.py:7:import time
+client-godot/tests\drive_native_window.py:42:    time.sleep(.35)
+client-godot/tests\drive_native_window.py:45:    u.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+client-godot/tests\drive_native_window.py:46:    u.SendMessageW(hwnd, 0x033F, 0, ctypes.addressof(info))
+client-godot/tests\drive_native_window.py:75:    deadline = time.monotonic() + 2
+client-godot/tests\drive_native_window.py:76:    while time.monotonic() < deadline:
+client-godot/tests\drive_native_window.py:80:        time.sleep(.025)
+client-godot/tests\drive_native_window.py:88:    time.sleep(.1)
+client-godot/tests\drive_native_window.py:90:    time.sleep(.035)
+client-godot/tests\drive_native_window.py:105:    time.sleep(.08)
+client-godot/tests\drive_native_window.py:108:        time.sleep(.025)
+client-godot/tests\drive_native_window.py:110:    time.sleep(.12)
+client-godot/tests\drive_native_window.py:123:    time.sleep(.12)
+client-godot/tests\drive_native_window.py:141:    time.sleep(.2)
+client-godot/tests\drive_native_window.py:145:        raise RuntimeError("input target is obscured by another desktop window")
+client-godot/tests\drive_native_window.py:147:    time.sleep(.3)
+client-godot/tests\drive_native_window.py:157:        time.sleep(.065)
+client-godot/tests\drive_native_window.py:161:        time.sleep(.2)
+client-godot/tests\drive_native_window.py:167:    time.sleep(.2)
+client-godot/tests\drive_native_window.py:174:    time.sleep(.15)
+client-godot/tests\drive_native_window.py:184:    time.sleep(.15)
+client-godot/tests\drive_native_window.py:188:    time.sleep(.05)
+client-godot/tests\drive_native_window.py:191:    time.sleep(.2)
+client-godot/tests\avatar\test_eye_restoration.gd:18:		await create_timer(0.35).timeout
+client-godot/tests\avatar\test_eye_restoration.gd:21:		var deadline := Time.get_ticks_msec() + 4800
+client-godot/tests\avatar\test_eye_restoration.gd:22:		while Time.get_ticks_msec() < deadline:
+client-godot/tests\avatar\test_eye_restoration.gd:28:		await create_timer(0.5).timeout
+client-godot/tests\avatar\test_eye_restoration.gd:32:		await create_timer(0.5).timeout
+client-godot/tests\render_chat.gd:255:	# Message Scroll Area
+client-godot/tests\render_chat.gd:313:	var a1_time = Label.new()
+client-godot/tests\render_chat.gd:314:	a1_time.text = '09:30'
+client-godot/tests\render_chat.gd:315:	a1_time.add_theme_font_size_override('font_size', 11)
+client-godot/tests\render_chat.gd:316:	a1_time.add_theme_color_override('font_color', Color(0.60, 0.68, 0.74, 1))
+client-godot/tests\render_chat.gd:317:	a1_content_col.add_child(a1_time)
+client-godot/tests\render_chat.gd:347:	var u1_time = Label.new()
+client-godot/tests\render_chat.gd:348:	u1_time.text = '09:31'
+client-godot/tests\render_chat.gd:349:	u1_time.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+client-godot/tests\render_chat.gd:350:	u1_time.add_theme_font_size_override('font_size', 11)
+client-godot/tests\render_chat.gd:351:	u1_time.add_theme_color_override('font_color', Color(0.60, 0.68, 0.74, 1))
+client-godot/tests\render_chat.gd:352:	u1_content_col.add_child(u1_time)
+client-godot/tests\render_chat.gd:374:	var a2_time = Label.new()
+client-godot/tests\render_chat.gd:375:	a2_time.text = '09:31'
+client-godot/tests\render_chat.gd:376:	a2_time.add_theme_font_size_override('font_size', 11)
+client-godot/tests\render_chat.gd:377:	a2_time.add_theme_color_override('font_color', Color(0.60, 0.68, 0.74, 1))
+client-godot/tests\render_chat.gd:378:	a2_content_col.add_child(a2_time)
+client-godot/tests\render_chat.gd:400:	var u2_time = Label.new()
+client-godot/tests\render_chat.gd:401:	u2_time.text = '09:32'
+client-godot/tests\render_chat.gd:402:	u2_time.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+client-godot/tests\render_chat.gd:403:	u2_time.add_theme_font_size_override('font_size', 11)
+client-godot/tests\render_chat.gd:404:	u2_time.add_theme_color_override('font_color', Color(0.60, 0.68, 0.74, 1))
+client-godot/tests\render_chat.gd:405:	u2_content_col.add_child(u2_time)
+client-godot/tests\render_chat.gd:501:	await create_timer(0.4).timeout
+client-godot/src\avatar\avatar_preview.gd:2:@export var runtime: Resource = preload("res://src/platform/runtime_environment.gd").new()
+client-godot/src\avatar\avatar_preview.gd:12:	for argument in runtime.arguments():
+client-godot/src\avatar\avatar_preview.gd:14:			await get_tree().create_timer(2.0).timeout
+client-godot/src\avatar\avatar_preview.gd:16:			var saved: Error = runtime.capture(get_viewport(),argument.trim_prefix("--capture="))
+client-godot/tests\run_account_tests.py:10:import time
+client-godot/tests\run_account_tests.py:22:        def log_message(self, *args):
+client-godot/tests\run_account_tests.py:38:                time.sleep(0.5)
+client-godot/tests\run_account_tests.py:71:                time.sleep(0.5)
+client-godot/tests\run_account_tests.py:79:                self.reply(200, {"user_id":username, "login_token":"login-rotated" if operation == "auto_login" else "login-test", "message_token":"" if username == "empty_token" else "message-test"})
+client-godot/tests\run_account_tests.py:81:                self.reply(200, {"message":"registered", "user_id":"test"})
+client-godot/tests\run_account_tests.py:83:                self.reply(200, {"message":"reset", "username":"test"})
+client-godot/tests\run_account_tests.py:91:        # account history, credentials, or Godot settings.
+client-godot/tests\run_account_tests.py:104:                                    env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=40)
+client-godot/tests\run_account_tests.py:108:            raise RuntimeError("Account contract failed (exit %s): %s" % (result.returncode, result.stderr))
+client-godot/tests\run_account_tests.py:112:        thread.join(timeout=2)
+client-godot/tests\media\test_reply_audio.gd:24:func until(predicate: Callable, timeout: int = 2200) -> bool:
+client-godot/tests\media\test_reply_audio.gd:25:	var deadline := Time.get_ticks_msec() + timeout
+client-godot/tests\media\test_reply_audio.gd:26:	while not predicate.call() and Time.get_ticks_msec() < deadline:
+client-godot/tests\media\test_reply_audio.gd:42:	var directory := "user://audio-test-%s" % Time.get_ticks_usec()
+client-godot/tests\media\test_reply_audio.gd:128:	audio.append_reply_audio("timeout", "", false)
+client-godot/tests\media\test_reply_audio.gd:129:	audio.play_reply("timeout")
+client-godot/tests\media\test_reply_audio.gd:133:	check(lifecycle_codes.get("timeout") == "AUDIO_TIMEOUT", "missing continuation terminates at 60 seconds")
+client-godot/tests\media\test_capability_failures.gd:28:	var path := "user://capability-stream-%s.bin" % Time.get_ticks_usec()
+client-godot/src\media\cache_replay.gd:97:	if Time.get_ticks_msec() >= _notify_at:
+client-godot/src\media\cache_replay.gd:98:		_notify_at = Time.get_ticks_msec() + 50
+client-godot/src\media\cache_replay.gd:131:			_drain_at = Time.get_ticks_msec() + ceili((AudioServer.get_output_latency()+AudioServer.get_time_to_next_mix())*1000) + 10
+client-godot/src\media\cache_replay.gd:132:		elif Time.get_ticks_msec() >= _drain_at:
+client-godot/src\network\history_api.gd:5:var _timeout: float
+client-godot/src\network\history_api.gd:6:func _init(timeout: float = 15.0) -> void:
+client-godot/src\network\history_api.gd:7:	_timeout = timeout
+client-godot/src\network\history_api.gd:8:func fetch_page(session: Dictionary, end_index: int = -1) -> Dictionary:
+client-godot/src\network\history_api.gd:12:	if server.is_empty() or not session.get("username") is String or not session.get("message_token") is String or session.username.is_empty() or session.message_token.is_empty() or end_index < -1:
+client-godot/src\network\history_api.gd:16:	http.timeout = _timeout
+client-godot/src\network\history_api.gd:24:			_completed.emit(_failure("TIMEOUT" if result == HTTPRequest.RESULT_TIMEOUT else "NETWORK_ERROR",status))
+client-godot/src\network\history_api.gd:29:			if parser.parse(body.get_string_from_utf8()) != OK or not parser.data is Dictionary or not parser.data.get("history") is Array or not _valid_index(parser.data.get("start_index")):
+client-godot/src\network\history_api.gd:33:	var url := "%s/history?username=%s&count=50&end_index=%s" % [server,session.username.uri_encode(),end_index]
+client-godot/src\network\history_api.gd:34:	var error := http.request(url,PackedStringArray(["Authorization: Bearer " + session.message_token]),HTTPClient.METHOD_GET)
+client-godot/tests\run_client_behavior_comparison.gd:8:const HTTP_TIMEOUT := 10.0
+client-godot/tests\run_client_behavior_comparison.gd:15:var _message_token := ""
+client-godot/tests\run_client_behavior_comparison.gd:69:	var auth := PackedStringArray(["Authorization: Bearer " + _message_token])
+client-godot/tests\run_client_behavior_comparison.gd:76:	request.timeout = HTTP_TIMEOUT
+client-godot/tests\run_client_behavior_comparison.gd:125:	var deadline := Time.get_ticks_msec() + 10000
+client-godot/tests\run_client_behavior_comparison.gd:126:	while Time.get_ticks_msec() < deadline:
+client-godot/tests\run_client_behavior_comparison.gd:137:	var message_id := "behavior-" + Crypto.new().generate_random_bytes(6).hex_encode()
+client-godot/tests\run_client_behavior_comparison.gd:139:		"type": event_type, "payload": payload, "client_msg_id": message_id,
+client-godot/tests\run_client_behavior_comparison.gd:140:		"ts": int(Time.get_unix_time_from_system() * 1000), "reply_to": null
+client-godot/tests\run_client_behavior_comparison.gd:147:		"client_msg_id": message_id,
+client-godot/tests\run_client_behavior_comparison.gd:154:	return message_id
+client-godot/tests\run_client_behavior_comparison.gd:158:	var deadline := Time.get_ticks_msec() + 10000
+client-godot/tests\run_client_behavior_comparison.gd:159:	while Time.get_ticks_msec() < deadline:
+client-godot/tests\run_client_behavior_comparison.gd:190:	var record := {"ts": int(Time.get_unix_time_from_system() * 1000), "kind": "client_test", "client": "godot"}
+client-godot/tests\run_client_behavior_comparison.gd:209:	if value is String and (normalized in ["password", "new_password", "token", "login_token", "message_token", "authorization", "public_key"]
+client-godot/tests\run_client_behavior_comparison.gd:229:	if not login.get("login_token", "") is String or not login.get("message_token", "") is String:
+client-godot/tests\run_client_behavior_comparison.gd:232:	_message_token = login.message_token
+client-godot/tests\run_client_behavior_comparison.gd:246:	if await _http_call("http.history", HTTPClient.METHOD_GET,
+client-godot/tests\run_client_behavior_comparison.gd:247:			"/history?username=" + encoded_user + "&count=50&end_index=-1", {}, auth) == null:
+client-godot/tests\run_client_behavior_comparison.gd:256:		"username": _username, "token": _message_token
+client-godot/tests\run_client_behavior_comparison.gd:260:		"username": _username, "token": _message_token, "preferences": {}
+client-godot/tests\run_client_behavior_comparison.gd:264:		"username": _username, "token": _message_token
+client-godot/tests\run_client_behavior_comparison.gd:271:		"username": _username, "token": _message_token, "content": "behavior test"
+client-godot/tests\run_client_behavior_comparison.gd:285:				"username": _username, "token": _message_token, "content": "comment", "parent_comment_id": null
+client-godot/tests\run_client_behavior_comparison.gd:289:		"username": _username, "token": _message_token, "uuid": "behavior-image", "image_client_path": ""
+client-godot/tests\run_client_behavior_comparison.gd:293:		"username": _username, "token": _message_token, "uuid": "behavior-image"
+client-godot/tests\run_client_behavior_comparison.gd:310:		"username": _username, "token": _message_token, "capabilities": ["negative_ack_v1"]
+client-godot/tests\run_client_behavior_comparison.gd:327:	var text_id := _send_event("ws.user_text.send", "user_text", {"message": "hello", "llm_mode": {"types": []}})
+client-godot/tests\run_client_behavior_comparison.gd:331:	var text_reply := await _expect_event("ws.user_text.reply", "agent_message")
+client-godot/tests\run_client_behavior_comparison.gd:343:		"touchArea": ["头"], "touchCount": 1, "timeSinceLastSentTouch": 0.0
+client-godot/tests\run_client_behavior_comparison.gd:354:	var image_reply := await _expect_event("ws.user_image.reply", "agent_message")
+client-godot/src\network\websocket_transport.gd:23:	_clock = clock if clock.is_valid() else Time.get_ticks_msec
+client-godot/src\network\websocket_transport.gd:27:	for field in ["server", "username", "message_token"]:
+client-godot/src\network\websocket_transport.gd:33:	var fingerprint := JSON.stringify([base, session.username, session.message_token]).sha256_text()
+client-godot/src\network\websocket_transport.gd:38:	_session = {"server":base, "username":session.username, "message_token":session.message_token}
+client-godot/src\network\websocket_transport.gd:66:		_disconnect(now, "CONNECT_TIMEOUT" if _state.phase == "connecting" else "AUTH_TIMEOUT")
+client-godot/src\network\websocket_transport.gd:97:		_disconnect(now, "SYSTEM_RUNTIME_NOT_READY")
+client-godot/src\network\websocket_transport.gd:104:		"ts":int(Time.get_unix_time_from_system() * 1000), "reply_to":null}
+client-godot/src\network\websocket_transport.gd:150:			_send_control("user_auth", {"username":_session.username, "token":_session.message_token,
+client-godot/src\network\json_request.gd:4:var _timeout: float
+client-godot/src\network\json_request.gd:6:func _init(timeout: float = 15.0, limit: int = 8*1024*1024) -> void:
+client-godot/src\network\json_request.gd:7:	_timeout = timeout
+client-godot/src\network\json_request.gd:16:	http.timeout = _timeout
+client-godot/src\network\json_request.gd:24:			_done.emit(_failure("TIMEOUT" if result == HTTPRequest.RESULT_TIMEOUT else "NETWORK_ERROR",status))
+client-godot/src\network\reliable_outbox.gd:13:		"ts":int(Time.get_unix_time_from_system() * 1000), "reply_to":null}
+client-godot/src\network\reliable_outbox.gd:38:		var timeout := 5000 if entry.packet.type in ["user_image_selecting", "user_image_selecting_cancel"] else 10000
+client-godot/src\network\reliable_outbox.gd:39:		entry.deadline = now_ms + timeout
+client-godot/src\network\reliable_outbox.gd:97:			_retry_or_finish(id, now_ms, "ACK_TIMEOUT")
+client-godot/src\network\account_api.gd:8:var _timeout: float
+client-godot/src\network\account_api.gd:13:func _init(security: Object, timeout: float = 15.0) -> void:
+client-godot/src\network\account_api.gd:15:	_timeout = maxf(timeout, 0.05)
+client-godot/src\network\account_api.gd:48:		return response if response.code in ["TIMEOUT", "CANCELLED"] else _failure("PUBLIC_KEY_ERROR", response.status)
+client-godot/src\network\account_api.gd:68:	http.timeout = _timeout
+client-godot/src\network\account_api.gd:75:		if result == HTTPRequest.RESULT_TIMEOUT:
+client-godot/src\network\account_api.gd:76:			_http_finished.emit(_failure("TIMEOUT"))
+client-godot/src\network\account_api.gd:113:		return public_key if public_key.code in ["TIMEOUT", "CANCELLED"] else _failure("PUBLIC_KEY_ERROR", public_key.status)
+client-godot/src\network\account_api.gd:125:	var required := ["user_id", "login_token", "message_token"]
+client-godot/src\network\account_api.gd:127:		required = ["message", "user_id"]
+client-godot/src\network\account_api.gd:129:		required = ["message", "username"]
+client-godot/src\media\reply_audio.gd:2:signal message_audio_changed(id: String, state: Dictionary)
+client-godot/src\media\reply_audio.gd:42:	_clock = clock if clock.is_valid() else Time.get_ticks_msec
+client-godot/src\media\reply_audio.gd:151:			_fail(id, "AUDIO_TIMEOUT")
+client-godot/src\media\reply_audio.gd:175:func get_message_audio(id: String) -> Dictionary:
+client-godot/src\media\reply_audio.gd:190:	if not get_message_audio(id).available:
+client-godot/src\media\reply_audio.gd:240:		message_audio_changed.emit(id,get_message_audio(id))
+client-godot/src\media\reply_audio.gd:363:			_drain_at = now + ceili((AudioServer.get_output_latency() + AudioServer.get_time_to_next_mix()) * 1000) + 10
+client-godot/tests\run_feature_tests.py:2:import argparse, json, os, subprocess, tempfile, threading, base64, hashlib, struct, time, sys
+client-godot/tests\run_feature_tests.py:7:    if result.returncode != 0 or 'ERROR:' in output or 'FAIL:' in output or ': FAIL' in output or ': PASS' not in output or errors: raise RuntimeError(str(errors) or f'feature test failed (exit {result.returncode})')
+client-godot/tests\run_feature_tests.py:19:        def log_message(self,*args): pass
+client-godot/tests\run_feature_tests.py:43:                messages=[{'type':'server_ack','payload':{'ok':True},'reply_to':packet['client_msg_id']},
+client-godot/tests\run_feature_tests.py:44:                          {'type':'agent_message','payload':{'uuid':'redesign-voice','text':'辛苦啦，先让自己休息一下吧。\n我在这里陪着你，想说什么都可以。','audio':base64.b64encode(tone(2.4)).decode(),'is_final_package':True,'expression':'微笑脸'}}]
+client-godot/tests\run_feature_tests.py:45:                for response in messages: self.send_packet(response)
+client-godot/tests\run_feature_tests.py:54:            self.connection.settimeout(3)
+client-godot/tests\run_feature_tests.py:75:            if data.get('model')=='slow': time.sleep(.8)
+client-godot/tests\run_feature_tests.py:77:            self.reply(200,{'choices':[{'message':{'content':'bad-json' if data.get('model')=='bad-json' else '{"answer":"ok"}'}}],'usage':{'total_tokens':3,'private':'DO_NOT_RETURN'}}); return
+client-godot/tests\run_feature_tests.py:82:                time.sleep(.8)
+client-godot/tests\run_feature_tests.py:90:            if user in ('slow_save','ui_retry'): time.sleep(.4)
+client-godot/tests\run_feature_tests.py:112:                time.sleep(.5)
+client-godot/tests\run_feature_tests.py:116:                self.reply(200,{'items':[{'id':'visual-post','author_type':'agent','author_name':'洛天依','content':'今天也一起慢慢来吧。\n忙完以后，记得留一点时间给自己。','created_at':'2026-09-19 18:30:00','allow_comment':True,'comment_count':1,'visibility':'private'}],'has_more':False,'next_cursor':None}); return
+client-godot/tests\run_feature_tests.py:118:                self.reply(200,{'items':[{'id':'visual-comment','dynamic_id':'visual-post','author_type':'user','author_name':'测试用户','content':'好呀，晚点一起聊聊。','parent_comment_id':None,'created_at':'2026-09-19 18:31:00'}],'has_more':False,'next_cursor':None}); return
+client-godot/tests\run_feature_tests.py:124:            if self.path.startswith('/history?'):
+client-godot/tests\run_feature_tests.py:125:                self.reply(200,{'history':[],'start_index':0}); return
+client-godot/tests\run_feature_tests.py:128:            if data.get('username')=='visual_busy': time.sleep(.4)
+client-godot/tests\run_feature_tests.py:130:            self.reply(200,{'user_id':'ui-uuid','login_token':'login-test','message_token':'message-test'}); return
+client-godot/tests\run_feature_tests.py:141:                self.reply(200,{'user_id':'ui-uuid','login_token':'login-rotated','message_token':'message-test'}); return
+client-godot/tests\run_feature_tests.py:143:            if data.get('token')!='message-test': errors.append('wrong preference token'); self.reply(401,{}); return
+client-godot/tests\run_feature_tests.py:155:            result=subprocess.run([godot,*([] if gpu else ['--headless']),'--path',str(PROJECT),'--script',script],env={**os.environ,'APPDATA':appdata,'LOCALAPPDATA':local_appdata,'GODOT_TEST_PYTHON':sys.executable,'GODOT_TEST_SERVER':f'http://127.0.0.1:{server.server_port}'},capture_output=True,text=True,encoding='utf8',errors='replace',timeout=90 if gpu else 40)
+client-godot/tests\run_dynamics_tests.py:2:import argparse,json,os,subprocess, tempfile,threading,time
+client-godot/tests\run_dynamics_tests.py:10:        return dict(id=f'd{i}',author_type='agent',author_name='洛天依',content='合成动态\n第二行\n第三行\n第四行\n第五行\n第六行\n第七行',created_at='2026-09-19 10:00:00',allow_comment=i!=1,comment_count=22,visibility='private')
+client-godot/tests\run_dynamics_tests.py:12:        return dict(id=f'c{i}',dynamic_id='d0',author_type='user',author_name='测试用户',content='合成评论',created_at=f'2026-09-19 10:{i:02}:00',parent_comment_id='c0' if i else None)
+client-godot/tests\run_dynamics_tests.py:14:        def log_message(self,*args): pass
+client-godot/tests\run_dynamics_tests.py:28:            if query.get('limit')!=['10']: errors.append('post page limit')
+client-godot/tests\run_dynamics_tests.py:29:            if cursor and cursor!='older | page': errors.append('cursor not preserved')
+client-godot/tests\run_dynamics_tests.py:32:            self.reply(200,{'items':items,'has_more':not cursor,'next_cursor':'older | page' if not cursor else None}); return
+client-godot/tests\run_dynamics_tests.py:38:            if query.get('limit')!=['20']: errors.append('comment page limit')
+client-godot/tests\run_dynamics_tests.py:41:            if user=='slow-comments': time.sleep(.3)
+client-godot/tests\run_dynamics_tests.py:47:            if user=='preview-pagination' and not cursor:
+client-godot/tests\run_dynamics_tests.py:49:            if user=='preview-late' and cursor: time.sleep(.3)
+client-godot/tests\run_dynamics_tests.py:62:            if user=='slow': time.sleep(.5)
+client-godot/tests\run_dynamics_tests.py:86:            result=subprocess.run([godot,*([] if gpu else ['--headless']),'--path',str(PROJECT),'--script',script],env={**os.environ,'APPDATA':appdata,'LOCALAPPDATA':local_appdata,'GODOT_TEST_SERVER':f'http://127.0.0.1:{server.server_port}','GODOT_TEST_PYTHON':sys.executable},capture_output=True,text=True,encoding='utf8',errors='replace',timeout=60)
+client-godot/tests\run_dynamics_tests.py:89:        if result.returncode != 0 or 'ERROR:' in output or 'FAIL:' in output or ': FAIL' in output or ': PASS' not in output or errors: raise RuntimeError(errors or f'dynamics test failed (exit {result.returncode})')
+client-godot/scenes/ui\message_bubble.tscn:3:[ext_resource type="Script" path="res://src/ui/message_bubble.gd" id="1_script"]
+client-godot/scenes/ui\message_bubble.tscn:33:[node name="MessageBubble" type="HBoxContainer"]
+client-godot/scenes/ui\message_bubble.tscn:62:[node name="MessageColumn" type="VBoxContainer" parent="Body"]
+client-godot/scenes/ui\message_bubble.tscn:68:[node name="Bubble" type="PanelContainer" parent="Body/MessageColumn"]
+client-godot/scenes/ui\message_bubble.tscn:72:[node name="Content" type="VBoxContainer" parent="Body/MessageColumn/Bubble"]
+client-godot/scenes/ui\message_bubble.tscn:75:[node name="Text" type="RichTextLabel" parent="Body/MessageColumn/Bubble/Content"]
+client-godot/scenes/ui\message_bubble.tscn:83:[node name="HistoryPicture" type="TextureRect" parent="Body/MessageColumn/Bubble/Content"]
+client-godot/scenes/ui\message_bubble.tscn:91:[node name="ImageButton" type="Button" parent="Body/MessageColumn/Bubble/Content"]
+client-godot/scenes/ui\message_bubble.tscn:96:[node name="Picture" type="TextureRect" parent="Body/MessageColumn/Bubble/Content"]
+client-godot/scenes/ui\message_bubble.tscn:104:[node name="Caption" type="Label" parent="Body/MessageColumn"]
+client-godot/tests\run_history_tests.py:1:"""Offline real HTTP/WS history contract; no public server or account data."""
+client-godot/tests\run_history_tests.py:8:        raise RuntimeError(str(errors) or f'Godot history test failed (exit {proc.returncode})')
+client-godot/tests\run_history_tests.py:12:    if script.endswith('test_history_sync.gd'):
+client-godot/tests\run_history_tests.py:14:        if requests.get('skip') != [-1]: raise AssertionError('skip reimported history')
+client-godot/tests\run_history_tests.py:15:    elif script.endswith('test_history_media.gd'):
+client-godot/tests\run_history_tests.py:27:        if set(data) != {'username','token','uuid'} or data['token'] != 'message-test':
+client-godot/tests\run_history_tests.py:33:    def history_response(user, end):
+client-godot/tests\run_history_tests.py:36:        rows = [{'uuid':f'history-{i}','content':f'{user} record {i}','source':'agent' if i%2 else 'user','timestamp':float(i),'type':'text'} for i in range(start,stop)]
+client-godot/tests\run_history_tests.py:38:            if row['uuid']=='history-116': row.update(type='image',content='C:\\old-device\\private-image.png')
+client-godot/tests\run_history_tests.py:40:        if user == 'duplicate' and end == 70: rows[-1]['uuid'] = 'history-119'
+client-godot/tests\run_history_tests.py:42:        return web.json_response({'history':rows,'start_index':start})
+client-godot/tests\run_history_tests.py:44:    def history_failure(user, end, seen):
+client-godot/tests\run_history_tests.py:51:    async def history(request):
+client-godot/tests\run_history_tests.py:53:            assert request.headers.get('Authorization') == 'Bearer message-test'
+client-godot/tests\run_history_tests.py:60:            failure = history_failure(user, end, seen)
+client-godot/tests\run_history_tests.py:62:            return history_response(user, end)
+client-godot/tests\run_history_tests.py:64:            errors.append('history protocol mismatch')
+client-godot/tests\run_history_tests.py:67:        if user not in opened: errors.append('image sent before first history boundary')
+client-godot/tests\run_history_tests.py:82:                if payload['token'] != 'message-test': errors.append('wrong WS token')
+client-godot/tests\run_history_tests.py:87:                if user not in opened and user != 'skip': errors.append('business sent before first history boundary')
+client-godot/tests\run_history_tests.py:89:                await ws.send_json({'type':'agent_message','payload':{'uuid':'history-119','text':'live reply','is_final_package':True}})
+client-godot/tests\run_history_tests.py:96:    app.router.add_get('/history',history)
+client-godot/tests\run_history_tests.py:105:        with tempfile.TemporaryDirectory(prefix='agentluo-history-') as isolated:
+client-godot/tests\run_history_tests.py:112:            except asyncio.TimeoutError:
+client-godot/tests\run_history_tests.py:117:        print('HTTP + WebSocket history: PASS')
+client-godot/tests\run_history_tests.py:120:    parser=argparse.ArgumentParser(); parser.add_argument('--godot',required=True); parser.add_argument('--script',default='res://tests/test_history_sync.gd')
+client-godot/scenes/ui\frost_surface.tscn:3:[ext_resource type="Resource" path="res://resources/platform/runtime.tres" id="isolation_runtime"]
+client-godot/scenes/ui\frost_surface.tscn:17:runtime = ExtResource("isolation_runtime")
+client-godot/scenes/ui\message_audio.tscn:3:[ext_resource type="Script" path="res://src/ui/message_audio.gd" id="1_script"]
+client-godot/scenes/ui\message_audio.tscn:7:[node name="MessageAudio" type="VBoxContainer"]
+client-godot/scenes/ui\message_audio.tscn:23:[node name="Time" type="Label" parent="Row"]
+client-godot/scenes/ui\dynamic_comment_row.tscn:40:[node name="Time" type="Label" parent="Line/Content/Footer"]
+client-godot/scenes/ui\waveform_strip.tscn:2:[ext_resource type="Script" path="res://src/ui/message_waveform.gd" id="script"]
+client-godot/src\platform\godot_runtime_environment.gd:1:extends "res://src/platform/runtime_environment.gd"
+client-godot/tests\test_account_view.gd:41:	var folder := "user://account-view-test-%s" % Time.get_ticks_usec()
+client-godot/tests\test_account_view.gd:60:		await create_timer(0.4).timeout
+client-godot/tests\test_account_view.gd:72:		await create_timer(0.4).timeout
+client-godot/tests\test_account_view.gd:77:		await create_timer(0.4).timeout
+client-godot/scenes/ui\dynamic_detail.tscn:62:[node name="CreatedAt" type="Label" parent="Margin/Column/Header/Identity"]
+client-godot/tests\test_client_log.gd:9:	var directory := "user://log-test-%s" % Time.get_ticks_usec()
+client-godot/tests\test_client_log.gd:62:	var limited_directory := "user://log-limit-test-%s" % Time.get_ticks_usec()
+client-godot/tests\test_client_log.gd:71:	var byte_directory := "user://log-byte-limit-test-%s" % Time.get_ticks_usec()
+client-godot/src\ui\virtual_message_list.gd:2:signal visible_messages(ids: Array[String])
+client-godot/src\ui\virtual_message_list.gd:7:const Bubble = preload("res://scenes/ui/message_bubble.tscn")
+client-godot/src\ui\virtual_message_list.gd:9:var _messages: Array[Dictionary] = []
+client-godot/src\ui\virtual_message_list.gd:36:func set_messages(messages: Array[Dictionary]) -> void:
+client-godot/src\ui\virtual_message_list.gd:39:	_messages = messages
+client-godot/src\ui\virtual_message_list.gd:41:	for index in messages.size():
+client-godot/src\ui\virtual_message_list.gd:42:		_indices[messages[index].id] = index
+client-godot/src\ui\virtual_message_list.gd:51:func scroll_to_message(id: String) -> bool:
+client-godot/src\ui\virtual_message_list.gd:64:	if _messages.is_empty() or _offsets.is_empty():
+client-godot/src\ui\virtual_message_list.gd:71:		return {"id":_messages[target_index].id,"offset":target-_offsets[target_index]}
+client-godot/src\ui\virtual_message_list.gd:73:	return {"id":_messages[index].id,"offset":float(scroll_vertical)-_offsets[index]}
+client-godot/src\ui\virtual_message_list.gd:76:	if _messages.is_empty(): return true
+client-godot/src\ui\virtual_message_list.gd:107:	if _laying or _messages.is_empty():
+client-godot/src\ui\virtual_message_list.gd:113:		var system_message: bool = _nodes[id].get_node("%System").visible
+client-godot/src\ui\virtual_message_list.gd:114:		var minimum_height := 18.0 if system_message else 54.0
+client-godot/src\ui\virtual_message_list.gd:115:		var spacing := 4.0 if system_message else 17.0
+client-godot/src\ui\virtual_message_list.gd:132:	for message in _messages:
+client-godot/src\ui\virtual_message_list.gd:134:		_total += float(_heights.get(message.id,100))
+client-godot/src\ui\virtual_message_list.gd:139:	bar.page = size.y
+client-godot/src\ui\virtual_message_list.gd:161:	bar.page = size.y
+client-godot/src\ui\virtual_message_list.gd:173:	if not _messages.is_empty():
+client-godot/src\ui\virtual_message_list.gd:175:		var last := mini(_messages.size()-1,_at(float(scroll_vertical)+size.y)+2)
+client-godot/src\ui\virtual_message_list.gd:177:			var message: Dictionary = _messages[index]
+client-godot/src\ui\virtual_message_list.gd:178:			var id: String = message.id
+client-godot/src\ui\virtual_message_list.gd:181:				_create_bubble(id, message)
+client-godot/src\ui\virtual_message_list.gd:183:				_nodes[id].update_message(message)
+client-godot/src\ui\virtual_message_list.gd:184:			var spacing := 4.0 if message.role == "system" else 17.0
+client-godot/src\ui\virtual_message_list.gd:195:		visible_messages.emit(get_visible_ids())
+client-godot/src\ui\virtual_message_list.gd:213:func _create_bubble(id: String, message: Dictionary) -> void:
+client-godot/src\ui\virtual_message_list.gd:217:	bubble.configure(message)
+client-godot/tests\session\test_login_profiles.gd:24:	for name in ["get_history", "select_account", "remove_account", "set_login_options", "login_saved", "set_server"]:
+client-godot/tests\session\test_login_profiles.gd:29:	var path := "user://login-profiles-%s" % Time.get_ticks_usec()
+client-godot/tests\session\test_login_profiles.gd:36:	_check_successful_login_enters_server_scoped_history(result, session)
+client-godot/tests\session\test_login_profiles.gd:45:	_check_logout_clears_token_but_preserves_history(storage, server, session)
+client-godot/tests\session\test_login_profiles.gd:58:	_check_history_selection_does_not_log_in(session)
+client-godot/tests\session\test_login_profiles.gd:64:	await create_timer(.03).timeout
+client-godot/tests\session\test_login_profiles.gd:66:	await create_timer(.6).timeout
+client-godot/tests\session\test_login_profiles.gd:75:	check(session.remove_account("alice").ok and session.get_history().is_empty(), "remove local record and credential")
+client-godot/tests\session\test_login_profiles.gd:76:	check(session.get_history(server).size() == 2, "remove leaves other server intact")
+client-godot/tests\session\test_login_profiles.gd:138:func _check_successful_login_enters_server_scoped_history(result: Variant, session: Variant) -> void:
+client-godot/tests\session\test_login_profiles.gd:139:	check(result.ok and session.get_history().size() == 1, "successful login enters server-scoped history")
+client-godot/tests\session\test_login_profiles.gd:147:func _check_logout_clears_token_but_preserves_history(storage: Variant, server: Variant, session: Variant) -> void:
+client-godot/tests\session\test_login_profiles.gd:148:	check(not storage.read_login_token(server, "alice").ok and session.get_history().size() == 1, "logout clears token but preserves history")
+client-godot/tests\session\test_login_profiles.gd:151:	check(session.get_history()[0].username == "bob" and session.get_history().size() == 2, "most recent successful account comes first")
+client-godot/tests\session\test_login_profiles.gd:156:func _check_history_selection_does_not_log_in(session: Variant) -> void:
+client-godot/tests\session\test_login_profiles.gd:157:	check(session.select_account("alice").ok and session.get_session().is_empty(), "history selection does not log in")
+client-godot/tests\session\test_login_profiles.gd:169:	check(session.get_history().is_empty() and session.get_login_defaults().username.is_empty(), "new server never carries old account selection")
+client-godot/tests\session\test_login_profiles.gd:172:	check(session.get_history(server).size() == 2 and session.get_history().size() == 1, "same name on different servers remains isolated")
+client-godot/scenes/ui\virtual_message_list.tscn:3:[ext_resource type="Script" path="res://src/ui/virtual_message_list.gd" id="1_script"]
+client-godot/scenes/ui\virtual_message_list.tscn:6:[node name="VirtualMessageList" type="ScrollContainer"]
+client-godot/tests\run_websocket_tests.py:26:        parsed = wire.parse_server_message(json.dumps(event))
+client-godot/tests\run_websocket_tests.py:28:        if event["type"] == "agent_message":
+client-godot/tests\run_websocket_tests.py:29:            normalized = wire.normalize_agent_message(parsed)
+client-godot/tests\run_websocket_tests.py:38:        raise RuntimeError("WebSocket contract failed (exit %s): %s %r" % (result.returncode, result.stderr, errors))
+client-godot/tests\run_websocket_tests.py:62:        assert fields["token"] in {"message-test", "rotated-message"}, "message token required"
+client-godot/tests\run_websocket_tests.py:67:        if username == "reject" and fields["token"] == "message-test":
+client-godot/tests\run_websocket_tests.py:69:            send("auth_error", {"code": "INVALID_TOKEN", "message": "never show raw error"}, auth["client_msg_id"])
+client-godot/tests\run_websocket_tests.py:70:            socket.recv(timeout=3)  # Like the server, keep failed auth open until the client leaves.
+client-godot/tests\run_websocket_tests.py:78:                socket.recv(timeout=3)
+client-godot/tests\run_websocket_tests.py:79:            except TimeoutError:
+client-godot/tests\run_websocket_tests.py:92:        mode = packet["payload"]["message"]
+client-godot/tests\run_websocket_tests.py:94:            send("agent_message", {"uuid": uuid, "text": uuid, "audio": base64.b64encode(data).decode(),
+client-godot/tests\run_websocket_tests.py:109:            continuation = json.loads(socket.recv(timeout=3))
+client-godot/tests\run_websocket_tests.py:110:            assert continuation["type"] == "user_text" and continuation["payload"]["message"] == "continue"
+client-godot/tests\run_websocket_tests.py:112:            send("agent_message", {"uuid": "stop-initial", "text": "stop-final", "audio": "", "is_final_package": True})
+client-godot/tests\run_websocket_tests.py:116:            socket.recv(timeout=3)
+client-godot/tests\run_websocket_tests.py:129:            send("agent_message", {"uuid": "visual-voice", "text": "辛苦啦，先让自己休息一下吧。\n我在这里陪着你，想说什么都可以。", "audio": base64.b64encode(tone(2.4)).decode(), "is_final_package": True, "expression": "微笑脸"})
+client-godot/tests\run_websocket_tests.py:139:        send("agent_message", {"uuid": "reply-test", "text": "收到", "audio": None,
+client-godot/tests\run_websocket_tests.py:148:            assert set(packet["payload"]) == {"touchArea", "touchCount", "timeSinceLastSentTouch"}
+client-godot/tests\run_websocket_tests.py:165:            auth = json.loads(socket.recv(timeout=3))
+client-godot/tests\run_websocket_tests.py:172:                socket.recv(timeout=3)
+client-godot/tests\run_websocket_tests.py:189:            # even when Godot times out or the fixture fails.
+client-godot/tests\run_websocket_tests.py:199:                                        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45)
+client-godot/tests\run_websocket_tests.py:205:            thread.join(timeout=3)
+client-godot/tests\run_security_interop.py:20:                                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45)
+client-godot/tests\run_security_interop.py:23:            raise RuntimeError("Godot native contract failed; no server decryption attempted")
+client-godot/tests\storage\test_audio_cache.gd:17:	var root := "user://cache-test-%s" % Time.get_ticks_usec()
+client-godot/tests\storage\test_audio_cache.gd:108:	var path := "user://cache-age-%s" % Time.get_ticks_usec()
+client-godot/tests\storage\test_audio_cache.gd:109:	var clock: Array[int] = [int(Time.get_unix_time_from_system()) + 60 * 86400]
+client-godot/tests\storage\test_audio_cache.gd:151:	check(cache.lookup("old").is_empty() and cache.lookup("legacy").is_empty(), "old metadata and legacy modified-time entries are cleared")
+client-godot/tests\storage\test_storage_service.gd:12:		var directory := "user://storage-service-%s" % Time.get_ticks_usec()
+client-godot/tests\test_account_session.gd:20:	var folder := "user://session-test-%s" % Time.get_ticks_usec()
+client-godot/tests\test_account_session.gd:35:	snapshot["message_token"] = "changed"
+client-godot/tests\test_account_session.gd:36:	check(session.get_session().get("message_token") == "message-test", "session snapshot isolated")
+client-godot/tests\test_build_prompt.py:55:            capture_output=True, timeout=30,
+client-godot/tests\storage\test_login_storage.gd:17:	var path := "user://login-storage-%s" % Time.get_ticks_usec()
+client-godot/src\ui\style_page.gd:2:## Client-local UI style (flat/crystal) and icon style (svg/emoji) settings page.
+client-godot/tests\test_account_api.gd:7:func check(ok: bool, message: String) -> void:
+client-godot/tests\test_account_api.gd:9:		failures.append(message)
+client-godot/tests\test_account_api.gd:10:		print("FAIL: ", message)
+client-godot/tests\test_account_api.gd:35:	check(login.ok and login.data.get("message_token") == "message-test", "encrypted password login succeeds")
+client-godot/tests\test_account_api.gd:45:	for pair in [["/badkey", "ENCRYPTION_ERROR"], ["/badjson", "PUBLIC_KEY_ERROR"], ["/redirect", "PUBLIC_KEY_ERROR"], ["/slow", "TIMEOUT"]]:
+client-godot/tests\test_account_api.gd:49:	await create_timer(0.02).timeout
+client-godot/tests\test_account_api.gd:60:	await create_timer(0.03).timeout
+client-godot/tests\test_account_api.gd:62:	await create_timer(0.6).timeout
+client-godot/tests\test_application_window.gd:35:	var deadline := Time.get_ticks_msec() + 3000
+client-godot/tests\test_application_window.gd:36:	while not predicate.call() and Time.get_ticks_msec() < deadline:
+client-godot/tests\test_application_window.gd:49:	var folder := "user://application-test-%s" % Time.get_ticks_usec()
+client-godot/scenes/ui\style_page.tscn:3:[ext_resource type="Script" path="res://src/ui/style_page.gd" id="1_script"]
+client-godot/scenes/ui\style_page.tscn:8:[node name="StylePage" type="Control"]
+client-godot/tests\test_application_drafts.gd:16:	var path := "user://draft-app-test-%s"%Time.get_ticks_usec()
+client-godot/tests\test_application_drafts.gd:31:		await create_timer(.01).timeout
+client-godot/tests\test_application_drafts.gd:56:	_check_reopen_preserves_selected_settings_page_and_singleton(app, window)
+client-godot/tests\test_application_drafts.gd:59:	var deadline := Time.get_ticks_msec()+2500
+client-godot/tests\test_application_drafts.gd:85:	deadline = Time.get_ticks_msec()+2500
+client-godot/tests\test_application_drafts.gd:94:	deadline = Time.get_ticks_msec()+3000
+client-godot/tests\test_application_drafts.gd:95:	while not session.get_session().is_empty() and Time.get_ticks_msec()<deadline: await process_frame
+client-godot/tests\test_application_drafts.gd:117:func _check_reopen_preserves_selected_settings_page_and_singleton(app: Variant, window: Variant) -> void:
+client-godot/tests\test_application_drafts.gd:118:	check(app.find_children("SettingsWindow","Window",true,false).size() == 1 and window.get_node("%ModelPage").visible,"reopen preserves selected settings page and singleton")
+client-godot/tests\test_application_drafts.gd:130:	while not input.editable and Time.get_ticks_msec()<deadline: await process_frame
+client-godot/src\ui\settings_window.gd:17:@onready var _preferences_page = %PreferencesPage
+client-godot/src\ui\settings_window.gd:18:@onready var _model_page = %ModelPage
+client-godot/src\ui\settings_window.gd:20:## Inject the UI style service before the window is shown. Preferences page
+client-godot/src\ui\settings_window.gd:24:	if is_node_ready() and _ui_style != null: %StylePage.set_ui_style(_ui_style)
+client-godot/src\ui\settings_window.gd:35:	_preferences_page.setup(_preferences)
+client-godot/src\ui\settings_window.gd:36:	_model_page.setup(_models,_executor)
+client-godot/src\ui\settings_window.gd:37:	if _ui_style != null: %StylePage.set_ui_style(_ui_style)
+client-godot/src\ui\settings_window.gd:38:	%AudioPage.setup(_clear_cache, _storage_service, _cache_directory)
+client-godot/src\ui\settings_window.gd:40:	%AudioTab.pressed.connect(func(): select_page("audio"))
+client-godot/src\ui\settings_window.gd:42:	%StyleTab.pressed.connect(func(): select_page("style"))
+client-godot/src\ui\settings_window.gd:45:	%PreferencesTab.pressed.connect(func(): select_page("preferences"))
+client-godot/src\ui\settings_window.gd:46:	%ModelsTab.pressed.connect(func(): select_page("models"))
+client-godot/src\ui\settings_window.gd:57:	select_page("preferences" if _preferences != null or _ui_style != null else "models")
+client-godot/src\ui\settings_window.gd:59:func select_page(page: String) -> void:
+client-godot/src\ui\settings_window.gd:60:	_preferences_page.visible = page == "preferences"
+client-godot/src\ui\settings_window.gd:61:	_model_page.visible = page == "models"
+client-godot/src\ui\settings_window.gd:62:	%AudioPage.visible = page == "audio"
+client-godot/src\ui\settings_window.gd:63:	%StylePage.visible = page == "style"
+client-godot/src\ui\settings_window.gd:64:	%AudioTab.button_pressed = page == "audio"
+client-godot/src\ui\settings_window.gd:65:	%StyleTab.button_pressed = page == "style"
+client-godot/src\ui\settings_window.gd:66:	%PreferencesTab.button_pressed = page == "preferences"
+client-godot/src\ui\settings_window.gd:67:	%ModelsTab.button_pressed = page == "models"
+client-godot/src\ui\settings_window.gd:86:	if _saving or _preferences_page.is_dirty() or _model_page.is_dirty(): return true
+client-godot/src\ui\settings_window.gd:87:	return _ui_style != null and %StylePage.ui_style_dirty()
+client-godot/src\ui\settings_window.gd:103:	var validation: Dictionary = _model_page.validate_changes()
+client-godot/src\ui\settings_window.gd:106:		select_page("models")
+client-godot/src\ui\settings_window.gd:114:	var model_result: Dictionary = await _model_page.save_changes()
+client-godot/src\ui\settings_window.gd:115:	var preference_result: Dictionary = await _preferences_page.save_changes()
+client-godot/src\ui\settings_window.gd:117:	if _ui_style != null: ui_style_result = await %StylePage.save_ui_style()
+client-godot/tests\test_avatar_driver.gd:12:func check(condition: bool, message: String) -> void:
+client-godot/tests\test_avatar_driver.gd:14:		failures.append(message)
+client-godot/tests\test_avatar_driver.gd:15:		print("FAIL: ", message)
+client-godot/tests\test_avatar_framing.gd:13:	var path := "user://test-framing-%s.cfg" % Time.get_ticks_usec()
+client-godot/tests\test_virtual_history.gd:10:	check(ResourceLoader.exists("res://scenes/ui/virtual_message_list.tscn"),"history has virtual message list")
+client-godot/tests\test_virtual_history.gd:14:	var list = load("res://scenes/ui/virtual_message_list.tscn").instantiate()
+client-godot/tests\test_virtual_history.gd:17:	var messages: Array[Dictionary] = []
+client-godot/tests\test_virtual_history.gd:19:		messages.append({"id":str(index),"role":"assistant","text":"历史记录 %s\n第二行文字"%index,"status":"received","code":""})
+client-godot/tests\test_virtual_history.gd:20:	list.set_messages(messages)
+client-godot/tests\test_virtual_history.gd:22:	check(list.find_children("*","RichTextLabel",true,false).size() < 40,"1000 messages have bounded rendered nodes")
+client-godot/tests\test_virtual_history.gd:23:	check(list.get_visible_ids().has("999"),"initial history follows latest")
+client-godot/tests\test_virtual_history.gd:24:	check(list.scroll_to_message("500"),"can jump to real history UUID")
+client-godot/tests\test_virtual_history.gd:31:	list.set_messages(older+messages)
+client-godot/tests\test_virtual_history.gd:42:	check(not list.scroll_to_message("missing"),"unknown ID doesn't fabricate jump")
+client-godot/tests\test_virtual_history.gd:47:	list.set_messages(empty)
+client-godot/tests\test_virtual_history.gd:48:	_check_clearing_history_immediately_clears_anchor_and_visible_ids(list)
+client-godot/tests\test_virtual_history.gd:51:	print("Virtual history list: ","PASS" if failures.is_empty() else "FAIL")
+client-godot/tests\test_virtual_history.gd:53:func _check_clearing_history_immediately_clears_anchor_and_visible_ids(list: Variant) -> void:
+client-godot/tests\test_virtual_history.gd:54:	check(list.get_reading_anchor().id.is_empty() and list.is_at_latest() and list.get_visible_ids().is_empty(), "clearing history immediately clears anchor and visible IDs")
+client-godot/tests\test_log_window.gd:17:	var directory := "user://log-window-test-%s" % Time.get_ticks_usec()
+client-godot/tests\test_preview_input.gd:30:	for name in ["Split", "AvatarPanel", "Expressions", "Scenarios", "Messages", "Empty", "Input", "ImagePicker"]:
+client-godot/tests\test_preview_input.gd:75:	await create_timer(1.0).timeout
+client-godot/tests\ui\test_decision_layout.gd:14:	await create_timer(0.5).timeout
+client-godot/tests\ui\test_logout_confirmation.gd:14:	var deadline := Time.get_ticks_msec() + 4000
+client-godot/tests\ui\test_logout_confirmation.gd:15:	while not predicate.call() and Time.get_ticks_msec() < deadline: await process_frame
+client-godot/tests\ui\test_logout_confirmation.gd:22:		await create_timer(.05).timeout
+client-godot/tests\ui\test_logout_confirmation.gd:47:		await create_timer(.1).timeout
+client-godot/tests\ui\test_logout_confirmation.gd:53:	var path := "user://logout-confirm-%s" % Time.get_ticks_usec()
+client-godot/tests\ui\test_logout_confirmation.gd:73:		await create_timer(.1).timeout
+client-godot/tests\ui\test_audio_settings.gd:9:	var path := "user://audio-settings-%s" % Time.get_ticks_usec()
+client-godot/tests\ui\test_audio_settings.gd:19:	meta.saved_at_unix = int(Time.get_unix_time_from_system()) - 40 * 86400
+client-godot/tests\ui\test_audio_settings.gd:25:	check(window.get_node("%AudioPage").get_node_or_null("%OlderThanDays") is SpinBox, "user can choose cache age in days")
+client-godot/tests\ui\test_audio_settings.gd:31:		var page = window.get_node("%AudioPage")
+client-godot/tests\ui\test_audio_settings.gd:32:		check(page.visible and not window.is_dirty(), "cache page is independent of unsaved preferences")
+client-godot/tests\ui\test_audio_settings.gd:33:		page.get_node("%ClearCache").pressed.emit()
+client-godot/tests\ui\test_audio_settings.gd:34:		await create_timer(0.3).timeout
+client-godot/tests\ui\test_audio_settings.gd:35:		var dialog: Window = page.get_node("%ClearDialog")
+client-godot/tests\ui\test_audio_settings.gd:42:		check(audio.get_message_audio("cached").available and not dialog.visible, "cancel preserves cache")
+client-godot/tests\ui\test_audio_settings.gd:43:		page.get_node("%ClearCache").pressed.emit()
+client-godot/tests\ui\test_audio_settings.gd:45:		page.get_node("%OlderThanDays").value = 0
+client-godot/tests\ui\test_audio_settings.gd:47:		await create_timer(0.1).timeout
+client-godot/tests\ui\test_audio_settings.gd:48:		check(not audio.get_message_audio("old").available and audio.get_message_audio("cached").available, "confirmation uses its frozen age and preserves recent cache")
+client-godot/tests\ui\test_audio_settings.gd:49:		page.get_node("%ClearCache").pressed.emit()
+client-godot/tests\ui\test_audio_settings.gd:51:		await create_timer(0.1).timeout
+client-godot/tests\ui\test_audio_settings.gd:52:		check(not audio.get_message_audio("cached").available, "confirm clears the current scope through real audio cache")
+client-godot/tests\ui\test_audio_settings.gd:53:		check(page.get_node("%CacheStatus").text.contains("已清理"), "page reports successful clear")
+client-godot/tests\ui\test_window_chrome.gd:25:		await create_timer(0.1).timeout
+client-godot/tests\ui\test_window_chrome.gd:31:	var storage = load("res://src/storage/window_geometry.gd").new("user://window-frame-test-%s.cfg" % Time.get_ticks_usec())
+client-godot/tests\test_model_settings.gd:17:	var directory := "user://model-settings-test-%s"%Time.get_ticks_usec()
+client-godot/tests\test_model_settings.gd:23:	var scope := {"server":OS.get_environment("GODOT_TEST_SERVER"),"username":"models","message_token":"message-test"}
+client-godot/scenes/ui\settings_window.tscn:7:[ext_resource type="PackedScene" path="res://scenes/ui/preferences_page.tscn" id="preferences"]
+client-godot/scenes/ui\settings_window.tscn:8:[ext_resource type="PackedScene" path="res://scenes/ui/style_page.tscn" id="style_page"]
+client-godot/scenes/ui\settings_window.tscn:9:[ext_resource type="PackedScene" path="res://scenes/ui/model_page.tscn" id="models"]
+client-godot/scenes/ui\settings_window.tscn:11:[ext_resource type="PackedScene" path="res://scenes/ui/audio_settings_page.tscn" id="audio"]
+client-godot/scenes/ui\settings_window.tscn:34:[node name="PagesArea" type="Control" parent="Body/Column"]
+client-godot/scenes/ui\settings_window.tscn:37:[node name="Pages" type="HBoxContainer" parent="Body/Column/PagesArea"]
+client-godot/scenes/ui\settings_window.tscn:41:[node name="Sidebar" type="VBoxContainer" parent="Body/Column/PagesArea/Pages"]
+client-godot/scenes/ui\settings_window.tscn:45:[node name="Heading" type="Label" parent="Body/Column/PagesArea/Pages/Sidebar"]
+client-godot/scenes/ui\settings_window.tscn:49:[node name="PreferencesTab" type="Button" parent="Body/Column/PagesArea/Pages/Sidebar"]
+client-godot/scenes/ui\settings_window.tscn:55:[node name="ModelsTab" type="Button" parent="Body/Column/PagesArea/Pages/Sidebar"]
+client-godot/scenes/ui\settings_window.tscn:61:[node name="AudioTab" type="Button" parent="Body/Column/PagesArea/Pages/Sidebar"]
+client-godot/scenes/ui\settings_window.tscn:67:[node name="StyleTab" type="Button" parent="Body/Column/PagesArea/Pages/Sidebar"]
+client-godot/scenes/ui\settings_window.tscn:73:[node name="Content" type="Control" parent="Body/Column/PagesArea/Pages"]
+client-godot/scenes/ui\settings_window.tscn:77:[node name="PreferencesPage" parent="Body/Column/PagesArea/Pages/Content" instance=ExtResource("preferences")]
+client-godot/scenes/ui\settings_window.tscn:84:[node name="ModelPage" parent="Body/Column/PagesArea/Pages/Content" instance=ExtResource("models")]
+client-godot/scenes/ui\settings_window.tscn:92:[node name="AudioPage" parent="Body/Column/PagesArea/Pages/Content" instance=ExtResource("audio")]
+client-godot/scenes/ui\settings_window.tscn:100:[node name="StylePage" parent="Body/Column/PagesArea/Pages/Content" instance=ExtResource("style_page")]
+client-godot/scenes/ui\settings_window.tscn:108:[node name="BusyBlocker" type="Control" parent="Body/Column/PagesArea"]
+client-godot/src\ui\publish_overlay.gd:32:		_status.text = "发布结果不确定，请先刷新核实；草稿已保留。" if result.code in ["TIMEOUT","NETWORK_ERROR"] else "发布失败，草稿已保留（%s）。"%result.code
+client-godot/tests\test_dynamics.gd:22:	var scope := {"server":OS.get_environment("GODOT_TEST_SERVER"),"username":"read","message_token":"fixture-token"}
+client-godot/tests\test_dynamics.gd:43:	_check_refresh_reaches_replies_beyond_first_page(controller)
+client-godot/tests\test_dynamics.gd:45:	check(controller.get_comments("d0").items.size()==22,"comments page merge")
+client-godot/tests\test_dynamics.gd:56:	scope.username = "preview-pagination"
+client-godot/tests\test_dynamics.gd:58:	check(controller.get_latest_unread().get("id") == "d9", "latest unread skips user-authored posts across pages")
+client-godot/tests\test_dynamics.gd:61:	await create_timer(.1).timeout
+client-godot/tests\test_dynamics.gd:65:	await create_timer(.4).timeout
+client-godot/tests\test_dynamics.gd:73:	check(controller.get_comments("d0").items==before and controller.get_comments("d0").code=="HTTP_ERROR","failed later refresh page preserves all displayed comments")
+client-godot/tests\test_dynamics.gd:87:	await create_timer(.4).timeout
+client-godot/tests\test_dynamics.gd:102:	await create_timer(0.6).timeout
+client-godot/tests\test_dynamics.gd:109:	var scope := {"server":OS.get_environment("GODOT_TEST_SERVER"),"username":"write","message_token":"fixture-token"}
+client-godot/tests\test_dynamics.gd:118:	check(controller.get_comments("d0").items[-1].id == "c99","older page remains before new comment")
+client-godot/tests\test_dynamics.gd:133:func _check_refresh_reaches_replies_beyond_first_page(controller: Variant) -> void:
+client-godot/tests\test_dynamics.gd:134:	check(controller.get_comments("d0").items.size()==22 and not controller.get_comments("d0").has_more,"refresh reaches replies beyond first page")
+client-godot/tests\test_ui_scenes.gd:8:	"res://scenes/ui/preferences_page.tscn": {
+client-godot/tests\test_ui_scenes.gd:9:		"root":"PreferencesPage","type":"Control","setup":"setup","unique":["RelationshipField","RelationshipPresets","SpeakingStyleField","SpeakingStylePresets","PersonalityField","CustomContextField","Status","Reload"]
+client-godot/tests\test_ui_scenes.gd:11:	"res://scenes/ui/model_page.tscn": {
+client-godot/tests\test_ui_scenes.gd:12:		"root":"ModelPage","type":"Control","setup":"setup","unique":["Scroll","Cards","RefreshTypes","Status","PlainDialog","TestDialog"]
+client-godot/tests\test_ui_scenes.gd:18:		"root":"AccountForm","type":"PanelContainer","setup":"setup","unique":["Form","Server","Username","Password","Confirm","Invite","Remember","AutoLogin","Submit","Cancel","Status","Logs","MenuButton","CloseLogin","RegisterLink","ResetLink","HistoryButton","ServerDialog","SavedLogin","UsePassword"]
+client-godot/tests\test_ui_scenes.gd:33:	"res://scenes/ui/message_audio.tscn": {
+client-godot/tests\test_ui_scenes.gd:34:		"root":"MessageAudio","type":"VBoxContainer","setup":"","unique":["Row","Play","Wave","Time","Stop","Error"]
+client-godot/tests\test_ui_scenes.gd:36:	"res://scenes/ui/message_bubble.tscn": {
+client-godot/tests\test_ui_scenes.gd:37:		"root":"MessageBubble","type":"HBoxContainer","setup":"","unique":["System","Avatar","Body","Bubble","Content","Text","HistoryPicture","ImageButton","Picture","Caption"]
+client-godot/tests\test_ui_scenes.gd:39:	"res://scenes/ui/virtual_message_list.tscn": {
+client-godot/tests\test_ui_scenes.gd:40:		"root":"VirtualMessageList","type":"ScrollContainer","setup":"","unique":["Canvas"]
+client-godot/tests\test_ui_scenes.gd:43:		"root":"ChatView","type":"MarginContainer","setup":"setup","unique":["Margin","Status","HistoryStatus","HistoryRetry","HistorySkip","Scroll","Empty","Latest","Unread","Volume","VolumeButton","VolumePopup","ImageButton","Input","Send"]
+client-godot/tests\test_ui_scenes.gd:55:		"root":"DynamicCommentRow","type":"VBoxContainer","setup":"setup","unique":["Avatar","Author","Body","Time","Reply"]
+client-godot/tests\test_ui_scenes.gd:58:		"root":"DynamicDetail","type":"ScrollContainer","setup":"setup","unique":["Column","Avatar","Author","CreatedAt","Body","Notice","CommentDraft","Send","Comments","ReplyBox","ReplyLabel","ReplyDraft","CancelReply","ReplySend","Status","LoadMore"]
+client-godot/tests\test_ui_scenes.gd:71:	"preferences_page": {"%PersonalityField":{"wrap_mode":TextEdit.LINE_WRAPPING_BOUNDARY},"%CustomContextField":{"wrap_mode":TextEdit.LINE_WRAPPING_BOUNDARY},"%Reload":{"text":"重新加载"}},
+client-godot/tests\test_ui_scenes.gd:73:	"message_bubble": {"%Text":{"fit_content":true,"selection_enabled":true,"scroll_active":false,"autowrap_mode":TextServer.AUTOWRAP_WORD_SMART}},
+client-godot/tests\test_ui_scenes.gd:74:	"chat_view": {"%HistoryRetry":{"text":"重试历史"},"%HistorySkip":{"text":"跳过本次"},"%ImageButton":{"text":""},"%VolumeButton":{"text":"","tooltip_text":"语音音量"},"%Input":{"wrap_mode":TextEdit.LINE_WRAPPING_BOUNDARY},"%Send":{"text":"","tooltip_text":"发送消息"}},
+client-godot/tests\test_ui_scenes.gd:81:	"message_audio": {"%Stop":{"text":"停止"},"%Error":{"text":"语音未能保存"}},
+client-godot/tests\test_ui_scenes.gd:83:const DROPDOWNS := {"preferences_page":["RelationshipPresets","SpeakingStylePresets"],"model_purpose_card":["CopySlot"]}
+client-godot/tests\test_ui_scenes.gd:86:	"preferences_page":["RelationshipField","SpeakingStyleField","PersonalityField","CustomContextField"],
+client-godot/tests\test_ui_scenes.gd:103:	_temp = "user://ui-scenes-test-%s" % Time.get_ticks_usec()
+client-godot/tests\ui\test_comment_feedback.gd:12:		await controller.start({"server":OS.get_environment("GODOT_TEST_SERVER"),"username":username,"message_token":"fixture-token"})
+client-godot/tests\ui\test_comment_feedback.gd:20:		var deadline := Time.get_ticks_msec()+3000
+client-godot/tests\ui\test_comment_feedback.gd:21:		while detail.get_node("%Send").disabled and Time.get_ticks_msec()<deadline: await process_frame
+client-godot/tests\test_preferences.gd:10:	return {"server":OS.get_environment("GODOT_TEST_SERVER"),"username":user,"message_token":"message-test"}
+client-godot/tests\test_live_chat.gd:16:	var deadline := Time.get_ticks_msec() + 2000
+client-godot/tests\test_live_chat.gd:17:	while not predicate.call() and Time.get_ticks_msec() < deadline:
+client-godot/tests\test_live_chat.gd:25:	var directory := "user://chat-log-test-%s" % Time.get_ticks_usec()
+client-godot/tests\test_live_chat.gd:31:	check(session.start({"server":OS.get_environment("GODOT_TEST_SERVER") + "/prefix", "username":"conversation", "message_token":"message-test"}) == OK, "chat starts real transport")
+client-godot/tests\test_live_chat.gd:58:	check(await until(func(): return session.get_messages().size() == 4), "UUID aggregation hides reflection and retains ephemeral text")
+client-godot/tests\test_live_chat.gd:59:	var messages: Array[Dictionary] = session.get_messages()
+client-godot/tests\test_live_chat.gd:60:	if messages.size() == 4:
+client-godot/tests\test_live_chat.gd:61:		_check_real_ack_updates_original_bubble(messages)
+client-godot/tests\test_live_chat.gd:62:		_check_audio_error_preserves_text_and_reply_ordering(messages)
+client-godot/tests\test_live_chat.gd:63:		check(messages[3].text == "临时可见消息", "ephemeral is independent of display flag")
+client-godot/tests\test_live_chat.gd:64:		messages[0].text = "mutated"
+client-godot/tests\test_live_chat.gd:65:		check(session.get_messages()[0].text == "你好", "message snapshots are independent")
+client-godot/tests\test_live_chat.gd:70:	check(not log_text.contains("message-test") and not log_text.contains("第一句"), "chat logs exclude tokens and text")
+client-godot/tests\test_live_chat.gd:80:	check(session.get_messages().is_empty() and session.get_state().phase == "idle", "stop clears old account messages")
+client-godot/tests\test_live_chat.gd:87:	session.start({"server":OS.get_environment("GODOT_TEST_SERVER") + "/prefix", "username":"normal", "message_token":"message-test"})
+client-godot/tests\test_live_chat.gd:103:func _check_real_ack_updates_original_bubble(messages: Variant) -> void:
+client-godot/tests\test_live_chat.gd:104:	check(messages[0].role == "user" and messages[0].status == "sent", "real ACK updates original bubble")
+client-godot/tests\test_live_chat.gd:106:func _check_audio_error_preserves_text_and_reply_ordering(messages: Variant) -> void:
+client-godot/tests\test_live_chat.gd:107:	check(messages[1].text == "第一句" and messages[2].text == "第二句", "audio error preserves text and reply ordering")
+client-godot/tests\test_live_chat.gd:113:	check(session.send_text(" \n ").is_empty() and session.get_messages().is_empty(), "blank chat rejected")
+client-godot/tests\ui\test_login_presentation.gd:15:	var deadline := Time.get_ticks_msec() + 5000
+client-godot/tests\ui\test_login_presentation.gd:16:	while not predicate.call() and Time.get_ticks_msec() < deadline: await process_frame
+client-godot/tests\ui\test_login_presentation.gd:29:	await create_timer(.15).timeout
+client-godot/tests\ui\test_login_presentation.gd:32:	await create_timer(.15).timeout
+client-godot/tests\ui\test_login_presentation.gd:40:	var path := "user://login-ui-%s" % Time.get_ticks_usec()
+client-godot/tests\ui\test_login_presentation.gd:49:	await create_timer(.1).timeout
+client-godot/tests\ui\test_login_presentation.gd:121:	await create_timer(.1).timeout
+client-godot/tests\ui\test_login_presentation.gd:127:	press(view,"HistoryButton")
+client-godot/tests\ui\test_login_presentation.gd:128:	var history_rows: Array = view.get_node("%HistoryRows").get_children().filter(func(row): return row.has_node("Choose"))
+client-godot/tests\ui\test_login_presentation.gd:129:	check(history_rows.size() == 1, "history has one scene-authored account row")
+client-godot/tests\ui\test_login_presentation.gd:130:	if not history_rows.is_empty(): history_rows[0].get_node("%Choose").pressed.emit()
+client-godot/tests\ui\test_login_presentation.gd:135:	check(await until(func(): return not session.get_session().is_empty()), "manual remembered login succeeds from the page")
+client-godot/tests\ui\test_login_presentation.gd:136:	check(storage.read_login_token(OS.get_environment("GODOT_TEST_SERVER"),"visual_busy").token == "login-rotated", "page persists the rotated token")
+client-godot/tests\ui\test_login_presentation.gd:140:	press(view,"HistoryButton")
+client-godot/tests\ui\test_login_presentation.gd:141:	check(view.get_node("%HistoryPopup").visible, "account history opens from its arrow")
+client-godot/tests\ui\test_login_presentation.gd:142:	check(not view.get_node("%HistoryEmpty").visible, "successful account is listed")
+client-godot/tests\ui\test_login_presentation.gd:143:	view.get_node("%HistoryPopup").hide()
+client-godot/tests\ui\test_login_presentation.gd:159:	await create_timer(.6).timeout
+client-godot/tests\ui\test_login_presentation.gd:179:	_check_failed_remember_storage_stays_visible_after_the_login_page_is_hidden(warning)
+client-godot/tests\ui\test_login_presentation.gd:238:func _check_failed_remember_storage_stays_visible_after_the_login_page_is_hidden(warning: Variant) -> void:
+client-godot/tests\ui\test_login_presentation.gd:239:	check(warning != null and warning.is_visible_in_tree(), "failed remember storage stays visible after the login page is hidden")
+client-godot/tests\ui\test_login_presentation.gd:244:	for name in ["MenuButton","CloseLogin","RegisterLink","ResetLink","AutoLogin","Remember","SavedLogin","UsePassword","HistoryButton","ServerDialog","ServerSave","ServerCancel","Feedback","FeedbackAddress"]:
+client-godot/tests\ui\test_login_presentation.gd:255:	for control_name in ["AutoLogin","Remember","ResetLink","RegisterLink","HistoryButton"]:
+client-godot/tests\ui\test_login_presentation.gd:280:		for pair in [["MenuButton","MenuPopup"],["HistoryButton","HistoryPopup"]]:
+client-godot/tests\ui\test_login_presentation.gd:304:		await create_timer(.2).timeout
+client-godot/tests\test_reliable_outbox.gd:15:	var first: String = queue.enqueue("user_text", {"message":"first"}, true, 0)
+client-godot/tests\test_reliable_outbox.gd:25:		check(packets[0].client_msg_id == first and packets[0].payload.message == "first", "retry preserves original ID and payload")
+client-godot/tests\test_reliable_outbox.gd:48:	check(queue.take_ready(10000, true).is_empty(), "ACK timeout starts backoff")
+client-godot/tests\test_reliable_outbox.gd:63:	var source := {"message":"original", "llm_mode":{"types":[]}}
+client-godot/tests\test_reliable_outbox.gd:65:	source.message = "modified"
+client-godot/tests\test_reliable_outbox.gd:68:	check(packets.size() == 1, "only first durable message can await ACK")
+client-godot/tests\test_reliable_outbox.gd:70:		check(packets[0].payload.message == "original", "enqueue copies caller payload")
+client-godot/tests\test_reliable_outbox.gd:71:		check(packets[0].has("ts") and packets[0].get("reply_to") == null, "wire envelope contains timestamp and reply_to")
+client-godot/tests\test_reliable_outbox.gd:72:		packets[0].payload.message = "mutated packet"
+client-godot/tests\test_reliable_outbox.gd:77:		check(packets[0].payload.message == "original", "returned packet cannot mutate retry payload")
+client-godot/tests\test_reliable_outbox.gd:104:	check(states.get(selection, [""])[0] == "failed", "selection ACK timeout terminates transient")
+client-godot/tests\test_reliable_outbox.gd:108:	check(states.get(cancel_id, [""])[0] == "failed", "wire cancel event also has five second timeout")
+client-godot/tests\ui\test_visual_surfaces.gd:21:	var audio = load("res://scenes/ui/message_audio.tscn").instantiate()
+client-godot/tests\test_model_execution.gd:14:		await create_timer(0.01).timeout
+client-godot/tests\test_model_execution.gd:15:	check(false,"response timeout: "+id)
+client-godot/tests\test_model_execution.gd:21:	var directory := "user://executor-test-%s"%Time.get_ticks_usec()
+client-godot/tests\test_model_execution.gd:27:	config.merge({"enabled":true,"base_url":base+"/v1","api_key":"SYNTHETIC_KEY","model":"snapshot","params":{"temperature":0.25,"model":"cannot-override","messages":[]}},true)
+client-godot/tests\test_model_execution.gd:68:	check(stats.data.calls[0].messages == [{"role":"system","content":"fixed-private-prompt"}],"advanced parameters cannot override prompt")
+client-godot/tests\test_model_execution.gd:70:	check(stats.data.calls[1].messages[0].content[1].image_url.detail == "auto","VLM image payload")
+client-godot/tests\test_model_execution.gd:75:	await create_timer(0.3).timeout
+client-godot/tests\test_model_execution.gd:84:	chat.start({"server":base,"username":"executor","message_token":"message-test"})
+client-godot/tests\test_model_execution.gd:88:		await create_timer(0.01).timeout
+client-godot/tests\test_model_execution.gd:94:		await create_timer(0.01).timeout
+client-godot/tests\test_model_execution.gd:127:		check(responses[scenario].get("error") == {"bad-json":"INVALID_JSON","error":"HTTP_ERROR","slow":"TIMEOUT"}[scenario],"safe error: "+scenario)
+client-godot/tests\test_websocket_transport.gd:17:	var deadline := Time.get_ticks_msec() + 2000
+client-godot/tests\test_websocket_transport.gd:18:	while not predicate.call() and Time.get_ticks_msec() < deadline:
+client-godot/tests\test_websocket_transport.gd:22:func session(username: String, token: String = "message-test") -> Dictionary:
+client-godot/tests\test_websocket_transport.gd:23:	return {"server":server + "/prefix", "username":username, "message_token":token, "login_token":"must-not-send"}
+client-godot/tests\test_websocket_transport.gd:39:	var id: String = transport.send_event("user_text", {"message":"你好", "llm_mode":{"types":[]}}, true)
+client-godot/tests\test_websocket_transport.gd:41:	check(await until(func(): return states.get(id) == ["sent", "OK"]), "real socket ACK settles message")
+client-godot/tests\test_websocket_transport.gd:42:	check(await until(func(): return events.any(func(e): return e.type == "agent_message" and e.payload.text == "收到")), "business reply delivered")
+client-godot/tests\test_websocket_transport.gd:43:	check(not events.any(func(e): return e.type in ["auth_ok", "hb_pong", "server_ack"]), "protocol control events do not escape as business messages")
+client-godot/tests\test_websocket_transport.gd:51:	id = transport.send_event("user_text", {"message":"drop once"}, true)
+client-godot/tests\test_websocket_transport.gd:62:	check(transport.start(session("reject", "rotated-message")) == OK, "new message token unblocks authentication")
+client-godot/scenes/ui\preferences_page.tscn:3:[ext_resource type="Script" path="res://src/ui/preferences_page.gd" id="1_script"]
+client-godot/scenes/ui\preferences_page.tscn:10:[node name="PreferencesPage" type="Control"]
+client-godot/tests\test_dependency_boundaries.py:79:                for storage_name in ['godot_', 'history_images', 'audio_cache', 'model_store', 'credential_store', 'reading_position']:
+client-godot/src\ui\message_bubble.gd:7:const AudioRow = preload("res://scenes/ui/message_audio.tscn")
+client-godot/src\ui\message_bubble.gd:12:@onready var _column: VBoxContainer = %MessageColumn
+client-godot/src\ui\message_bubble.gd:15:@onready var _history_picture: TextureRect = %HistoryPicture
+client-godot/src\ui\message_bubble.gd:21:var _system_message := false
+client-godot/src\ui\message_bubble.gd:46:	_history_picture.gui_input.connect(func(event):
+client-godot/src\ui\message_bubble.gd:58:func configure(message: Dictionary, image_texture: Texture2D = null) -> void:
+client-godot/src\ui\message_bubble.gd:59:	_system_message = message.role == "system"
+client-godot/src\ui\message_bubble.gd:60:	if _system_message:
+client-godot/src\ui\message_bubble.gd:63:		_system_label.text = message.text
+client-godot/src\ui\message_bubble.gd:66:	_own = message.role == "user"
+client-godot/src\ui\message_bubble.gd:67:	_is_image = message.get("type") == "image"
+client-godot/src\ui\message_bubble.gd:77:		_history_picture.show()
+client-godot/src\ui\message_bubble.gd:85:	update_message(message)
+client-godot/src\ui\message_bubble.gd:89:	if _system_message: return
+client-godot/src\ui\message_bubble.gd:100:		_history_picture.custom_minimum_size = preview_size
+client-godot/src\ui\message_bubble.gd:116:	# lets a previously wide message shrink when the history viewport narrows.
+client-godot/src\ui\message_bubble.gd:120:func update_message(message: Dictionary) -> void:
+client-godot/src\ui\message_bubble.gd:121:	if not _system_message and _text.text != message.text:
+client-godot/src\ui\message_bubble.gd:122:		_text.text = message.text
+client-godot/src\ui\message_bubble.gd:125:		_caption.text = {"failed":"发送失败", "uncertain":"无法确认送达，请勿重复发送"}.get(message.status, "")
+client-godot/src\ui\message_bubble.gd:127:		_caption.add_theme_color_override("font_color", get_theme_color("delivery_failed", "MessageBubble"))
+client-godot/src\ui\message_bubble.gd:130:	if _system_message:
+client-godot/src\ui\message_bubble.gd:144:	_history_picture.texture = state.texture
+client-godot/src\ui\message_bubble.gd:148:	_history_picture.visible = state.status == "ready"
+client-godot/tests\test_theme_contract.gd:42:	check(not theme.get_color("delivery_failed", "MessageBubble").is_equal_approx(theme.get_color("delivery_status", "MessageBubble")), "delivery errors differ from ordinary status")
+client-godot/tests\ui\test_chat_review_layout.gd:14:	var deadline := Time.get_ticks_msec() + 6000
+client-godot/tests\ui\test_chat_review_layout.gd:15:	while not predicate.call() and Time.get_ticks_msec() < deadline:
+client-godot/tests\ui\test_chat_review_layout.gd:25:	create_timer(45).timeout.connect(func():
+client-godot/tests\ui\test_chat_review_layout.gd:30:	var directory := "user://chat-review-%s" % Time.get_ticks_usec()
+client-godot/tests\ui\test_chat_review_layout.gd:72:	check(await until(func(): return app._chat.get_message_audio("redesign-voice").available), "real loopback reply audio cached")
+client-godot/tests\ui\test_chat_review_layout.gd:104:	var started := Time.get_ticks_msec()
+client-godot/tests\ui\test_chat_review_layout.gd:106:	await create_timer(0.15).timeout
+client-godot/tests\ui\test_chat_review_layout.gd:124:	check(chat.get_node("%Scroll").get_global_rect().end.y <= composer.get_global_rect().position.y + 1, label + ": composer does not cover messages")
+client-godot/tests\ui\test_chat_review_layout.gd:125:	check(chat.get_node("%Scroll").size.y >= 160, label + ": message area remains usable")
+client-godot/tests\ui\test_chat_review_layout.gd:141:	print("Chat review capture: ", label, " ", Time.get_ticks_msec() - started, "ms")
+client-godot/tests\ui\test_chat_review_layout.gd:145:	var audio: Dictionary = app._chat.get_message_audio("redesign-voice")
+client-godot/tests\ui\test_chat_review_layout.gd:148:	scroll.visible_messages.disconnect(chat._visible_audio)
+client-godot/tests\ui\test_chat_review_layout.gd:171:		scroll.set_messages(samples)
+client-godot/tests\ui\test_chat_review_layout.gd:172:		check(scroll.scroll_to_message("date"), "sample starts at the first message")
+client-godot/tests\ui\test_chat_review_layout.gd:180:			check(scroll.scroll_to_message("date"), "sample framing starts at date after content settles")
+client-godot/tests\ui\test_chat_review_layout.gd:188:	check(scroll.scroll_to_message("long"), "long sample remains scrollable")
+client-godot/tests\ui\test_chat_review_layout.gd:190:	await capture(app, chat, "review-long-message-960x640")
+client-godot/tests\ui\test_chat_review_layout.gd:228:			await create_timer(0.15).timeout
+client-godot/tests\ui\test_chat_review_layout.gd:230:			check(chat.get_node("%Scroll").get_reading_anchor().get("id") == anchor.get("id"), "theme switch preserves reading message")
+client-godot/tests\test_voice_chat.gd:20:func until(predicate: Callable, timeout: int = 2500) -> bool:
+client-godot/tests\test_voice_chat.gd:21:	var deadline := Time.get_ticks_msec() + timeout
+client-godot/tests\test_voice_chat.gd:22:	while not predicate.call() and Time.get_ticks_msec() < deadline:
+client-godot/tests\test_voice_chat.gd:33:	var directory := "user://voice-chat-test-%s" % Time.get_ticks_usec()
+client-godot/tests\test_voice_chat.gd:40:	session.start({"server":OS.get_environment("GODOT_TEST_SERVER") + "/prefix", "username":"audio", "message_token":"message-test"})
+client-godot/tests\test_voice_chat.gd:45:	check(await until(func(): return session.get_messages().size() == 3 and session.get_audio_state().queued == 0), "both replies finish in order")
+client-godot/tests\test_voice_chat.gd:56:	check(session.get_messages().any(func(message): return message.text == "voice-bad"), "malformed audio preserves text")
+client-godot/tests\test_voice_chat.gd:67:	var list: ScrollContainer = view.find_children("*","ScrollContainer",true,false).filter(func(n): return n.has_method("scroll_to_message"))[0]
+client-godot/tests\test_voice_chat.gd:68:	list.scroll_to_message("voice-first")
+client-godot/tests\test_voice_chat.gd:78:		var snapshot: Array = session.get_messages()
+client-godot/tests\test_voice_chat.gd:88:		_check_local_replay_creates_no_messages_or_expression_events(session, snapshot, expression_count)
+client-godot/tests\test_voice_chat.gd:100:	check(not session.get_messages().any(func(message): return message.text == "stop-next"), "stop before terminal does not advance next reply")
+client-godot/tests\test_voice_chat.gd:102:	check(await until(func(): return session.get_messages().any(func(message): return message.text == "stop-final")), "stop still accepts final text update")
+client-godot/tests\test_voice_chat.gd:103:	check(await until(func(): return session.get_messages().any(func(message): return message.text == "stop-next") and session.get_audio_state().queued == 0), "next reply resumes after stopped reply terminal")
+client-godot/tests\test_voice_chat.gd:110:	check(session.get_messages().any(func(message): return message.text == "voice-disconnect"), "disconnect preserves displayed voice text")
+client-godot/tests\test_voice_chat.gd:135:func _check_local_replay_creates_no_messages_or_expression_events(session: Variant, snapshot: Variant, expression_count: Variant) -> void:
+client-godot/tests\test_voice_chat.gd:136:	check(session.get_messages() == snapshot and expressions.size() == expression_count,"local replay creates no messages or expression events")
+client-godot/tests\test_voice_chat.gd:142:	check(session.get_messages().size() == 2 and expressions == ["微笑脸"], "later text and expression wait for preceding sound")
+client-godot/tests\test_voice_chat.gd:151:	check(peak > .05 and session.get_messages().size() == 4, "hidden audio has output without bubble")
+client-godot/tests\test_voice_chat.gd:171:	settings.select_page("audio")
+client-godot/tests\test_voice_chat.gd:172:	var page = settings.get_node("%AudioPage")
+client-godot/tests\test_voice_chat.gd:173:	page.get_node("%OlderThanDays").value = 0
+client-godot/tests\test_voice_chat.gd:174:	var menu = page.get_node("%ClearCache")
+client-godot/tests\test_voice_chat.gd:176:	var dialogs = page.find_children("*Dialog","Window",true,false)
+client-godot/tests\test_voice_chat.gd:184:		await create_timer(0.1).timeout
+client-godot/tests\test_voice_chat.gd:186:	check(session.get_messages().any(func(message): return message.text == "voice-first"),"clearing cache preserves chat text")
+client-godot/tests\test_history_sync.gd:11:	var deadline := Time.get_ticks_msec()+4000
+client-godot/tests\test_history_sync.gd:12:	while not predicate.call() and Time.get_ticks_msec()<deadline:
+client-godot/tests\test_history_sync.gd:18:	return {"server":OS.get_environment("GODOT_TEST_SERVER"),"username":user,"message_token":"message-test"}
+client-godot/tests\test_history_sync.gd:21:	check(probe.has_method("get_history_state"),"chat exposes history synchronization and send barrier")
+client-godot/tests\test_history_sync.gd:26:	var api = load("res://src/network/history_api.gd").new()
+client-godot/tests\test_history_sync.gd:27:	var history = load("res://src/session/history_sync.gd").new(api)
+client-godot/tests\test_history_sync.gd:29:	var chat = chat_script.new(Transport.new(),null,null,history)
+client-godot/tests\test_history_sync.gd:35:	check(await until(func(): return chat.get_state().phase == "ready"),"authentication works while history pending")
+client-godot/tests\test_history_sync.gd:36:	check(await until(func(): return chat.get_history_state().phase == "complete"),"loads entire fixed history")
+client-godot/tests\test_history_sync.gd:37:	check(await until(func(): return chat.get_messages().any(func(m): return m.id == id and m.status == "sent")),"queued message ACK retains stable local ID")
+client-godot/tests\test_history_sync.gd:38:	var messages: Array = chat.get_messages()
+client-godot/tests\test_history_sync.gd:39:	check(messages.size() == 121,"UUID merges live assistant without duplicate; local user is distinct")
+client-godot/tests\test_history_sync.gd:40:	_check_history_is_oldest_first(messages)
+client-godot/tests\test_history_sync.gd:41:	check(messages[119].text == "live reply","live assistant text takes precedence")
+client-godot/tests\test_history_sync.gd:42:	check(expressions == 0 and not chat.get_audio_state().playing,"history does not trigger avatar or playback")
+client-godot/tests\test_history_sync.gd:45:	check(await until(func(): return chat.get_history_state().phase == "first_failed"),"initial failure reported")
+client-godot/tests\test_history_sync.gd:46:	check(chat.get_messages()[0].id == id and chat.get_messages()[0].status == "waiting_history","initial failure retains pending sends")
+client-godot/tests\test_history_sync.gd:47:	chat.retry_history()
+client-godot/tests\test_history_sync.gd:48:	check(await until(func(): return chat.get_history_state().phase == "complete"),"retry initial failure succeeds")
+client-godot/tests\test_history_sync.gd:51:	await until(func(): return chat.get_history_state().phase == "first_failed")
+client-godot/tests\test_history_sync.gd:52:	chat.skip_history()
+client-godot/tests\test_history_sync.gd:53:	check(await until(func(): return chat.get_messages().any(func(m): return m.id == id and m.status == "sent")),"skip releases pending message")
+client-godot/tests\test_history_sync.gd:54:	check(chat.get_history_state().phase == "skipped" and chat.get_messages().size() == 2,"skip doesn't import histories")
+client-godot/tests\test_history_sync.gd:56:	check(await until(func(): return chat.get_history_state().phase == "failed"),"later page failure explicit")
+client-godot/tests\test_history_sync.gd:57:	check(chat.get_messages().size() == 50,"later failure keeps first page")
+client-godot/tests\test_history_sync.gd:59:	check(not id.is_empty() and chat.get_messages()[-1].status != "waiting_history","later error doesn't block send")
+client-godot/tests\test_history_sync.gd:60:	chat.retry_history()
+client-godot/tests\test_history_sync.gd:61:	check(await until(func(): return chat.get_history_state().phase == "complete"),"retry resumes fixed older boundary")
+client-godot/tests\test_history_sync.gd:63:	check(await until(func(): return chat.get_history_state().phase == "first_failed"),"bad boundary rejects page")
+client-godot/tests\test_history_sync.gd:64:	check(chat.get_messages().is_empty(),"bad history doesn't leak partial page")
+client-godot/tests\test_history_sync.gd:66:	check(await until(func(): return chat.get_history_state().phase == "complete"),"duplicate pagination settles")
+client-godot/tests\test_history_sync.gd:67:	check(chat.get_history_state().incomplete and chat.get_messages().size() == 119,"duplicate explicit and UUID deduplicated")
+client-godot/tests\test_history_sync.gd:69:	await create_timer(.1).timeout
+client-godot/tests\test_history_sync.gd:71:	await create_timer(.35).timeout
+client-godot/tests\test_history_sync.gd:72:	check(chat.get_messages().is_empty() and chat.get_history_state().phase == "idle","cancel isolates late history results")
+client-godot/tests\test_history_sync.gd:74:	await create_timer(.1).timeout
+client-godot/tests\test_history_sync.gd:76:	check(await until(func(): return chat.get_history_state().phase == "complete"),"new account sync completes after cancellation")
+client-godot/tests\test_history_sync.gd:77:	check(not JSON.stringify(chat.get_messages()).contains("old_account"),"late previous account body never enters new account")
+client-godot/tests\test_history_sync.gd:80:	print("History sync: ","PASS" if failures.is_empty() else "FAIL")
+client-godot/tests\test_history_sync.gd:83:	check(not id.is_empty() and chat.get_messages()[0].status == "waiting_history","local bubble appears immediately while send held")
+client-godot/tests\test_history_sync.gd:85:func _check_history_is_oldest_first(messages: Variant) -> void:
+client-godot/tests\test_history_sync.gd:86:	check(messages[0].id == "history-0" and messages[119].id == "history-119","history is oldest first")
+client-godot/tests\ui\test_image_window.gd:14:	var path := "user://image-window-test-%s.cfg" % Time.get_ticks_usec()
+client-godot/tests\ui\test_image_window.gd:40:		await create_timer(.2).timeout
+client-godot/tests\ui\test_image_window.gd:43:		await create_timer(.2).timeout
+client-godot/tests\test_reading_position.gd:12:	var directory := "user://reading-test-%s"%Time.get_ticks_usec()
+client-godot/tests\test_reading_position.gd:15:	var messages: Array[Dictionary] = []
+client-godot/tests\test_reading_position.gd:17:		messages.append({"id":str(i),"role":"assistant","history":true})
+client-godot/tests\test_reading_position.gd:19:	cursor.update(messages,{"phase":"first_loading"})
+client-godot/tests\test_reading_position.gd:22:	cursor.update(messages,{"phase":"complete"})
+client-godot/tests\test_reading_position.gd:33:	second.update([messages[4]],{"phase":"loading"})
+client-godot/tests\test_reading_position.gd:35:	check(second.get_state().saved_id == "1" and second.get_state().pending,"recent page doesn't overwrite old anchor")
+client-godot/tests\test_reading_position.gd:36:	second.update(messages,{"phase":"complete"})
+client-godot/tests\test_reading_position.gd:40:	second.update(messages,{"phase":"complete"})
+client-godot/tests\test_reading_position.gd:43:	second.update([messages[4]],{"phase":"complete"})
+client-godot/tests\ui\test_unified_settings.gd:11:	check(ResourceLoader.exists(SCENE),"one settings window exposes both pages")
+client-godot/tests\ui\test_unified_settings.gd:15:	var path := "user://unified-settings-%s" % Time.get_ticks_usec()
+client-godot/tests\ui\test_unified_settings.gd:16:	var scope := {"server":OS.get_environment("GODOT_TEST_SERVER"),"username":"fail_once","message_token":"message-test"}
+client-godot/tests\ui\test_unified_settings.gd:30:	window.select_page("models")
+client-godot/tests\ui\test_unified_settings.gd:40:	window.select_page("preferences")
+client-godot/tests\ui\test_unified_settings.gd:41:	check(context.text == "保留跨页的草稿","switching pages preserves drafts")
+client-godot/tests\ui\test_unified_settings.gd:45:	check(not result.ok and models.get_config("text-purpose").model == "saved-local-model" and prefs.get_state().dirty,"partial failure retains failed page and successful model")
+client-godot/tests\test_voice_replay.gd:17:func wait_for(predicate: Callable, timeout: int = 3500) -> bool:
+client-godot/tests\test_voice_replay.gd:18:	var deadline := Time.get_ticks_msec() + timeout
+client-godot/tests\test_voice_replay.gd:19:	while not predicate.call() and Time.get_ticks_msec() < deadline:
+client-godot/tests\test_voice_replay.gd:40:	var directory := "user://replay-test-%s" % Time.get_ticks_usec()
+client-godot/tests\test_voice_replay.gd:50:	check(audio.get_message_audio("one").available,"successful terminal publishes replay")
+client-godot/tests\test_voice_replay.gd:51:	check(audio.get_message_audio("one").waveform.size() == 24,"real waveform available")
+client-godot/tests\test_voice_replay.gd:57:	check(await wait_for(func(): return audio.get_message_audio("one").position > .18),"replay position follows mixer")
+client-godot/tests\test_voice_replay.gd:60:	var paused: float = audio.get_message_audio("one").position
+client-godot/tests\test_voice_replay.gd:66:	check(audio.get_message_audio("one").position == paused,"paused progress freezes")
+client-godot/tests\test_voice_replay.gd:68:	check(await wait_for(func(): return audio.get_message_audio("one").position > paused + .08),"resume continues from paused position")
+client-godot/tests\test_voice_replay.gd:75:	check(audio.get_message_audio("one").status == "idle", "stop is idempotent")
+client-godot/tests\test_voice_replay.gd:77:	check(audio.get_message_audio("one").position < .05,"play after stop starts at beginning")
+client-godot/tests\test_voice_replay.gd:79:	_check_switch_replay_stops_old_message(audio)
+client-godot/tests\test_voice_replay.gd:89:	check(audio.get_message_audio("one").status == "idle","online preempts playing replay")
+client-godot/tests\test_voice_replay.gd:103:	check(not audio.get_message_audio("clearing").available and not audio.get_message_audio("one").available,"clear removes complete entries and suppresses current stream")
+client-godot/tests\test_voice_replay.gd:108:	check(not audio.get_message_audio("partial").available and audio.get_message_audio("saved").available,"reset aborts partial but preserves complete")
+client-godot/tests\test_voice_replay.gd:110:	check(not audio.get_message_audio("saved").available,"account isolation")
+client-godot/tests\test_voice_replay.gd:112:	check(not audio.get_message_audio("saved").available,"server isolation")
+client-godot/tests\test_voice_replay.gd:118:	check(restored.get_message_audio("saved").available and restored.replay("saved") == OK,"new instance restores persisted voice")
+client-godot/tests\test_voice_replay.gd:130:	check(not broken.get_message_audio("unsaved").available and broken.get_message_audio("unsaved").code == "CACHE_WRITE_FAILED","write failure gives explicit unavailable state")
+client-godot/tests\test_voice_replay.gd:145:	check(online == ["one"] and audio.get_message_audio("one").position == 0,"replay completion does not complete online twice")
+client-godot/tests\test_voice_replay.gd:147:func _check_switch_replay_stops_old_message(audio: Variant) -> void:
+client-godot/tests\test_voice_replay.gd:148:	check(audio.replay("two") == OK and audio.get_message_audio("one").status == "idle","switch replay stops old message")
+client-godot/tests\test_voice_replay.gd:151:	check(audio.get_message_audio("two").status == "idle" and audio.replay("one") == ERR_BUSY,"online voice preempts paused replay and blocks replay")
+client-godot/tests\test_voice_replay.gd:154:	check(audio.get_message_audio("stopped").available and is_equal_approx(audio.get_message_audio("stopped").duration,1.2),"stopped output still saves full stream")
+client-godot/tests\test_voice_replay.gd:157:	check(not audio.get_message_audio("ephemeral").available and not audio.get_message_audio("error").available,"temporary and failed voices not replayable")
+client-godot/tests\ui\test_bubble_sizing.gd:2:const Bubble = preload("res://scenes/ui/message_bubble.tscn")
+client-godot/tests\ui\test_bubble_sizing.gd:12:func message(text: String, own: bool = false) -> Dictionary:
+client-godot/tests\ui\test_bubble_sizing.gd:19:	view.configure(message(text,own))
+client-godot/tests\ui\test_bubble_sizing.gd:38:	var update := message("好",true)
+client-godot/tests\ui\test_bubble_sizing.gd:39:	for status in ["waiting_history", "queued", "sending", "sent"]:
+client-godot/tests\ui\test_bubble_sizing.gd:42:		own.update_message(update)
+client-godot/tests\ui\test_bubble_sizing.gd:47:	own.update_message(update)
+client-godot/tests\ui\test_bubble_sizing.gd:51:	own.update_message(update)
+client-godot/tests\ui\test_bubble_sizing.gd:56:	own.update_message(update)
+client-godot/tests\ui\test_bubble_sizing.gd:61:	check(is_equal_approx(own.get_node("%Bubble").size.x,own_width) and own.find_child("MessageAudio",true,false).size.x > own_width, "audio remains usable without widening short text")
+client-godot/tests\ui\test_bubble_sizing.gd:63:	short.update_message(message("好呀"))
+client-godot/tests\ui\test_bubble_sizing.gd:66:	medium.update_message(message("iiiiiiii"))
+client-godot/tests\ui\test_bubble_sizing.gd:69:	medium.update_message(message("WWWWWWWW"))
+client-godot/tests\ui\test_bubble_sizing.gd:72:	medium.update_message(message("你好\n🙂 ok"))
+client-godot/tests\ui\test_bubble_sizing.gd:75:	long.update_message(message("https://example.test/"+"abcdefghijk".repeat(100)))
+client-godot/tests\test_demo_session.gd:14:	check(session.get_messages().is_empty(), "blank has no side effect")
+client-godot/tests\test_demo_session.gd:18:	var messages: Array[Dictionary] = session.get_messages()
+client-godot/tests\test_demo_session.gd:19:	check(messages.size() == 2, "send appends two messages")
+client-godot/tests\test_demo_session.gd:20:	if messages.size() == 2:
+client-godot/tests\test_demo_session.gd:21:		check(messages[0].text == "  你好\n第二行  ", "original text preserved")
+client-godot/tests\test_demo_session.gd:22:		check(messages[0].status == "sending", "new send pending")
+client-godot/tests\test_demo_session.gd:23:		messages[0].text = "mutated"
+client-godot/tests\test_demo_session.gd:24:		check(session.get_messages()[0].text != "mutated", "snapshot isolated")
+client-godot/tests\test_demo_session.gd:28:	if session.get_messages().size() == 2:
+client-godot/tests\test_demo_session.gd:29:		check(session.get_messages()[1].status == "failed", "failure visible")
+client-godot/tests\test_demo_session.gd:30:	var snapshot: Array[Dictionary] = session.get_messages()
+client-godot/tests\test_demo_session.gd:32:	check(snapshot == session.get_messages(), "bad scenario preserves content")
+client-godot/tests\test_demo_session.gd:40:	check(session.get_messages().size() >= 6, "representative fixtures loaded")
+client-godot/src\ui\message_audio.gd:6:@onready var _time: Label = %Time
+client-godot/src\ui\message_audio.gd:35:	_time.text = "%.1f 秒" % state.duration if _status == "idle" else "%.1f/%.1f 秒" % [state.position,state.duration]
+client-godot/tests\ui\test_cache_usage_ring.gd:10:	var page = window.get_node("%AudioPage")
+client-godot/tests\ui\test_cache_usage_ring.gd:11:	check(page.get_node_or_null("%UsageProgress") is TextureProgressBar, "usage ring is authored as a Godot control")
+client-godot/tests\ui\test_cache_usage_ring.gd:13:		var directory := "user://usage-ring-%s" % Time.get_ticks_usec()
+client-godot/tests\ui\test_cache_usage_ring.gd:24:		window.select_page("audio")
+client-godot/tests\ui\test_cache_usage_ring.gd:25:		await create_timer(0.2).timeout
+client-godot/tests\ui\test_cache_usage_ring.gd:26:		check(page.get_node("%UsagePercent").text == "<0.01%", "small nonzero usage never rounds to a false zero")
+client-godot/tests\ui\test_cache_usage_ring.gd:27:		check(page.get_node("%UsageDetails").text.contains("2.00 KiB"), "cache byte size is visible")
+client-godot/tests\ui\test_cache_usage_ring.gd:32:		page.setup(func(): return OK, unavailable, directory)
+client-godot/tests\ui\test_cache_usage_ring.gd:33:		await create_timer(0.1).timeout
+client-godot/tests\ui\test_cache_usage_ring.gd:34:		check(page.get_node("%UsagePercent").text == "--%", "unavailable capacity is not displayed as zero percent")
+client-godot/scenes/ui\model_page.tscn:2:[ext_resource type="Script" path="res://src/ui/model_page.gd" id="script"]
+client-godot/scenes/ui\model_page.tscn:5:[node name="ModelPage" type="Control"]
+client-godot/tests\ui\test_image_bubble_sizing.gd:3:const Bubble = preload("res://scenes/ui/message_bubble.tscn")
+client-godot/tests\ui\test_image_bubble_sizing.gd:12:	var path := "user://image-layout-%s" % Time.get_ticks_usec()
+client-godot/tests\ui\test_image_bubble_sizing.gd:13:	var images = load("res://src/storage/history_images.gd").new(path)
+client-godot/tests\ui\test_image_bubble_sizing.gd:15:	images.start({"server":"https://image-layout.test","username":"alice","message_token":"synthetic"})
+client-godot/tests\ui\test_image_bubble_sizing.gd:30:		var picture: TextureRect = row.get_node("%HistoryPicture")
+client-godot/tests\ui\test_image_bubble_sizing.gd:54:	var list = load("res://scenes/ui/virtual_message_list.tscn").instantiate()
+client-godot/tests\ui\test_image_bubble_sizing.gd:57:	var messages: Array[Dictionary] = []
+client-godot/tests\ui\test_image_bubble_sizing.gd:59:		messages.append({"id":str(index),"role":"assistant","text":"" if index == 19 else "历史消息 %s" % index,"type":"image" if index == 19 else "text","status":"received"})
+client-godot/tests\ui\test_image_bubble_sizing.gd:60:	list.set_messages(messages)
+client-godot/tests\ui\test_image_bubble_sizing.gd:62:	list.scroll_to_message("20")
+client-godot/tests\ui\test_dynamics_review_actions.gd:9:	var page_calls := 0
+client-godot/tests\ui\test_dynamics_review_actions.gd:12:	var fail_next_page := false
+client-godot/tests\ui\test_dynamics_review_actions.gd:26:		return {"id":"review-%s" % index, "author_name":"洛天依", "author_type":"agent", "source_type":"diary", "created_at":"2026-09-30 20:00:00", "content":"今天想和你分享第 %s 件小事。\n\n点击这张卡片，会自动查看最新的评论。" % (index + 1), "allow_comment":true, "comment_count":18}
+client-godot/tests\ui\test_dynamics_review_actions.gd:29:		return {"id":"%s-comment-%s" % [id, index], "author_name":"洛天依", "author_type":"agent", "created_at":"2026-09-30 20:00:00", "content":"第 %s 条留言：今天也一起慢慢聊。" % (index + 1), "parent_comment_id":null}
+client-godot/tests\ui\test_dynamics_review_actions.gd:50:		await get_tree().create_timer(.06).timeout
+client-godot/tests\ui\test_dynamics_review_actions.gd:63:		page_calls += 1
+client-godot/tests\ui\test_dynamics_review_actions.gd:66:		await get_tree().create_timer(.06).timeout
+client-godot/tests\ui\test_dynamics_review_actions.gd:68:		if fail_next_page:
+client-godot/tests\ui\test_dynamics_review_actions.gd:69:			fail_next_page = false
+client-godot/tests\ui\test_dynamics_review_actions.gd:95:	await create_timer(.12).timeout
+client-godot/tests\ui\test_dynamics_review_actions.gd:132:	var path := "user://review-actions-%s.cfg" % Time.get_ticks_usec()
+client-godot/tests\ui\test_dynamics_review_actions.gd:178:	controller.fail_next_page = true
+client-godot/tests\ui\test_dynamics_review_actions.gd:181:		if controller.page_calls > 0: break
+client-godot/tests\ui\test_dynamics_review_actions.gd:183:	check(controller.page_calls == 1 and window.get_node("%Notice").text.contains("HTTP_ERROR"), "wheel reaching bottom loads next page and exposes failure")
+client-godot/tests\ui\test_dynamics_review_actions.gd:186:	check(controller.page_calls == 2 and controller.get_posts().size() == 24, "wheel retries pagination without a load-more button")
+client-godot/tests\test_history_media.gd:9:	var end := Time.get_ticks_msec()+2500
+client-godot/tests\test_history_media.gd:10:	while not predicate.call() and Time.get_ticks_msec()<end:
+client-godot/tests\test_history_media.gd:16:	check(ResourceLoader.exists("res://src/storage/history_images.gd"),"history images recover by UUID")
+client-godot/tests\test_history_media.gd:20:	var directory := "user://images-test-%s"%Time.get_ticks_usec()
+client-godot/tests\test_history_media.gd:21:	var script = load("res://src/storage/history_images.gd")
+client-godot/tests\test_history_media.gd:24:	var scope := {"server":OS.get_environment("GODOT_TEST_SERVER"),"username":"images","message_token":"message-test"}
+client-godot/tests\test_history_media.gd:41:	await create_timer(.05).timeout
+client-godot/tests\test_history_media.gd:48:	await create_timer(.35).timeout
+client-godot/tests\test_history_media.gd:58:	cache.begin("history-119")
+client-godot/tests\test_history_media.gd:59:	cache.append("history-119",bytes)
+client-godot/tests\test_history_media.gd:60:	check(cache.commit("history-119",decoder.get_status(),decoder.get_waveform(24)) == OK,"seed actual complete voice cache")
+client-godot/tests\test_history_media.gd:61:	var history = load("res://src/session/history_sync.gd").new(load("res://src/network/history_api.gd").new())
+client-godot/tests\test_history_media.gd:62:	var chat = load("res://src/session/chat_session.gd").new(load("res://src/network/websocket_transport.gd").new(),null,load("res://tests/support/native_reply_audio.gd").new(null,Callable(),cache),history,null,script.new(directory+"/chat_images"))
+client-godot/tests\test_history_media.gd:65:	check(await until(func(): return chat.get_history_state().phase == "complete"),"media messages restored from real history")
+client-godot/tests\test_history_media.gd:66:	check(not JSON.stringify(chat.get_messages()).contains("old-device"),"old absolute image paths discarded")
+client-godot/tests\test_history_media.gd:67:	_check_history_exposes_only_actual_new_client_voice_cache(chat)
+client-godot/tests\test_history_media.gd:68:	check(not chat.get_audio_state().playing,"cached history never auto-plays")
+client-godot/tests\test_history_media.gd:82:	var list: Node = view.find_children("*","ScrollContainer",true,false).filter(func(n): return n.has_method("scroll_to_message"))[0]
+client-godot/tests\test_history_media.gd:83:	list.scroll_to_message("history-116")
+client-godot/tests\test_history_media.gd:84:	check(await until(func(): return chat.get_message_image("history-116").status == "ready"),"visible history image downloads through chat boundary")
+client-godot/tests\test_history_media.gd:102:	print("History media: ","PASS" if failures.is_empty() else "FAIL")
+client-godot/tests\test_history_media.gd:104:func _check_history_exposes_only_actual_new_client_voice_cache(chat: Variant) -> void:
+client-godot/tests\test_history_media.gd:105:	check(chat.get_message_audio("history-119").available and not chat.get_message_audio("history-117").available,"history exposes only actual new-client voice cache")
+client-godot/tests\ui\test_image_sending.gd:9:	var end := Time.get_ticks_msec() + 4000
+client-godot/tests\ui\test_image_sending.gd:10:	while not predicate.call() and Time.get_ticks_msec() < end: await process_frame
+client-godot/tests\ui\test_image_sending.gd:14:	var directory := "user://image-send-%s" % Time.get_ticks_usec()
+client-godot/tests\ui\test_image_sending.gd:15:	var history = load("res://src/session/history_sync.gd").new(load("res://src/network/history_api.gd").new())
+client-godot/tests\ui\test_image_sending.gd:16:	var images = load("res://src/storage/history_images.gd").new(directory)
+client-godot/tests\ui\test_image_sending.gd:17:	var chat = load("res://src/session/chat_session.gd").new(load("res://src/network/websocket_transport.gd").new(),null,null,history,null,images)
+client-godot/tests\ui\test_image_sending.gd:30:		var account := {"server":OS.get_environment("GODOT_TEST_SERVER"),"username":"send-image","message_token":"message-test"}
+client-godot/tests\ui\test_image_sending.gd:33:		check(not id.is_empty() and chat.get_messages()[0].status == "waiting_history", "image waits for first history boundary")
+client-godot/tests\ui\test_image_sending.gd:34:		check(chat.preview_message_image(id).get_size() == Vector2(24,16), "queued image has original preview")
+client-godot/tests\ui\test_image_sending.gd:35:		check(await until(func(): return chat.get_messages().any(func(m): return m.id == id and m.status == "sent")), "real image protocol is acknowledged after history")
+client-godot/tests\ui\test_image_sending.gd:45:			await create_timer(0.2).timeout
+client-godot/tests\ui\test_image_sending.gd:51:		var before: int = chat.get_messages().size()
+client-godot/tests\ui\test_image_sending.gd:53:		check(not view.is_dirty() and chat.get_messages().size() == before, "removing attachment never sends")
+client-godot/tests\ui\test_image_sending.gd:60:		check(chat.get_messages().is_empty() and chat.get_message_image(id).status == "idle", "logout clears previous account image state")
+client-godot/tests\ui\test_settings_control_states.gd:10:	var deadline := Time.get_ticks_msec()+4000
+client-godot/tests\ui\test_settings_control_states.gd:11:	while not predicate.call() and Time.get_ticks_msec()<deadline: await process_frame
+client-godot/tests\ui\test_settings_control_states.gd:15:	await create_timer(.1).timeout
+client-godot/tests\ui\test_settings_control_states.gd:20:		var field: Control = window.get_node("%PreferencesPage").get_node("%"+name)
+client-godot/tests\ui\test_settings_control_states.gd:30:		var button: Button = window.get_node("%PreferencesPage").get_node("%"+name)
+client-godot/tests\ui\test_settings_control_states.gd:37:	var path := "user://control-states-%s" % Time.get_ticks_usec()
+client-godot/tests\ui\test_settings_control_states.gd:38:	var scope := {"server":OS.get_environment("GODOT_TEST_SERVER"),"username":"ui_retry","message_token":"message-test"}
+client-godot/tests\ui\test_settings_control_states.gd:54:	var page = window.get_node("%PreferencesPage")
+client-godot/tests\ui\test_settings_control_states.gd:55:	_check_failure_explains_how_to_retry(page)
+client-godot/tests\ui\test_settings_control_states.gd:56:	page.get_node("%Reload").pressed.emit()
+client-godot/tests\ui\test_settings_control_states.gd:58:	check(page.get_node("%CustomContextField").editable,"loaded form becomes editable")
+client-godot/tests\ui\test_settings_control_states.gd:59:	await _check_readonly_presets(page, window)
+client-godot/tests\ui\test_settings_control_states.gd:60:	page.get_node("%RelationshipPresets").activated.emit("friend")
+client-godot/tests\ui\test_settings_control_states.gd:61:	page.get_node("%SpeakingStylePresets").activated.emit("gentle")
+client-godot/tests\ui\test_settings_control_states.gd:62:	_check_preset_choices_still_update_readonly_values_and_the_draft(page, prefs)
+client-godot/tests\ui\test_settings_control_states.gd:63:	page.get_node("%CustomContextField").text = "control state fixture"
+client-godot/tests\ui\test_settings_control_states.gd:64:	page.get_node("%CustomContextField").text_changed.emit()
+client-godot/tests\ui\test_settings_control_states.gd:71:	window.select_page("models")
+client-godot/tests\ui\test_settings_control_states.gd:72:	var card = window.get_node("%ModelPage").get_node("%Cards").get_child(0)
+client-godot/tests\ui\test_settings_control_states.gd:98:	window.select_page("preferences")
+client-godot/tests\ui\test_settings_control_states.gd:99:	# Switching a hidden page queues its nested containers for layout, as in the
+client-godot/tests\ui\test_settings_control_states.gd:101:	await create_timer(.2).timeout
+client-godot/tests\ui\test_settings_control_states.gd:102:	var page: Control = window.get_node("%PreferencesPage")
+client-godot/tests\ui\test_settings_control_states.gd:103:	var reload: Button = page.get_node("%Reload")
+client-godot/tests\ui\test_settings_control_states.gd:104:	var scrolls := page.find_children("*", "ScrollContainer", true, false).filter(func(node): return node.is_ancestor_of(reload))
+client-godot/tests\ui\test_settings_control_states.gd:109:		await create_timer(.1).timeout
+client-godot/tests\ui\test_settings_control_states.gd:115:	window.select_page("models")
+client-godot/tests\ui\test_settings_control_states.gd:124:func _check_preset_choices_still_update_readonly_values_and_the_draft(page: Variant, prefs: Variant) -> void:
+client-godot/tests\ui\test_settings_control_states.gd:125:	check(page.get_node("%RelationshipField").text == "朋友" and page.get_node("%SpeakingStyleField").text == "温柔可人" and prefs.get_state().dirty, "preset choices still update readonly values and the draft")
+client-godot/tests\ui\test_settings_control_states.gd:130:func _check_failure_explains_how_to_retry(page: Variant) -> void:
+client-godot/tests\ui\test_settings_control_states.gd:131:	check(page.get_node("%Status").text.contains("加载失败") and not page.get_node("%Reload").disabled,"failure explains how to retry")
+client-godot/tests\ui\test_settings_control_states.gd:136:func _check_readonly_presets(page: Variant, window: Window) -> void:
+client-godot/tests\ui\test_settings_control_states.gd:138:		var preset: Button = page.get_node("%"+pair[1])
+client-godot/tests\ui\test_settings_control_states.gd:142:		check(not page.get_node("%"+pair[0]).editable, "ready relationship and style reject manual input: " + pair[0])
+client-godot/tests\ui\test_settings_control_states.gd:144:			var field: LineEdit = page.get_node("%"+pair[0])
+client-godot/tests\ui\test_ui_style_application.gd:13:	var deadline := Time.get_ticks_msec() + 6000
+client-godot/tests\ui\test_ui_style_application.gd:14:	while not predicate.call() and Time.get_ticks_msec() < deadline: await process_frame
+client-godot/tests\ui\test_ui_style_application.gd:19:	await create_timer(.2).timeout
+client-godot/tests\ui\test_ui_style_application.gd:44:	var directory := "user://appearance-app-%s" % Time.get_ticks_usec()
+client-godot/tests\ui\test_ui_style_application.gd:47:	await create_timer(.4).timeout
+client-godot/tests\ui\test_ui_style_application.gd:61:	check(await until(func(): return chat.find_child("MessageAudio", true, false) != null), "real reply creates audio controls")
+client-godot/tests\ui\test_ui_style_application.gd:93:	await create_timer(.3).timeout
+client-godot/tests\ui\test_ui_style_application.gd:100:	check(settings.get_node("%StylePage").get_node("%UiStyleField").text == "清透", "reopened settings shows persisted choice")
+client-godot/tests\ui\test_ui_style_application.gd:116:func _check_existing_message_changes_without_rebuilding_chat(panel: Variant, crystal: Variant) -> void:
+client-godot/tests\ui\test_ui_style_application.gd:117:	check(panel.corner_radius_top_left == (12 if crystal else 8), "existing message changes without rebuilding chat")
+client-godot/tests\ui\test_ui_style_application.gd:134:		settings.select_page("style")
+client-godot/tests\ui\test_ui_style_application.gd:135:		var page = settings.get_node("%StylePage")
+client-godot/tests\ui\test_ui_style_application.gd:136:		page.get_node("%UiStylePresets").activated.emit(pair[0])
+client-godot/tests\ui\test_ui_style_application.gd:137:		page.get_node("%IconStylePresets").activated.emit(pair[1])
+client-godot/tests\ui\test_ui_style_application.gd:163:			_check_existing_message_changes_without_rebuilding_chat(panel, crystal)
+client-godot/tests\ui\test_ui_style_application.gd:166:		var form_scroll: ScrollContainer = page.find_child("Scroll", true, false)
+client-godot/tests\ui\test_ui_style_application.gd:167:		await create_timer(.2).timeout
+client-godot/tests\ui\test_ui_style_application.gd:168:		form_scroll.ensure_control_visible(page.get_node("%IconStylePresets"))
+client-godot/tests\ui\test_ui_style_application.gd:171:		check(form_scroll.get_global_rect().encloses(page.get_node("%IconStylePresets").get_global_rect()), "icon style selector remains reachable")
+client-godot/tests\ui\test_model_cards.gd:9:	var path := "user://model-cards-%s" % Time.get_ticks_usec()
+client-godot/tests\ui\test_model_cards.gd:12:	await settings.start({"server":OS.get_environment("GODOT_TEST_SERVER"), "username":"cards", "message_token":"test"})
+client-godot/tests\ui\test_model_cards.gd:17:	var page = window.get_node("%ModelPage")
+client-godot/tests\ui\test_model_cards.gd:18:	var cards = page.get_node_or_null("%Cards")
+client-godot/tests\ui\test_model_cards.gd:22:			await create_timer(0.2).timeout
+client-godot/tests\ui\test_model_cards.gd:41:			await create_timer(0.2).timeout
+client-godot/tests\ui\test_model_cards.gd:47:		page.get_node("%RefreshTypes").pressed.emit()
+client-godot/tests\ui\test_model_cards.gd:48:		var deadline := Time.get_ticks_msec() + 2500
+client-godot/tests\ui\test_model_cards.gd:49:		while settings.get_state().phase == "loading" and Time.get_ticks_msec() < deadline: await process_frame
+client-godot/tests\test_complexity_check.py:22:        with mock.patch("complexity.version", return_value="0.0.0"), self.assertRaises(RuntimeError):
+client-godot/tests\ui\test_system_message_presentation.gd:7:	var bubble = load("res://scenes/ui/message_bubble.tscn").instantiate()
+client-godot/tests\ui\test_system_message_presentation.gd:18:	print("System message only shows centered text: ", "PASS" if passed else "FAIL")
+client-godot/src\ui\log_window.gd:100:	for key in ["time","level","module","message","event"]:
+client-godot/src\ui\log_window.gd:102:	_text.add_text("%s [%s] [%s] %s · %s %s\n" % [entry.time,entry.level,entry.module,entry.message,entry.event,JSON.stringify(metrics)])
+client-godot/tests\ui\test_settings_export_layout.gd:16:		for entry in [["preferences","PreferencesPage"],["models","ModelPage"],["audio","AudioPage"]]:
+client-godot/tests\ui\test_settings_export_layout.gd:17:			window.select_page(entry[0])
+client-godot/tests\ui\test_settings_export_layout.gd:18:			await create_timer(.2).timeout
+client-godot/tests\ui\test_settings_export_layout.gd:19:			var page: Control = window.get_node("%"+entry[1])
+client-godot/tests\ui\test_settings_export_layout.gd:20:			check(page.size.x > 400 and page.size.y > 400, "source/export page fills content: " + entry[0])
+client-godot/tests\ui\test_settings_export_layout.gd:22:				check(page.is_visible_in_tree(), "selected page is visible: " + entry[0])
+client-godot/tests\ui\test_settings_export_layout.gd:23:				var title: Label = page.find_child("Title",true,false)
+client-godot/tests\ui\test_settings_export_layout.gd:24:				check(page.get_global_rect().encloses(title.get_global_rect()), "page title is inside visible content: " + entry[0])
+client-godot/tests\ui\test_ui_style.gd:4:const Bubble = preload("res://scenes/ui/message_bubble.tscn")
+client-godot/tests\ui\test_ui_style.gd:26:func message(id: String, own: bool = false) -> Dictionary:
+client-godot/tests\ui\test_ui_style.gd:34:	bubble.configure(message("sample", own))
+client-godot/tests\ui\test_ui_style.gd:54:	var path := "user://ui-style-%s.cfg" % Time.get_ticks_usec()
+client-godot/tests\ui\test_ui_style.gd:72:	var messages: Array[Dictionary] = []
+client-godot/tests\ui\test_ui_style.gd:73:	for index in 80: messages.append(message(str(index), index % 2 == 0))
+client-godot/tests\ui\test_ui_style.gd:74:	scroll.set_messages(messages)
+client-godot/tests\ui\test_ui_style.gd:107:	var page = window.get_node("%StylePage")
+client-godot/tests\ui\test_ui_style.gd:108:	page.get_node("%UiStylePresets").activated.emit("crystal")
+client-godot/tests\ui\test_ui_style.gd:109:	page.get_node("%IconStylePresets").activated.emit("emoji")
+client-godot/tests\ui\test_ui_style.gd:116:	_check_failure_does_not_change_runtime_appearance(style, changes)
+client-godot/tests\ui\test_ui_style.gd:128:	page.get_node("%UiStylePresets").activated.emit("flat")
+client-godot/tests\ui\test_ui_style.gd:149:func _check_failure_does_not_change_runtime_appearance(style: Variant, changes: Variant) -> void:
+client-godot/tests\ui\test_ui_style.gd:150:	check(style.ui_style == "flat" and style.icon_style == "svg" and changes.is_empty(), "failure does not change runtime appearance")
+client-godot/tests\ui\test_ui_style.gd:169:			var audio = own.find_child("MessageAudio", true, false)
+client-godot/tests\ui\test_ui_style.gd:172:		check(scroll.scroll_to_message("0"), "virtual list scrolls to older messages")
+client-godot/src\ui\decision_dialog.gd:20:	%Message.text = dialog_text
+client-godot/src\ui\account_view.gd:7:const HistoryRow = preload("res://scenes/ui/login_account_row.tscn")
+client-godot/src\ui\account_view.gd:21:var _history_trigger: RefCounted
+client-godot/src\ui\account_view.gd:34:	_history_trigger = preload("res://src/ui/popup_trigger.gd").new(%HistoryButton,%HistoryPopup)
+client-godot/src\ui\account_view.gd:41:	for button in [%Submit,%Remember,%AutoLogin,%RegisterLink,%ResetLink,%SetServer,%HistoryButton]: button.disabled = true
+client-godot/src\ui\account_view.gd:60:	%HistoryButton.pressed.connect(_open_history)
+client-godot/src\ui\account_view.gd:73:	for button in [%Submit,%Remember,%AutoLogin,%RegisterLink,%ResetLink,%SetServer,%HistoryButton]: button.disabled = false
+client-godot/src\ui\account_view.gd:104:	%HistoryButton.visible = login
+client-godot/src\ui\account_view.gd:112:	for entry in _session.get_history():
+client-godot/src\ui\account_view.gd:171:	for button in [_submit,_remember,_automatic,%BackToLogin,%RegisterLink,%ResetLink,%HistoryButton,%UsePassword,%SetServer,%ServerSave,%ServerDefault]: button.disabled = _busy
+client-godot/src\ui\account_view.gd:182:	%HistoryPopup.hide()
+client-godot/src\ui\account_view.gd:197:func _open_history() -> void:
+client-godot/src\ui\account_view.gd:199:	if not _history_trigger.should_open(): return
+client-godot/src\ui\account_view.gd:201:	for child in %HistoryRows.get_children():
+client-godot/src\ui\account_view.gd:202:		if child != %HistoryEmpty:
+client-godot/src\ui\account_view.gd:203:			%HistoryRows.remove_child(child)
+client-godot/src\ui\account_view.gd:205:	var history: Array = _session.get_history()
+client-godot/src\ui\account_view.gd:206:	%HistoryEmpty.visible = history.is_empty()
+client-godot/src\ui\account_view.gd:207:	for entry in history:
+client-godot/src\ui\account_view.gd:208:		var row := HistoryRow.instantiate()
+client-godot/src\ui\account_view.gd:210:		row.get_node("%Choose").pressed.connect(func(): %HistoryPopup.hide(); _session.select_account(entry.username))
+client-godot/src\ui\account_view.gd:212:			%HistoryPopup.hide()
+client-godot/src\ui\account_view.gd:216:		%HistoryRows.add_child(row)
+client-godot/src\ui\account_view.gd:218:	_popup(%HistoryPopup, anchor.get_global_transform_with_canvas() * Vector2(0,anchor.size.y+6), Vector2i(int(anchor.size.x),mini(280,maxi(64,history.size()*48+16))))
+client-godot/src\ui\account_view.gd:284:		"TIMEOUT":"连接超时，请稍后重试。", "NETWORK_ERROR":"无法连接服务器，请检查地址和网络。",
+client-godot/tests\test_dynamics_detail.gd:18:	await controller.start({"server":OS.get_environment("GODOT_TEST_SERVER"),"username":"detail","message_token":"fixture-token"})
+client-godot/tests\test_dynamics_detail.gd:26:	var layout_path := "user://detail-test-%s.cfg" % Time.get_ticks_usec()
+client-godot/tests\test_dynamics_detail.gd:41:	await create_timer(.15).timeout
+client-godot/tests\test_dynamics_detail.gd:61:	await create_timer(.15).timeout
+client-godot/tests\test_dynamics_detail.gd:62:	check(controller.get_comments("d0").items.size()==22,"scrolling detail to bottom loads next comment page")
+client-godot/tests\test_dynamics_detail.gd:65:	await create_timer(.15).timeout
+client-godot/tests\test_dynamics_detail.gd:66:	check(controller.get_posts().size()==12,"scrolling feed to bottom loads next post page")
+client-godot/tests\test_dynamics_detail.gd:81:	await create_timer(.2).timeout
+client-godot/tests\test_dynamics_detail.gd:109:	await controller.start({"server":OS.get_environment("GODOT_TEST_SERVER"),"username":"fail-write","message_token":"fixture-token"})
+client-godot/tests\test_dynamics_detail.gd:111:	var layout_path := "user://dynamics-window-test-%s.cfg"%Time.get_ticks_usec()
+client-godot/tests\test_dynamics_detail.gd:129:		await create_timer(0.2).timeout
+client-godot/src\ui\chat_view.gd:11:@onready var _history_status: Label = %HistoryStatus
+client-godot/src\ui\chat_view.gd:12:@onready var _history_retry: Button = %HistoryRetry
+client-godot/src\ui\chat_view.gd:13:@onready var _history_skip: Button = %HistorySkip
+client-godot/src\ui\chat_view.gd:83:	_history_retry.pressed.connect(_session.retry_history)
+client-godot/src\ui\chat_view.gd:84:	_history_skip.pressed.connect(_session.skip_history)
+client-godot/src\ui\chat_view.gd:87:	_scroll.visible_messages.connect(_visible_audio)
+client-godot/src\ui\chat_view.gd:112:	_session.message_audio_changed.connect(_audio_changed)
+client-godot/src\ui\chat_view.gd:113:	_session.message_image_changed.connect(func(id,state): _scroll.set_image_state(id,state))
+client-godot/src\ui\chat_view.gd:170:	var messages: Array[Dictionary] = _session.get_messages()
+client-godot/src\ui\chat_view.gd:171:	_empty.visible = messages.is_empty()
+client-godot/src\ui\chat_view.gd:172:	_scroll.set_messages(messages)
+client-godot/src\ui\chat_view.gd:178:		_scroll.set_audio_state(id,_session.get_message_audio(id))
+client-godot/src\ui\chat_view.gd:179:		_session.request_message_image(id)
+client-godot/src\ui\chat_view.gd:180:		_scroll.set_image_state(id,_session.get_message_image(id))
+client-godot/src\ui\chat_view.gd:189:	_update_history_status(state)
+client-godot/src\ui\chat_view.gd:230:	if not reading.target_id.is_empty() and not _scroll.scroll_to_message(reading.target_id):
+client-godot/src\ui\chat_view.gd:238:		_session.report_visible_messages(_scroll.get_visible_ids(),is_visible_in_tree() and window_system.focused(get_window()))
+client-godot/src\ui\chat_view.gd:242:		_session.request_message_image(id,true)
+client-godot/src\ui\chat_view.gd:245:			var texture: Texture2D = _session.preview_message_image(id)
+client-godot/src\ui\chat_view.gd:246:			if texture == null: _session.request_message_image(id,true)
+client-godot/src\ui\chat_view.gd:258:func _update_history_status(state: Dictionary) -> void:
+client-godot/src\ui\chat_view.gd:259:	var history: Dictionary = state.get("history",{"phase":"idle","count":0})
+client-godot/src\ui\chat_view.gd:260:	_history_retry.visible = history.phase in ["first_failed","failed"]
+client-godot/src\ui\chat_view.gd:261:	_history_skip.visible = history.phase == "first_failed"
+client-godot/src\ui\chat_view.gd:262:	_history_status.text = {"first_loading":"正在同步最近历史；发送的消息将暂时排队。", "first_failed":"首批历史加载失败；可重试或跳过后发送。", "loading":"后台同步历史 · 已加载 %s 条" % history.count, "failed":"较早历史加载失败，已加载内容保留。", "skipped":"已跳过本次历史同步。"}.get(history.phase, "")
+client-godot/src\ui\chat_view.gd:263:	if history.get("incomplete",false):
+client-godot/src\ui\chat_view.gd:264:		_history_status.text += " 检测到分页重复，无法确认历史完整。"
+client-godot/src\ui\chat_view.gd:268:		_history_status.text += " 原阅读位置已找不到，回到最新消息。"
+client-godot/src\ui\chat_view.gd:270:		_history_status.text += " 本机阅读位置未能保存。"
+client-godot/src\ui\chat_view.gd:271:	%HistoryRow.visible = not _history_status.text.is_empty() or _history_retry.visible or _history_skip.visible
+client-godot/tests\ui\test_native_window_controls.gd:17:	await create_timer(.3).timeout
+client-godot/tests\ui\test_native_window_controls.gd:36:	var deadline := Time.get_ticks_msec()+30000
+client-godot/tests\ui\test_native_window_controls.gd:37:	while not FileAccess.file_exists(result_path) and Time.get_ticks_msec() < deadline:
+client-godot/tests\ui\test_native_window_controls.gd:38:		await create_timer(.05).timeout
+client-godot/tests\ui\test_native_window_controls.gd:41:		print("Native window controls: FAIL timeout")
+client-godot/src\ui\dynamic_comment_row.gd:6:@onready var _time: Label = %Time
+client-godot/src\ui\dynamic_comment_row.gd:12:var _time_text := ""
+client-godot/src\ui\dynamic_comment_row.gd:17:func setup(avatar_path: String,author: String,body: String,time_text: String,created_at: String,allow_comment: bool,reply_action: Callable) -> void:
+client-godot/src\ui\dynamic_comment_row.gd:21:	_time_text = time_text
+client-godot/src\ui\dynamic_comment_row.gd:22:	_tooltip = created_at
+client-godot/src\ui\dynamic_comment_row.gd:36:	_time.text = _time_text
+client-godot/src\ui\dynamic_comment_row.gd:37:	_time.tooltip_text = _tooltip
+client-godot/src\ui\dynamics_post_row.gd:23:	_meta.text = TYPES.get(_post.get("source_type",""),"动态")+" · "+_post.created_at
+client-godot/src\ui\dynamics_window.gd:181:	if bar.value+bar.page >= bar.max_value-24 and state.has_more and not state.busy:
+client-godot/src\ui\frost_surface.gd:2:@export var runtime: Resource = preload("res://src/platform/runtime_environment.gd").new()
+client-godot/src\ui\frost_surface.gd:6:	if not blur_enabled or runtime.is_headless() or renderer not in ["gl_compatibility","mobile","forward_plus"]:
+client-godot/src\ui\dynamic_detail.gd:6:@onready var _created_at: Label = %CreatedAt
+client-godot/src\ui\dynamic_detail.gd:63:	_created_at.text = _post.created_at
+client-godot/src\ui\dynamic_detail.gd:108:			row.setup(avatar_path(item),item.author_name,("回复 %s："%names.get(target,"较早评论") if not target.is_empty() else "")+item.content,relative_time(item.created_at),item.created_at,_post.allow_comment,func():
+client-godot/src\ui\dynamic_detail.gd:147:		_set_status("发送结果不确定，请先刷新核实；草稿已保留。" if result.code in ["TIMEOUT","NETWORK_ERROR"] else "评论失败，草稿已保留（%s）。"%result.code)
+client-godot/src\ui\dynamic_detail.gd:161:	if bar.value+bar.page >= bar.max_value-24 and state.loaded and state.has_more and not state.busy and state.code in ["","OK"]:
+client-godot/src\ui\dynamic_detail.gd:167:static func relative_time(raw: String) -> String:
+client-godot/src\ui\dynamic_detail.gd:172:	if not _valid_calendar_time(raw): return raw
+client-godot/src\ui\dynamic_detail.gd:174:	var epoch := Time.get_unix_time_from_datetime_string(normalized)
+client-godot/src\ui\dynamic_detail.gd:175:	if Time.get_datetime_string_from_unix_time(epoch) != normalized: return raw
+client-godot/src\ui\dynamic_detail.gd:176:	var age := int(Time.get_unix_time_from_system())-(epoch-8*3600)
+client-godot/src\ui\dynamic_detail.gd:193:static func _valid_calendar_time(raw: String) -> bool:
+client-godot/src\session\chat_session.gd:2:signal message_audio_changed(id: String, state: Dictionary)
+client-godot/src\session\chat_session.gd:3:signal message_image_changed(id: String, state: Dictionary)
+client-godot/src\session\chat_session.gd:13:var _messages: Array[Dictionary] = []
+client-godot/src\session\chat_session.gd:18:var _history: Node
+client-godot/src\session\chat_session.gd:19:var _waiting_history := false
+client-godot/src\session\chat_session.gd:20:var _pending_history: Dictionary = {}
+client-godot/src\session\chat_session.gd:30:func _init(transport: Node, logger: RefCounted = null, media: Node = null, history: Node = null, reading: RefCounted = null, images: Node = null, models: Node = null) -> void:
+client-godot/src\session\chat_session.gd:40:	_media.message_audio_changed.connect(func(id,state):
+client-godot/src\session\chat_session.gd:42:			message_audio_changed.emit(id,state))
+client-godot/src\session\chat_session.gd:55:	_history = history
+client-godot/src\session\chat_session.gd:56:	if history != null:
+client-godot/src\session\chat_session.gd:57:		add_child(history)
+client-godot/src\session\chat_session.gd:58:		history.page_received.connect(_history_page)
+client-godot/src\session\chat_session.gd:59:		history.boundary_ready.connect(_release_history_sends)
+client-godot/src\session\chat_session.gd:60:		history.state_changed.connect(func(_value):
+client-godot/src\session\chat_session.gd:65:	_images = images if images != null else preload("res://src/storage/history_image_source.gd").new()
+client-godot/src\session\chat_session.gd:67:	_images.changed.connect(func(id,state): message_image_changed.emit(id,state))
+client-godot/src\session\chat_session.gd:72:	# history, media or model services.  A failed transport must leave no
+client-godot/src\session\chat_session.gd:88:	if _history != null:
+client-godot/src\session\chat_session.gd:89:		_waiting_history = true
+client-godot/src\session\chat_session.gd:90:		_history.start(session)
+client-godot/src\session\chat_session.gd:109:	if _waiting_history:
+client-godot/src\session\chat_session.gd:110:		if _pending_history.size() >= 128 or text.to_utf8_buffer().size() > 8*1024*1024-1024:
+client-godot/src\session\chat_session.gd:114:		_pending_history[id] = {"type":"user_text","payload":{"message":text}}
+client-godot/src\session\chat_session.gd:116:		id = _transport.send_event("user_text", {"message":text, "llm_mode":{"types":_model_types()}}, true)
+client-godot/src\session\chat_session.gd:120:	var message := {"id":id, "role":"user", "text":text, "status":"waiting_history" if _waiting_history else "queued", "code":""}
+client-godot/src\session\chat_session.gd:121:	_messages.append(message)
+client-godot/src\session\chat_session.gd:122:	_by_id[id] = message
+client-godot/src\session\chat_session.gd:124:		_logger.record("message_queued", {"reply_id":id})
+client-godot/src\session\chat_session.gd:138:	if _waiting_history:
+client-godot/src\session\chat_session.gd:139:		if _pending_history.size() >= 128:
+client-godot/src\session\chat_session.gd:143:		_pending_history[id] = {"type":"user_image", "payload":payload}
+client-godot/src\session\chat_session.gd:149:	var message := {"id":id,"role":"user","type":"image","text":"","status":"waiting_history" if _waiting_history else "queued","code":""}
+client-godot/src\session\chat_session.gd:150:	_messages.append(message)
+client-godot/src\session\chat_session.gd:151:	_by_id[id] = message
+client-godot/src\session\chat_session.gd:156:	if _logger != null: _logger.record("message_queued", {"reply_id":id})
+client-godot/src\session\chat_session.gd:175:	var now := Time.get_ticks_msec()
+client-godot/src\session\chat_session.gd:177:	_transport.send_event("user_touch", {"touchArea":_touch_areas.duplicate(), "touchCount":_touch_count, "timeSinceLastSentTouch":(now - _last_touch_ms) / 1000.0}, false)
+client-godot/src\session\chat_session.gd:182:func get_messages() -> Array[Dictionary]:
+client-godot/src\session\chat_session.gd:183:	return _messages.duplicate(true)
+client-godot/src\session\chat_session.gd:187:	result.history = get_history_state()
+client-godot/src\session\chat_session.gd:210:	_waiting_history = false
+client-godot/src\session\chat_session.gd:211:	_pending_history.clear()
+client-godot/src\session\chat_session.gd:213:	if _history != null:
+client-godot/src\session\chat_session.gd:214:		_history.stop()
+client-godot/src\session\chat_session.gd:219:	_messages.clear()
+client-godot/src\session\chat_session.gd:246:		_logger.record("message_delivery", {"reply_id":id,"phase":status,"code":code})
+client-godot/src\session\chat_session.gd:264:	elif event.type == "agent_message":
+client-godot/src\session\chat_session.gd:300:				var message := {"id":id, "role":"assistant", "text":reply.text, "status":"received", "code":"","is_ephemeral":reply.ephemeral}
+client-godot/src\session\chat_session.gd:301:				_by_id[id] = message
+client-godot/src\session\chat_session.gd:302:				_messages.append(message)
+client-godot/src\session\chat_session.gd:321:func get_message_audio(id: String) -> Dictionary:
+client-godot/src\session\chat_session.gd:322:	return _media.get_message_audio(id)
+client-godot/src\session\chat_session.gd:344:func get_history_state() -> Dictionary:
+client-godot/src\session\chat_session.gd:345:	return _history.get_state() if _history != null else {"phase":"idle","code":"","count":0,"incomplete":false}
+client-godot/src\session\chat_session.gd:347:func retry_history() -> void:
+client-godot/src\session\chat_session.gd:348:	if _history != null:
+client-godot/src\session\chat_session.gd:349:		_history.retry()
+client-godot/src\session\chat_session.gd:351:func skip_history() -> void:
+client-godot/src\session\chat_session.gd:352:	if _history != null:
+client-godot/src\session\chat_session.gd:353:		_history.skip()
+client-godot/src\session\chat_session.gd:355:func _release_history_sends() -> void:
+client-godot/src\session\chat_session.gd:356:	_waiting_history = false
+client-godot/src\session\chat_session.gd:357:	for id in _pending_history:
+client-godot/src\session\chat_session.gd:358:		var pending: Dictionary = _pending_history[id]
+client-godot/src\session\chat_session.gd:367:	_pending_history.clear()
+client-godot/src\session\chat_session.gd:370:func _history_page(messages: Array[Dictionary]) -> void:
+client-godot/src\session\chat_session.gd:372:	for message in messages:
+client-godot/src\session\chat_session.gd:373:		if _by_id.has(message.id):
+client-godot/src\session\chat_session.gd:374:			# History UUID is authoritative identity, never text/time matching.
+client-godot/src\session\chat_session.gd:375:			# Preserve live content while moving the item into its history position.
+client-godot/src\session\chat_session.gd:376:			var existing: Dictionary = _by_id[message.id]
+client-godot/src\session\chat_session.gd:377:			_messages.erase(existing)
+client-godot/src\session\chat_session.gd:380:			_by_id[message.id] = message
+client-godot/src\session\chat_session.gd:381:			prepend.append(message)
+client-godot/src\session\chat_session.gd:382:	_messages = prepend + _messages
+client-godot/src\session\chat_session.gd:396:func report_visible_messages(ids: Array[String], foreground: bool) -> void:
+client-godot/src\session\chat_session.gd:402:		_reading.update(_messages,get_history_state())
+client-godot/src\session\chat_session.gd:404:func request_message_image(id: String, retry: bool = false) -> void:
+client-godot/src\session\chat_session.gd:411:func get_message_image(id: String) -> Dictionary:
+client-godot/src\session\chat_session.gd:414:func preview_message_image(id: String) -> Texture2D:
+client-godot/src\session\preferences_controller.gd:87:	return {"username":_session.get("username",""),"token":_session.get("message_token","")}
+client-godot/src\preview\demo_session.gd:3:var _messages: Array[Dictionary] = []
+client-godot/src\preview\demo_session.gd:11:	_messages.clear()
+client-godot/src\preview\demo_session.gd:13:		_messages = [
+client-godot/src\preview\demo_session.gd:25:func get_messages() -> Array[Dictionary]:
+client-godot/src\preview\demo_session.gd:26:	return _messages.duplicate(true)
+client-godot/src\preview\demo_session.gd:33:	_messages.append({"id":id, "role":"user", "text":text, "status":"sending"})
+client-godot/src\preview\demo_session.gd:38:	for message in _messages:
+client-godot/src\preview\demo_session.gd:39:		if message.id == id and message.status == "sending":
+client-godot/src\preview\demo_session.gd:40:			message.status = "sent" if success else "failed"
+client-godot/src\session\account_session.gd:50:func get_history(server: String = "") -> Array:
+client-godot/src\session\account_session.gd:106:		var history := get_history(profile.server)
+client-godot/src\session\account_session.gd:107:		profile.username = "" if history.is_empty() else history[0].username
+client-godot/src\session\account_session.gd:266:	profile.accounts.push_front({"server":address,"username":username,"remember":remember and stored == OK,"auto_login":auto_login and stored == OK,"last_used":Time.get_unix_time_from_system()})
+client-godot/src\preview\chat_preview.gd:3:@export var runtime: Resource = preload("res://src/platform/runtime_environment.gd").new()
+client-godot/src\preview\chat_preview.gd:8:const Bubble = preload("res://scenes/ui/message_bubble.tscn")
+client-godot/src\preview\chat_preview.gd:15:@onready var _messages: VBoxContainer = %Messages
+client-godot/src\preview\chat_preview.gd:70:	for argument in runtime.arguments():
+client-godot/src\preview\chat_preview.gd:73:	for argument in runtime.arguments():
+client-godot/src\preview\chat_preview.gd:75:			await get_tree().create_timer(2.0).timeout
+client-godot/src\preview\chat_preview.gd:77:			var result: Error = runtime.capture(get_viewport(),argument.trim_prefix("--capture="))
+client-godot/src\preview\chat_preview.gd:99:	var follow := bar.value >= bar.max_value - bar.page - 24
+client-godot/src\preview\chat_preview.gd:101:	for child in _messages.get_children():
+client-godot/src\preview\chat_preview.gd:104:		_messages.remove_child(child)
+client-godot/src\preview\chat_preview.gd:106:	_empty.visible = _session.get_messages().is_empty()
+client-godot/src\preview\chat_preview.gd:108:	for message in _session.get_messages():
+client-godot/src\preview\chat_preview.gd:109:		message.demo = true
+client-godot/src\preview\chat_preview.gd:111:		_messages.add_child(bubble)
+client-godot/src\preview\chat_preview.gd:112:		var texture: Texture2D = _images.get(message.id)
+client-godot/src\preview\chat_preview.gd:113:		if message.has("image"):
+client-godot/src\preview\chat_preview.gd:114:			texture = load(message.image)
+client-godot/src\preview\chat_preview.gd:115:		bubble.configure(message, texture)
+client-godot/src\preview\chat_preview.gd:139:	get_tree().create_timer(0.7).timeout.connect(func(): _session.settle(id, true))
+client-godot/src\preview\chat_preview.gd:170:		_avatar.avatar.set_mouth_openness(absf(sin(Time.get_ticks_msec() * 0.008)) * 0.8)
+client-godot/src\storage\client_log.gd:6:const MODULES := ["app", "account", "network", "message", "audio", "cache", "history", "settings", "dynamics", "engine"]
+client-godot/src\storage\client_log.gd:7:const CODES := "OK UNKNOWN INVALID_INPUT INVALID_RESPONSE BUSY CANCELLED TIMEOUT NETWORK_ERROR HTTP_ERROR AUTH_REJECTED PUBLIC_KEY_ERROR ENCRYPTION_ERROR CREDENTIAL_UNAVAILABLE NO_SAVED_LOGIN LOGGED_OUT PENDING SEND_REJECTED DELIVERY_UNCERTAIN TRANSPORT_STOPPED ACK_TIMEOUT DISCONNECTED CONNECT_TIMEOUT AUTH_TIMEOUT INVALID_BASE64 AUDIO_ERROR AUDIO_TIMEOUT BUFFER_LIMIT DECODER_UNAVAILABLE PLAYBACK_FAILED REPLAY_FAILED CACHE_WRITE_FAILED CACHE_CLEAR_FAILED INVALID_WAV UNSUPPORTED_FORMAT TRUNCATED_AUDIO EMPTY_AUDIO STREAM_FINISHED STOPPED INTERRUPTED ENGINE_ERROR ENGINE_WARNING HISTORY_FAILED HISTORY_INVALID HISTORY_DUPLICATE MODEL_ERROR MODEL_DISABLED MODEL_INVALID SAVE_FAILED INVALID_JSON MODEL_BUSY UNKNOWN_MODEL_TYPE INVALID_CONFIG MODEL_KIND_MISMATCH MODEL_CAPABILITY_MISMATCH MODEL_FIELDS_REQUIRED STREAMING_NOT_SUPPORTED PLAINTEXT_CONFIRMATION_REQUIRED KEY_UNAVAILABLE NOT_FOUND COMMENT_NOT_ALLOWED INVALID_REPLY_TARGET"
+client-godot/src\storage\client_log.gd:9:const EXPLANATIONS := {"dynamics_state":"动态读取与写入状态", "settings_models":"模型配置状态", "settings_model_execution":"模型请求执行", "settings_preference":"相处偏好操作", "client_started":"客户端启动", "client_stopped":"客户端正常退出", "history_state":"历史同步状态", "account_state":"账户操作状态", "message_queued":"消息已进入发送队列", "message_delivery":"消息投递状态", "engine_error":"引擎报告异常（原始内容不写入日志）", "connection_state":"聊天连接状态变化", "reply_received":"收到回复分片", "system_error":"操作出现错误", "cache_committed":"完整语音已保存", "cache_error":"语音未能保存", "cache_cleared":"已执行语音缓存清理", "audio_received":"收到音频数据", "audio_format":"已识别音频格式", "audio_decoded":"音频解码完成", "audio_receive_finished":"音频接收结束", "audio_error":"音频处理失败", "audio_underrun":"音频缓冲暂时不足", "audio_playback_started":"开始播放在线语音", "audio_playback_finished":"在线语音播放结束", "replay_preempted":"在线语音打断本地重放", "replay_finished":"重放结束", "replay_started":"开始重放", "replay_paused":"重放已暂停", "replay_resumed":"继续重放", "replay_stopped":"重放已停止"}
+client-godot/src\storage\client_log.gd:19:var _started := Time.get_ticks_msec()
+client-godot/src\storage\client_log.gd:26:	_environment = environment if environment is Resource else preload("res://src/platform/godot_runtime_environment.gd").new()
+client-godot/src\storage\client_log.gd:38:	_id = "%020d_%d_%s" % [int(Time.get_unix_time_from_system() * 1000000), _environment.process_id(), Crypto.new().generate_random_bytes(6).hex_encode()]
+client-godot/src\storage\client_log.gd:39:	_meta = {"id":_id, "started":Time.get_datetime_string_from_system(true) + "Z", "pid":_environment.process_id(), "closed":false, "complete":true,
+client-godot/src\storage\client_log.gd:45:	var entry := {"time":Time.get_datetime_string_from_system(true) + "Z", "elapsed_ms":Time.get_ticks_msec() - _started, "event":event,
+client-godot/src\storage\client_log.gd:46:		"level":"ERROR" if event.contains("error") else "INFO", "module":_module(event), "message":EXPLANATIONS.get(event, "客户端活动")}
+client-godot/src\storage\client_log.gd:124:		readable += "%s [%s] [%s] %s (%s) %s\n" % [entry.time,entry.level,entry.module,entry.message,entry.event,entry.get("code", "")]
+client-godot/src\storage\client_log.gd:214:		return "message"
+client-godot/src\storage\client_log.gd:312:	return value is Dictionary and value.get("event") is String and _token.search(value.event) != null and value.get("time") is String and value.get("level") in ["INFO","WARN","ERROR"] and value.get("module") in MODULES
+client-godot/src\storage\client_log.gd:315:	var safe := {"event":value.event,"time":value.time.left(32),"level":value.level,"module":value.module,"message":EXPLANATIONS.get(value.event,"客户端活动")}
+client-godot/src\session\history_sync.gd:2:signal page_received(messages: Array[Dictionary])
+client-godot/src\session\history_sync.gd:50:		var response: Dictionary = await _api.fetch_page(_session,_end)
+client-godot/src\session\history_sync.gd:57:		var rows: Array = response.data.get("history",[])
+client-godot/src\session\history_sync.gd:58:		if not _valid_page_bounds(start, rows.size()):
+client-godot/src\session\history_sync.gd:59:			_fail("HISTORY_INVALID")
+client-godot/src\session\history_sync.gd:61:		var messages := _page_messages(rows)
+client-godot/src\session\history_sync.gd:62:		if messages.size() != rows.size():
+client-godot/src\session\history_sync.gd:63:			_fail("HISTORY_INVALID")
+client-godot/src\session\history_sync.gd:65:		var unique := _deduplicate(messages)
+client-godot/src\session\history_sync.gd:71:		_state.code = "HISTORY_DUPLICATE" if _state.incomplete else ""
+client-godot/src\session\history_sync.gd:72:		page_received.emit(unique)
+client-godot/src\session\history_sync.gd:76:		# Yield between pages so network/audio/UI all continue making progress.
+client-godot/src\session\history_sync.gd:84:		_logger.record("history_state",{"phase":_state.phase,"code":_state.code,"count":_state.count,"index":_end})
+client-godot/src\session\history_sync.gd:91:func _valid_page_bounds(start: Variant, row_count: int) -> bool:
+client-godot/src\session\history_sync.gd:92:	if not _valid_page_start(start, row_count):
+client-godot/src\session\history_sync.gd:98:func _valid_page_start(start: Variant, row_count: int) -> bool:
+client-godot/src\session\history_sync.gd:103:func _page_messages(rows: Array) -> Array[Dictionary]:
+client-godot/src\session\history_sync.gd:104:	var messages: Array[Dictionary] = []
+client-godot/src\session\history_sync.gd:106:		if not _valid_history_row(row):
+client-godot/src\session\history_sync.gd:108:		messages.append({"id":row.uuid,"role":"assistant" if row.source == "agent" else row.source,"text":"[图片]" if row.type == "image" else row.content,"type":row.type,"timestamp":row.timestamp,"history":true,"status":"received","code":""})
+client-godot/src\session\history_sync.gd:109:	return messages
+client-godot/src\session\history_sync.gd:111:func _valid_history_row(row: Variant) -> bool:
+client-godot/src\session\history_sync.gd:116:	return _valid_history_content(row)
+client-godot/src\session\history_sync.gd:118:func _valid_history_content(row: Dictionary) -> bool:
+client-godot/src\session\history_sync.gd:121:	return row.get("timestamp") is int or row.get("timestamp") is float or row.get("timestamp") is String
+client-godot/src\session\history_sync.gd:123:func _deduplicate(messages: Array[Dictionary]) -> Array[Dictionary]:
+client-godot/src\session\history_sync.gd:125:	for message in messages:
+client-godot/src\session\history_sync.gd:126:		if _seen.has(message.id):
+client-godot/src\session\history_sync.gd:129:			_seen[message.id] = true
+client-godot/src\session\history_sync.gd:130:			unique.append(message)
+client-godot/src\session\model_executor.gd:8:var _timeout: float
+client-godot/src\session\model_executor.gd:14:func _init(settings: Node,logger: RefCounted = null,timeout: float = 120.0) -> void:
+client-godot/src\session\model_executor.gd:17:	_timeout = timeout
+client-godot/src\session\model_executor.gd:81:	var http := Http.new(_timeout)
+client-godot/src\session\model_executor.gd:84:	var started := Time.get_ticks_msec()
+client-godot/src\session\model_executor.gd:90:	_log("complete" if answer.ok else "error",answer.code,str(request.type),Time.get_ticks_msec()-started)
+client-godot/src\session\model_executor.gd:96:	if not data.get("choices") is Array or data.choices.is_empty() or not data.choices[0] is Dictionary or not data.choices[0].get("message") is Dictionary or not data.choices[0].message.get("content") is String:
+client-godot/src\session\model_executor.gd:98:	var content: String = data.choices[0].message.content
+client-godot/src\session\model_executor.gd:144:	body.messages = [{"role":"system","content":request.prompt}] if image.is_empty() else [{"role":"user","content":[{"type":"text","text":request.prompt},{"type":"image_url","image_url":{"url":image,"detail":"auto"}}]}]
+client-godot/src\session\dynamics_controller.gd:9:var _timeout: float
+client-godot/src\session\dynamics_controller.gd:12:var _timer: Timer
+client-godot/src\session\dynamics_controller.gd:21:func _init(logger: RefCounted = null,timeout: float = 15.0) -> void:
+client-godot/src\session\dynamics_controller.gd:23:	_timeout = timeout
+client-godot/src\session\dynamics_controller.gd:26:	_timer = Timer.new()
+client-godot/src\session\dynamics_controller.gd:27:	_timer.wait_time = 30.0
+client-godot/src\session\dynamics_controller.gd:28:	add_child(_timer)
+client-godot/src\session\dynamics_controller.gd:29:	_timer.timeout.connect(refresh_unread)
+client-godot/src\session\dynamics_controller.gd:36:	_timer.start()
+client-godot/src\session\dynamics_controller.gd:41:	if _timer != null:
+client-godot/src\session\dynamics_controller.gd:42:		_timer.stop()
+client-godot/src\session\dynamics_controller.gd:88:		result = _page(result.data,cursor,false)
+client-godot/src\session\dynamics_controller.gd:111:		result = _page(result.data,cursor,true,id)
+client-godot/src\session\dynamics_controller.gd:136:		if result.ok: result = _page(result.data,cursor,true,id)
+client-godot/src\session\dynamics_controller.gd:179:		if result.ok: result = _page(result.data, cursor, false)
+client-godot/src\session\dynamics_controller.gd:210:	var http := Http.new(_timeout)
+client-godot/src\session\dynamics_controller.gd:221:		headers.append("Authorization: Bearer "+str(_session.message_token))
+client-godot/src\session\dynamics_controller.gd:224:		data.merge({"username":_session.username,"token":_session.message_token},true)
+client-godot/src\session\dynamics_controller.gd:268:func _page(data: Dictionary,cursor: String,comments: bool,id: String = "") -> Dictionary:
+client-godot/src\session\dynamics_controller.gd:283:	for field in ["id","author_name","content","created_at","author_type"]:
+client-godot/src\session\dynamics_controller.gd:311:	items.sort_custom(func(a,b): return a.created_at < b.created_at or (a.created_at == b.created_at and a.id < b.id))
+client-godot/src\session\dynamics_controller.gd:353:			if not _latest_unread.is_empty() and (not last_read is String or _latest_unread.created_at >= last_read):
+client-godot/src\session\dynamics_controller.gd:359:		if not last_read.is_empty() and post.created_at < last_read: return {"ok":true, "post":{}}
+client-godot/src\storage\audio_cache.gd:133:	return _valid_saved_time(data) and _valid_metadata_shape(data) and _valid_integer_fields(data) and _valid_audio_ranges(data) and _valid_waveform(data.waveform)
+client-godot/src\storage\audio_cache.gd:135:func _valid_saved_time(data: Dictionary) -> bool:
+client-godot/src\storage\audio_cache.gd:188:	return int(_now_seconds.call()) if _now_seconds.is_valid() else int(Time.get_unix_time_from_system())
+client-godot/src\storage\audio_cache.gd:193:	var modified := FileAccess.get_modified_time(audio_path)
+client-godot/src\storage\release_info.gd:2:## Shared by runtime diagnostics and the build script; user data path is unchanged.
+client-godot/src\storage\history_images.gd:1:extends "res://src/storage/history_image_source.gd"
+client-godot/src\storage\history_images.gd:21:	if server.is_empty() or not session.get("username") is String or not session.get("message_token") is String or session.username.is_empty() or session.message_token.is_empty():
+client-godot/src\storage\history_images.gd:23:	_session = {"server":server,"username":session.username,"token":session.message_token}
+client-godot/src\storage\history_images.gd:79:		http.timeout = 15
+client-godot/src\storage\history_images.gd:119:		_logger.record("history_image",{"reply_id":id,"code":"OK" if code.is_empty() else code})
+client-godot/src\storage\history_images.gd:124:		_logger.record("history_image_error",{"reply_id":id,"code":code})
+client-godot/src\storage\reading_position.gd:6:var _messages: Array = []
+client-godot/src\storage\reading_position.gd:12:	_messages = []
+client-godot/src\storage\reading_position.gd:23:func update(messages: Array, history_state: Dictionary) -> void:
+client-godot/src\storage\reading_position.gd:24:	_messages = messages.duplicate()
+client-godot/src\storage\reading_position.gd:25:	if not _state.pending or history_state.get("phase") in ["idle","first_loading","first_failed","skipped"]:
+client-godot/src\storage\reading_position.gd:30:			_state.target_id = messages[mini(index+1,messages.size()-1)].id
+client-godot/src\storage\reading_position.gd:31:		elif history_state.get("phase") != "complete":
+client-godot/src\storage\reading_position.gd:35:	if _state.target_id.is_empty() and not messages.is_empty():
+client-godot/src\storage\reading_position.gd:36:		_state.target_id = messages[-1].id
+client-godot/src\storage\reading_position.gd:60:	for index in _messages.size():
+client-godot/src\storage\reading_position.gd:61:		if _messages[index].id == id:
+client-godot/src\storage\reading_position.gd:72:		var message: Dictionary = _messages[index]
+client-godot/src\storage\reading_position.gd:73:		if (message.get("history",false) or message.get("role") == "assistant") and not message.get("is_ephemeral",false):

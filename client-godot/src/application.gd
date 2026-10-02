@@ -12,6 +12,7 @@ extends Control
 @export var runtime: Resource = preload("res://src/platform/runtime_environment.gd").new()
 
 const Services = preload("res://src/composition/application_services.gd")
+const UiMotion = preload("res://src/ui/ui_motion.gd")
 
 # ---------- 运行时服务引用 ----------
 
@@ -28,6 +29,7 @@ const ChatView = preload("res://scenes/ui/chat_view.tscn")
 var _session: Node
 var _chat: Node
 var _chat_view: Control
+var _suppress_transition := true
 
 # ---------- 视图节点 ----------
 
@@ -187,8 +189,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_layout_ready = true
 	_resize_split()
-
 	await _capture_or_resume()
+	_suppress_transition = false
 
 
 ## 账户状态变化回调。
@@ -201,6 +203,7 @@ func _account_changed(state: Dictionary) -> void:
 	if state.phase == "signed_in":
 		_center.hide()
 		%Navigation.show()
+		if not _suppress_transition: UiMotion.fade_in(%Navigation, 0.3)
 
 		if _avatar == null:
 			_avatar = Avatar.instantiate() as Control
@@ -227,7 +230,8 @@ func _account_changed(state: Dictionary) -> void:
 		if not _expanded:
 			_expanded = true
 			_split.dragger_visibility = SplitContainer.DRAGGER_VISIBLE
-			_resize_window(_expanded_size, Vector2i(960, 640))
+			if _suppress_transition: _resize_window(_expanded_size, Vector2i(960, 640))
+			else: _transition_to_expanded()
 
 		var lifecycle_result: Error = _lifecycle.start(_session.get_session())
 		if lifecycle_result != OK:
@@ -255,6 +259,10 @@ func _apply_workspace_style() -> void:
 
 
 ## 根据登录/展开状态切换窗口尺寸、Chrome 布局与背景显示。
+func _transition_to_expanded() -> void:
+	_resize_window(_expanded_size, Vector2i(960, 640))
+	if _split != null: UiMotion.fade_in(_split, UiMotion.DUR_SLOW)
+
 func _resize_window(target: Vector2i, minimum: Vector2i) -> void:
 	var expanded: bool = _expanded or "--preview" in runtime.arguments()
 	_chrome.set_login_mode(not expanded)
@@ -303,7 +311,7 @@ func _capture_or_resume() -> void:
 		var saved: Error = runtime.capture(get_viewport(),capture)
 		get_tree().quit(0 if saved == OK else 1)
 	elif not runtime.is_headless():
-		_session.resume()
+		await _session.resume()
 
 
 func _show_signed_out() -> void:

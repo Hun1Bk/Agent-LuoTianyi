@@ -2,6 +2,8 @@ extends VBoxContainer
 signal audio_action(action: String)
 signal image_opened(texture: Texture2D)
 signal image_action(action: String)
+signal retry_requested
+const UiMotion = preload("res://src/ui/ui_motion.gd")
 const USER_ICON := preload("res://assets/ui/user_icon.png")
 const TIANYI_ICON := preload("res://assets/ui/tianyi_icon.png")
 const AudioRow = preload("res://scenes/ui/message_audio.tscn")
@@ -31,6 +33,7 @@ var _ui_style: RefCounted
 var _other_style: StyleBoxFlat
 var _styled_panel: StyleBoxFlat
 var _time_style: StyleBoxFlat
+var _delivery_status := ""
 
 func set_ui_style(style: RefCounted) -> void:
 	if _ui_style != null and _ui_style.style_changed.is_connected(_apply_ui_style):
@@ -48,6 +51,8 @@ func _apply_ui_style() -> void:
 	_styled_panel.bg_color = (Color(0.863, 0.949, 1, 0.74) if _own else Color(1, 1, 1, 0.75)) if _ui_style.is_crystal() else (Color(0.80, 0.92, 1.0, 1) if _own else Color(0.945, 0.969, 0.984, 1))
 
 func _ready() -> void:
+	%RetrySend.pressed.connect(func(): retry_requested.emit())
+	visibility_changed.connect(_delivery_motion)
 	_time_style = _time_panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	_time_panel.add_theme_stylebox_override("panel", _time_style)
 	_other_style = _bubble.get_theme_stylebox("panel") as StyleBoxFlat
@@ -131,9 +136,22 @@ func update_message(message: Dictionary) -> void:
 		_text.text = message.text
 		_queue_layout()
 	if _own:
-		_caption.text = {"failed":"发送失败", "uncertain":"无法确认送达，请勿重复发送"}.get(message.status, "")
+		_caption.text = {"waiting_history":"等待历史同步", "queued":"排队中…", "sending":"发送中…", "sent":"✓ 服务器已接收", "failed":"发送失败", "uncertain":"无法确认送达，请勿重复发送"}.get(message.status, "")
 		_caption.visible = not _caption.text.is_empty()
-		_caption.add_theme_color_override("font_color", get_theme_color("delivery_failed", "MessageBubble"))
+		%Delivery.visible = _caption.visible
+		%RetrySend.visible = message.status == "failed" and message.get("can_retry", false)
+		var color := get_theme_color("delivery_failed" if message.status in ["failed", "uncertain"] else "delivery_status", "MessageBubble")
+		_caption.add_theme_color_override("font_color", Color("398b70") if message.status == "sent" else color)
+		if _delivery_status != message.status:
+			_delivery_status = message.status
+			_delivery_motion()
+
+func _delivery_motion() -> void:
+	if not is_node_ready(): return
+	var spinner: Control = %DeliverySpinner
+	UiMotion.cancel(spinner, "spin")
+	spinner.visible = _delivery_status == "sending"
+	if spinner.visible and is_visible_in_tree(): UiMotion.spin(spinner)
 
 func set_time_marker(text: String) -> void:
 	_time_text.text = text

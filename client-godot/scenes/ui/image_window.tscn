@@ -25,16 +25,20 @@ theme_type_variation = &"AppSurface"
 [node name="Column" type="VBoxContainer" parent="Body"]
 theme_override_constants/separation = 12
 
-[node name="ImageScroll" type="ScrollContainer" parent="Body/Column"]
+[node name="ImageScroll" type="Control" parent="Body/Column"]
 unique_name_in_owner = true
 size_flags_vertical = 3
+size_flags_horizontal = 3
+clip_contents = true
+mouse_default_cursor_shape = 6
 
 [node name="Picture" type="TextureRect" parent="Body/Column/ImageScroll"]
 unique_name_in_owner = true
 size_flags_horizontal = 3
 size_flags_vertical = 3
 expand_mode = 1
-stretch_mode = 5
+stretch_mode = 0
+mouse_filter = 2
 
 [node name="ImageError" type="Label" parent="Body/Column"]
 unique_name_in_owner = true
@@ -87,4 +91,5 @@ unique_name_in_owner = true
 text = "关闭"
 
 [node name="Chrome" parent="." instance=ExtResource("chrome")]
+motion_target_path = NodePath("../Body")
 unique_name_in_owner = true

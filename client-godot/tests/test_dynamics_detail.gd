@@ -83,6 +83,7 @@ func test_details() -> void:
 	publish.text = "new post"
 	window.find_child("PublishButton",true,false).pressed.emit()
 	await _wait_until(func(): return window.get_selected_id() == "d99", "publication completes")
+	await _wait_until(func(): return window.find_child("PublishDraft",true,false) == null, "publisher exit transition completes")
 	_check_publication_selects_returned_post_and_closes_publisher(window)
 	check(window.is_dirty(),"publication success preserves another post draft")
 	window.select_post("d0")

@@ -101,4 +101,5 @@ filters = PackedStringArray("*.zip ; ZIP 诊断包")
 use_native_dialog = true
 
 [node name="Chrome" parent="." instance=ExtResource("WindowChrome")]
+motion_target_path = NodePath("../Panel")
 unique_name_in_owner = true

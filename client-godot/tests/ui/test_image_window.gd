@@ -45,7 +45,8 @@ func run() -> void:
 	image_window.get_node("%OriginalSize").pressed.emit()
 	check(image_window.get_node("%Picture").custom_minimum_size == texture.get_size(),"original size uses image pixels")
 	image_window.close_requested.emit()
-	check(not image_window.visible and image_window.get_node("%Picture").texture == null,"close releases image and hides window")
+	await image_window.get_node("%Chrome").get_node("../Body").get_meta(&"_ui_motion_channels")["pop"].tween.finished
+	check(not image_window.visible and image_window.get_node("%Picture").texture == null,"close transition releases image and hides window")
 	presenter.open_image(second,func(): return texture)
 	second.queue_free()
 	await process_frame

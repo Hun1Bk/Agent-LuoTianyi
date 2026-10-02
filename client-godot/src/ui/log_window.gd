@@ -1,4 +1,4 @@
-﻿extends Window
+extends Window
 @export var files: Resource = preload("res://src/platform/file_interaction.gd").new()
 @export var input_service: Resource = preload("res://src/platform/input_service.gd").new()
 var _logger: RefCounted
@@ -56,7 +56,7 @@ func _initialize() -> void:
 	files.export_selected.connect(func(target):
 		var error: Error = target.export_log(_logger,_export_id)
 		_status.text = "所选启动的完整诊断已导出（未上传）。" if error == OK else "导出失败（%s），请选择尚不存在且可写的文件。" % error)
-	close_requested.connect(hide)
+	close_requested.connect(func(): %Chrome.close_window(hide))
 	_logger.entry_added.connect(func(entry):
 		if visible and _selected == _logger.get_run_id() and _matches(entry):
 			_append(entry))

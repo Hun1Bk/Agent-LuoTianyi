@@ -1,4 +1,5 @@
 extends Window
+const UiMotion = preload("res://src/ui/ui_motion.gd")
 signal confirmed
 signal canceled
 signal custom_action(action: String)
@@ -22,7 +23,11 @@ func _display() -> void:
 	%Confirm.text = ok_button_text
 	%Cancel.text = cancel_button_text
 	%SaveAndClose.visible = show_save
-	if visible: %Cancel.grab_focus.call_deferred()
+	if visible:
+		UiMotion.pop_in(get_node("Panel"), UiMotion.DUR_FAST)
+		%Cancel.grab_focus.call_deferred()
+	else:
+		UiMotion.cancel_all(get_node("Panel"))
 
 func _cancel() -> void:
 	hide()

@@ -6,6 +6,7 @@
 
 - [架构与行为边界](architecture.md)：装配、账号、窗口、聊天、动态和平台能力。
 - [测试与门禁](testing.md)：依赖、四组入口、GPU 与验收边界。
+- [登录与 P1 UI 动效](ui-motion-implementation.md)：行为、接口、回归入口与真实引擎截图。
 - [PR #186 第四轮整改证据](review-186.md)：N22–N30 的处理与真实验证结果。
 - [PR 描述与复审回复草稿](pr-186-response.md)：仅供提交推送后的人工更新，不代表远端已更新。
 - [测试目录说明](../tests/README.md)：单脚本及截图入口。

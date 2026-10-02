@@ -4,8 +4,10 @@ signal interacted
 signal audio_action(id: String, action: String)
 signal image_opened(texture: Texture2D)
 signal image_action(id: String, action: String)
+signal retry_requested(id: String)
 const Bubble = preload("res://scenes/ui/message_bubble.tscn")
 const ChatTime = preload("res://src/ui/chat_time.gd")
+const UiMotion = preload("res://src/ui/ui_motion.gd")
 @onready var _canvas: Control = %Canvas
 var _messages: Array[Dictionary] = []
 var _offsets: Array[float] = []
@@ -17,17 +19,25 @@ var _total := 0.0
 var _width := 0.0
 var _laying := false
 var _visible: Array[String] = []
+var _pending_fresh: Array[String] = []
 var _restore_pending := false
 var _restore_queued := false
 var _pending_anchor: Dictionary = {}
 var _pending_follow := false
+var _scroll_tween: Tween = null
 var _ui_style: RefCounted
+var _smooth_follow := false
+var _typing: Control
+const TypingScene = preload("res://scenes/ui/typing_indicator.tscn")
 
 func set_ui_style(style: RefCounted) -> void:
 	_ui_style = style
 	for bubble in _nodes.values(): bubble.set_ui_style(style)
 
 func _ready() -> void:
+	_typing = TypingScene.instantiate()
+	# Keep the transient decoration out of public message-child enumeration.
+	_canvas.add_child(_typing, false, Node.INTERNAL_MODE_BACK)
 	get_v_scroll_bar().value_changed.connect(func(_value):
 		if not _laying and not _restore_pending:
 			_render())
@@ -35,7 +45,7 @@ func _ready() -> void:
 	gui_input.connect(_user_input)
 	resized.connect(_resized)
 
-func set_messages(messages: Array[Dictionary]) -> void:
+func set_messages(messages: Array[Dictionary], fresh_ids: Array[String] = []) -> void:
 	var follow := is_at_latest()
 	var anchor := get_reading_anchor()
 	_messages = messages
@@ -52,16 +62,47 @@ func set_messages(messages: Array[Dictionary]) -> void:
 	for id in _heights.keys():
 		if not _indices.has(id):
 			_heights.erase(id)
+	_pending_fresh = fresh_ids.duplicate()
 	_layout(anchor,follow)
 
 func scroll_to_message(id: String) -> bool:
+	_cancel_scroll()
 	if not _indices.has(id):
 		return false
 	_layout({"id":id,"offset":0.0},false)
 	return true
 
 func scroll_to_latest() -> void:
+	_cancel_scroll()
 	_layout({},true)
+
+## 平滑滚动到底部（用户点击「回到最新」时调用），滚动期间不打断布局。
+func smooth_scroll_to_latest() -> void:
+	if _messages.is_empty(): return
+	_smooth_follow = true
+	_retarget_scroll()
+
+func _retarget_scroll() -> void:
+	var target := maxi(0, roundi(_total - size.y))
+	var distance := absf(float(scroll_vertical) - target)
+	if distance < 2:
+		_cancel_scroll()
+		return
+	var duration := clampf(distance / 2400.0, 0.15, 0.45)
+	_scroll_tween = UiMotion.property_to(self, "scroll_vertical", target, duration, "scroll")
+	_scroll_tween.finished.connect(func(): _smooth_follow = false; _scroll_tween = null)
+
+func _cancel_scroll() -> void:
+	UiMotion.cancel(self, "scroll", false)
+	_scroll_tween = null
+	_smooth_follow = false
+
+func set_typing(active: bool) -> void:
+	if _typing.visible == active: return
+	var anchor := get_reading_anchor()
+	var follow := is_at_latest()
+	_typing.visible = active
+	_layout(anchor, follow)
 
 func get_visible_ids() -> Array[String]:
 	return _visible.duplicate()
@@ -83,6 +124,9 @@ func is_at_latest() -> bool:
 	if _restore_pending: return _pending_follow
 	return float(scroll_vertical) >= _total-size.y-24
 
+func is_scrolling_to_latest() -> bool:
+	return _smooth_follow
+
 func set_audio_state(id: String, state: Dictionary) -> void:
 	if _nodes.has(id):
 		_nodes[id].set_audio_state(state)
@@ -93,11 +137,13 @@ func set_image_state(id: String, state: Dictionary) -> void:
 
 func _user_input(event: InputEvent) -> void:
 	if (event is InputEventMouseButton and event.pressed) or event is InputEventPanGesture or (event is InputEventKey and event.pressed):
+		_cancel_scroll()
 		_restore_pending = false
 		interacted.emit()
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN] and get_global_rect().has_point(get_global_mouse_position()):
+		_cancel_scroll()
 		_restore_pending = false
 		interacted.emit()
 
@@ -138,14 +184,17 @@ func _layout(anchor: Dictionary, follow: bool) -> void:
 	for message in _messages:
 		_offsets.append(_total)
 		_total += float(_heights.get(message.id,100))
+	_typing.position = Vector2(0, _total)
+	_typing.size = Vector2(maxf(1, size.x-16), 48)
+	if _typing.visible: _total += 68
 	_canvas.custom_minimum_size = Vector2(0,_total)
 	_canvas.size = Vector2(size.x,_total)
 	var bar := get_v_scroll_bar()
 	bar.max_value = maxf(_total,size.y)
 	bar.page = size.y
-	if follow:
+	if follow and not _smooth_follow:
 		scroll_vertical = maxi(0,roundi(_total-size.y))
-	elif _indices.has(anchor.get("id","")):
+	elif not _smooth_follow and _indices.has(anchor.get("id","")):
 		scroll_vertical = roundi(_offsets[_indices[anchor.id]]+anchor.offset)
 	_laying = false
 	_render()
@@ -165,12 +214,13 @@ func _finish_scroll_restore() -> void:
 	var bar := get_v_scroll_bar()
 	bar.max_value = maxf(_total,size.y)
 	bar.page = size.y
-	if _pending_follow:
+	if _pending_follow and not _smooth_follow:
 		scroll_vertical = maxi(0,roundi(_total-size.y))
-	elif _indices.has(_pending_anchor.get("id","")):
+	elif not _smooth_follow and _indices.has(_pending_anchor.get("id","")):
 		scroll_vertical = roundi(_offsets[_indices[_pending_anchor.id]]+_pending_anchor.offset)
 	_restore_pending = false
 	_laying = false
+	if _smooth_follow: _retarget_scroll()
 	_render()
 
 func _render() -> void:
@@ -194,6 +244,7 @@ func _render() -> void:
 			_nodes[id].size = Vector2(maxf(1,size.x-16),height)
 			if _offsets[index]+height > scroll_vertical and _offsets[index]<scroll_vertical+size.y:
 				visible.append(id)
+	_pending_fresh.clear()
 	for id in _nodes.keys():
 		if not wanted.has(id):
 			_remove(id)
@@ -225,4 +276,19 @@ func _create_bubble(id: String, message: Dictionary) -> void:
 	bubble.audio_action.connect(func(action): audio_action.emit(id,action))
 	bubble.image_opened.connect(func(texture): image_opened.emit(texture))
 	bubble.image_action.connect(func(action): image_action.emit(id,action))
+	bubble.retry_requested.connect(func(): retry_requested.emit(id))
 	_nodes[id] = bubble
+	if _pending_fresh.has(id):
+		_pending_fresh.erase(id)
+		bubble.modulate.a = 0.0
+		UiMotion.fade_in(bubble, UiMotion.DUR_BASE)
+
+
+
+
+
+
+
+
+func _exit_tree() -> void:
+	_cancel_scroll()

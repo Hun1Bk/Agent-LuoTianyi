@@ -1,0 +1,866 @@
+﻿[
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "GET",
+        "path":  "/auth/public_key",
+        "request_payload":  null,
+        "step":  "http.public_key",
+        "transport":  "http",
+        "ts":  1790441386554
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "GET",
+        "path":  "/auth/public_key",
+        "response_payload":  {
+                                 "public_key":  "\u003credacted len=451 sha256=70e431975e0b\u003e"
+                             },
+        "status":  200,
+        "step":  "http.public_key.response",
+        "transport":  "http",
+        "ts":  1790441386570
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/auth/register",
+        "request_payload":  {
+                                "invite_code":  "local",
+                                "password":  "\u003credacted len=20 sha256=d240c86e4063\u003e",
+                                "username":  "behavior-comparison"
+                            },
+        "step":  "http.register",
+        "transport":  "http",
+        "ts":  1790441386570
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/auth/register",
+        "response_payload":  {
+                                 "message":  "registered",
+                                 "user_id":  "behavior-comparison"
+                             },
+        "status":  200,
+        "step":  "http.register.response",
+        "transport":  "http",
+        "ts":  1790441386604
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/auth/login",
+        "request_payload":  {
+                                "password":  "\u003credacted len=20 sha256=d240c86e4063\u003e",
+                                "request_token":  false,
+                                "username":  "behavior-comparison"
+                            },
+        "step":  "http.login",
+        "transport":  "http",
+        "ts":  1790441386604
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/auth/login",
+        "response_payload":  {
+                                 "login_token":  "\u003credacted len=32 sha256=cea85dbad803\u003e",
+                                 "message_token":  "\u003credacted len=32 sha256=01cc34ef973e\u003e",
+                                 "user_id":  "behavior-comparison"
+                             },
+        "status":  200,
+        "step":  "http.login.response",
+        "transport":  "http",
+        "ts":  1790441386638
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/auth/auto_login",
+        "request_payload":  {
+                                "token":  "\u003credacted len=32 sha256=cea85dbad803\u003e",
+                                "username":  "behavior-comparison"
+                            },
+        "step":  "http.auto_login",
+        "transport":  "http",
+        "ts":  1790441386638
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/auth/auto_login",
+        "response_payload":  {
+                                 "login_token":  "\u003credacted len=32 sha256=cea85dbad803\u003e",
+                                 "message_token":  "\u003credacted len=32 sha256=01cc34ef973e\u003e",
+                                 "user_id":  "behavior-comparison"
+                             },
+        "status":  200,
+        "step":  "http.auto_login.response",
+        "transport":  "http",
+        "ts":  1790441386673
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/auth/reset_account",
+        "request_payload":  {
+                                "invite_code":  "local",
+                                "new_password":  "\u003credacted len=20 sha256=d240c86e4063\u003e",
+                                "new_username":  "behavior-comparison-reset"
+                            },
+        "step":  "http.reset_account",
+        "transport":  "http",
+        "ts":  1790441386673
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/auth/reset_account",
+        "response_payload":  {
+                                 "message":  "reset",
+                                 "username":  "behavior-comparison-reset"
+                             },
+        "status":  200,
+        "step":  "http.reset_account.response",
+        "transport":  "http",
+        "ts":  1790441386708
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "GET",
+        "path":  "/llm/client-model-types",
+        "request_payload":  null,
+        "step":  "http.client_model_types",
+        "transport":  "http",
+        "ts":  1790441386708
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "GET",
+        "path":  "/llm/client-model-types",
+        "response_payload":  {
+                                 "types":  [
+
+                                           ]
+                             },
+        "status":  200,
+        "step":  "http.client_model_types.response",
+        "transport":  "http",
+        "ts":  1790441386742
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "GET",
+        "path":  "/history?username=behavior-comparison\u0026count=50\u0026end_index=-1",
+        "request_payload":  null,
+        "step":  "http.history",
+        "transport":  "http",
+        "ts":  1790441386743
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "GET",
+        "path":  "/history?username=behavior-comparison\u0026count=50\u0026end_index=-1",
+        "response_payload":  {
+                                 "history":  [
+
+                                             ],
+                                 "start_index":  0.0
+                             },
+        "status":  200,
+        "step":  "http.history.response",
+        "transport":  "http",
+        "ts":  1790441386777
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "GET",
+        "path":  "/dynamics?username=behavior-comparison\u0026limit=10",
+        "request_payload":  null,
+        "step":  "http.dynamics",
+        "transport":  "http",
+        "ts":  1790441386777
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "GET",
+        "path":  "/dynamics?username=behavior-comparison\u0026limit=10",
+        "response_payload":  {
+                                 "has_more":  false,
+                                 "items":  [
+
+                                           ],
+                                 "next_cursor":  null
+                             },
+        "status":  200,
+        "step":  "http.dynamics.response",
+        "transport":  "http",
+        "ts":  1790441386811
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "GET",
+        "path":  "/dynamics/unread?username=behavior-comparison",
+        "request_payload":  null,
+        "step":  "http.dynamics_unread",
+        "transport":  "http",
+        "ts":  1790441386811
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "GET",
+        "path":  "/dynamics/unread?username=behavior-comparison",
+        "response_payload":  {
+                                 "has_unread":  false,
+                                 "unread_comment_count":  0.0,
+                                 "unread_count":  0.0,
+                                 "unread_dynamic_count":  0.0
+                             },
+        "status":  200,
+        "step":  "http.dynamics_unread.response",
+        "transport":  "http",
+        "ts":  1790441386846
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/preference/get",
+        "request_payload":  {
+                                "token":  "\u003credacted len=32 sha256=01cc34ef973e\u003e",
+                                "username":  "behavior-comparison"
+                            },
+        "step":  "http.preference_get",
+        "transport":  "http",
+        "ts":  1790441386846
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/preference/get",
+        "response_payload":  {
+                                 "preferences":  {
+
+                                                 }
+                             },
+        "status":  200,
+        "step":  "http.preference_get.response",
+        "transport":  "http",
+        "ts":  1790441386880
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/preference/overwrite",
+        "request_payload":  {
+                                "preferences":  {
+
+                                                },
+                                "token":  "\u003credacted len=32 sha256=01cc34ef973e\u003e",
+                                "username":  "behavior-comparison"
+                            },
+        "step":  "http.preference_overwrite",
+        "transport":  "http",
+        "ts":  1790441386880
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/preference/overwrite",
+        "response_payload":  {
+                                 "status":  "success"
+                             },
+        "status":  200,
+        "step":  "http.preference_overwrite.response",
+        "transport":  "http",
+        "ts":  1790441386915
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/dynamics/read",
+        "request_payload":  {
+                                "token":  "\u003credacted len=32 sha256=01cc34ef973e\u003e",
+                                "username":  "behavior-comparison"
+                            },
+        "step":  "http.dynamics_read",
+        "transport":  "http",
+        "ts":  1790441386915
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/dynamics/read",
+        "response_payload":  {
+                                 "ok":  true
+                             },
+        "status":  200,
+        "step":  "http.dynamics_read.response",
+        "transport":  "http",
+        "ts":  1790441386950
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/dynamics",
+        "request_payload":  {
+                                "content":  "behavior test",
+                                "token":  "\u003credacted len=32 sha256=01cc34ef973e\u003e",
+                                "username":  "behavior-comparison"
+                            },
+        "step":  "http.dynamics_create",
+        "transport":  "http",
+        "ts":  1790441386950
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/dynamics",
+        "response_payload":  {
+                                 "item":  {
+                                              "allow_comment":  true,
+                                              "author_name":  "local-mock",
+                                              "author_type":  "user",
+                                              "comment_count":  0.0,
+                                              "content":  "",
+                                              "created_at":  "1970-01-01 00:00:00",
+                                              "id":  "mock-post-af7058f6295f"
+                                          }
+                             },
+        "status":  200,
+        "step":  "http.dynamics_create.response",
+        "transport":  "http",
+        "ts":  1790441386983
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "GET",
+        "path":  "/dynamics/mock-post-af7058f6295f/comments?username=behavior-comparison\u0026limit=20",
+        "request_payload":  null,
+        "step":  "http.comments",
+        "transport":  "http",
+        "ts":  1790441386983
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "GET",
+        "path":  "/dynamics/mock-post-af7058f6295f/comments?username=behavior-comparison\u0026limit=20",
+        "response_payload":  {
+                                 "has_more":  false,
+                                 "items":  [
+
+                                           ],
+                                 "next_cursor":  null
+                             },
+        "status":  200,
+        "step":  "http.comments.response",
+        "transport":  "http",
+        "ts":  1790441387018
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/dynamics/mock-post-af7058f6295f/comments",
+        "request_payload":  {
+                                "content":  "comment",
+                                "parent_comment_id":  null,
+                                "token":  "\u003credacted len=32 sha256=01cc34ef973e\u003e",
+                                "username":  "behavior-comparison"
+                            },
+        "step":  "http.comment_create",
+        "transport":  "http",
+        "ts":  1790441387019
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/dynamics/mock-post-af7058f6295f/comments",
+        "response_payload":  {
+                                 "item":  {
+                                              "author_name":  "local-mock",
+                                              "author_type":  "user",
+                                              "content":  "",
+                                              "created_at":  "1970-01-01 00:00:00",
+                                              "dynamic_id":  "mock-post-af7058f6295f",
+                                              "id":  "mock-post-af7058f6295f:comment-a23bb4577ea4",
+                                              "parent_comment_id":  null
+                                          }
+                             },
+        "status":  200,
+        "step":  "http.comment_create.response",
+        "transport":  "http",
+        "ts":  1790441387053
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/update_image_client_path",
+        "request_payload":  {
+                                "image_client_path":  "",
+                                "token":  "\u003credacted len=32 sha256=01cc34ef973e\u003e",
+                                "username":  "behavior-comparison",
+                                "uuid":  "behavior-image"
+                            },
+        "step":  "http.update_image_client_path",
+        "transport":  "http",
+        "ts":  1790441387053
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/update_image_client_path",
+        "response_payload":  {
+
+                             },
+        "status":  200,
+        "step":  "http.update_image_client_path.response",
+        "transport":  "http",
+        "ts":  1790441387087
+    },
+    {
+        "client":  "godot",
+        "direction":  "client_to_server",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/get_image",
+        "request_payload":  {
+                                "token":  "\u003credacted len=32 sha256=01cc34ef973e\u003e",
+                                "username":  "behavior-comparison",
+                                "uuid":  "behavior-image"
+                            },
+        "step":  "http.get_image",
+        "transport":  "http",
+        "ts":  1790441387087
+    },
+    {
+        "client":  "godot",
+        "direction":  "server_to_client",
+        "kind":  "client_test",
+        "method":  "POST",
+        "path":  "/get_image",
+        "response_payload":  {
+                                 "detail":  "mock server has no stored images"
+                             },
+        "status":  404,
+        "step":  "http.get_image.response",
+        "transport":  "http",
+        "ts":  1790441387121
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  null,
+        "direction":  "server_to_client",
+        "event_type":  "system_ready",
+        "kind":  "client_test",
+        "payload":  {
+                        "message":  "mock server ready",
+                        "require_auth_before_chat":  true
+                    },
+        "reply_to":  null,
+        "step":  "ws.system_ready",
+        "transport":  "websocket",
+        "ts":  1790441387128
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  "behavior-d7031fb23bdf",
+        "direction":  "client_to_server",
+        "event_type":  "user_auth",
+        "kind":  "client_test",
+        "payload":  {
+                        "capabilities":  [
+                                             "negative_ack_v1"
+                                         ],
+                        "token":  "\u003credacted len=32 sha256=01cc34ef973e\u003e",
+                        "username":  "behavior-comparison"
+                    },
+        "reply_to":  null,
+        "step":  "ws.user_auth.send",
+        "transport":  "websocket",
+        "ts":  1790441387129
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  null,
+        "direction":  "server_to_client",
+        "event_type":  "auth_ok",
+        "kind":  "client_test",
+        "payload":  {
+                        "capabilities":  [
+                                             "negative_ack_v1"
+                                         ],
+                        "message":  "authentication successful"
+                    },
+        "reply_to":  "behavior-d7031fb23bdf",
+        "step":  "ws.auth_ok.receive",
+        "transport":  "websocket",
+        "ts":  1790441387135
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  "behavior-81ddec598c64",
+        "direction":  "client_to_server",
+        "event_type":  "hb_ping",
+        "kind":  "client_test",
+        "payload":  {
+                        "ping_id":  1
+                    },
+        "reply_to":  null,
+        "step":  "ws.hb_ping.send",
+        "transport":  "websocket",
+        "ts":  1790441387135
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  null,
+        "direction":  "server_to_client",
+        "event_type":  "hb_pong",
+        "kind":  "client_test",
+        "payload":  {
+                        "ping_id":  1.0,
+                        "server_ts":  1790441387137.0
+                    },
+        "reply_to":  "behavior-81ddec598c64",
+        "step":  "ws.hb_pong.receive",
+        "transport":  "websocket",
+        "ts":  1790441387142
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  "behavior-891ed67022df",
+        "direction":  "client_to_server",
+        "event_type":  "user_typing",
+        "kind":  "client_test",
+        "payload":  {
+                        "text_length":  2
+                    },
+        "reply_to":  null,
+        "step":  "ws.user_typing_start.send",
+        "transport":  "websocket",
+        "ts":  1790441387142
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  null,
+        "direction":  "server_to_client",
+        "event_type":  "server_ack",
+        "kind":  "client_test",
+        "payload":  {
+                        "ok":  true,
+                        "received_event_type":  "user_typing"
+                    },
+        "reply_to":  "behavior-891ed67022df",
+        "step":  "ws.user_typing_start.ack",
+        "transport":  "websocket",
+        "ts":  1790441387149
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  "behavior-87ff6684f2be",
+        "direction":  "client_to_server",
+        "event_type":  "user_typing",
+        "kind":  "client_test",
+        "payload":  {
+                        "text_length":  0
+                    },
+        "reply_to":  null,
+        "step":  "ws.user_typing_end.send",
+        "transport":  "websocket",
+        "ts":  1790441387149
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  null,
+        "direction":  "server_to_client",
+        "event_type":  "server_ack",
+        "kind":  "client_test",
+        "payload":  {
+                        "ok":  true,
+                        "received_event_type":  "user_typing"
+                    },
+        "reply_to":  "behavior-87ff6684f2be",
+        "step":  "ws.user_typing_end.ack",
+        "transport":  "websocket",
+        "ts":  1790441387156
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  "behavior-5d13c9f84aab",
+        "direction":  "client_to_server",
+        "event_type":  "user_text",
+        "kind":  "client_test",
+        "payload":  {
+                        "llm_mode":  {
+                                         "types":  [
+
+                                                   ]
+                                     },
+                        "message":  "hello"
+                    },
+        "reply_to":  null,
+        "step":  "ws.user_text.send",
+        "transport":  "websocket",
+        "ts":  1790441387156
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  null,
+        "direction":  "server_to_client",
+        "event_type":  "server_ack",
+        "kind":  "client_test",
+        "payload":  {
+                        "ok":  true,
+                        "received_event_type":  "user_text"
+                    },
+        "reply_to":  "behavior-5d13c9f84aab",
+        "step":  "ws.user_text.ack",
+        "transport":  "websocket",
+        "ts":  1790441387163
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  null,
+        "direction":  "server_to_client",
+        "event_type":  "agent_message",
+        "kind":  "client_test",
+        "payload":  {
+                        "audio":  "\u003credacted len=0 sha256=e3b0c44298fc\u003e",
+                        "display_in_chat":  true,
+                        "expression":  null,
+                        "is_final_package":  true,
+                        "text":  "",
+                        "uuid":  "mock-b4ba72178d4c4eb6bb76492c506daeab"
+                    },
+        "reply_to":  "behavior-5d13c9f84aab",
+        "step":  "ws.user_text.reply",
+        "transport":  "websocket",
+        "ts":  1790441387163
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  "behavior-f7b3ba61fd15",
+        "direction":  "client_to_server",
+        "event_type":  "user_image_selecting",
+        "kind":  "client_test",
+        "payload":  {
+
+                    },
+        "reply_to":  null,
+        "step":  "ws.image_select.send",
+        "transport":  "websocket",
+        "ts":  1790441387163
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  null,
+        "direction":  "server_to_client",
+        "event_type":  "server_ack",
+        "kind":  "client_test",
+        "payload":  {
+                        "ok":  true,
+                        "received_event_type":  "user_image_selecting"
+                    },
+        "reply_to":  "behavior-f7b3ba61fd15",
+        "step":  "ws.image_select.ack",
+        "transport":  "websocket",
+        "ts":  1790441387170
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  "behavior-9c25e70146a6",
+        "direction":  "client_to_server",
+        "event_type":  "user_image_selecting_cancel",
+        "kind":  "client_test",
+        "payload":  {
+
+                    },
+        "reply_to":  null,
+        "step":  "ws.image_cancel.send",
+        "transport":  "websocket",
+        "ts":  1790441387170
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  null,
+        "direction":  "server_to_client",
+        "event_type":  "server_ack",
+        "kind":  "client_test",
+        "payload":  {
+                        "ok":  true,
+                        "received_event_type":  "user_image_selecting_cancel"
+                    },
+        "reply_to":  "behavior-9c25e70146a6",
+        "step":  "ws.image_cancel.ack",
+        "transport":  "websocket",
+        "ts":  1790441387177
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  "behavior-e0f58ffd9c90",
+        "direction":  "client_to_server",
+        "event_type":  "user_touch",
+        "kind":  "client_test",
+        "payload":  {
+                        "timeSinceLastSentTouch":  0.0,
+                        "touchArea":  [
+                                          "头"
+                                      ],
+                        "touchCount":  1
+                    },
+        "reply_to":  null,
+        "step":  "ws.user_touch.send",
+        "transport":  "websocket",
+        "ts":  1790441387177
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  null,
+        "direction":  "server_to_client",
+        "event_type":  "server_ack",
+        "kind":  "client_test",
+        "payload":  {
+                        "ok":  true,
+                        "received_event_type":  "user_touch"
+                    },
+        "reply_to":  "behavior-e0f58ffd9c90",
+        "step":  "ws.user_touch.ack",
+        "transport":  "websocket",
+        "ts":  1790441387183
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  "behavior-b02fdc647e4a",
+        "direction":  "client_to_server",
+        "event_type":  "user_image",
+        "kind":  "client_test",
+        "payload":  {
+                        "image_base64":  "\u003credacted len=16 sha256=b2c0f5497dec\u003e",
+                        "image_client_path":  "",
+                        "llm_mode":  {
+                                         "types":  [
+
+                                                   ]
+                                     },
+                        "mime_type":  "image/png"
+                    },
+        "reply_to":  null,
+        "step":  "ws.user_image.send",
+        "transport":  "websocket",
+        "ts":  1790441387183
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  null,
+        "direction":  "server_to_client",
+        "event_type":  "server_ack",
+        "kind":  "client_test",
+        "payload":  {
+                        "ok":  true,
+                        "received_event_type":  "user_image"
+                    },
+        "reply_to":  "behavior-b02fdc647e4a",
+        "step":  "ws.user_image.ack",
+        "transport":  "websocket",
+        "ts":  1790441387190
+    },
+    {
+        "client":  "godot",
+        "client_msg_id":  null,
+        "direction":  "server_to_client",
+        "event_type":  "agent_message",
+        "kind":  "client_test",
+        "payload":  {
+                        "audio":  "\u003credacted len=0 sha256=e3b0c44298fc\u003e",
+                        "display_in_chat":  true,
+                        "expression":  null,
+                        "is_final_package":  true,
+                        "text":  "",
+                        "uuid":  "mock-d2a51a05466d4f688aead162b5100afe"
+                    },
+        "reply_to":  "behavior-b02fdc647e4a",
+        "step":  "ws.user_image.reply",
+        "transport":  "websocket",
+        "ts":  1790441387190
+    },
+    {
+        "client":  "godot",
+        "direction":  "client",
+        "kind":  "client_test",
+        "result":  "closed",
+        "step":  "ws.closed",
+        "transport":  "websocket",
+        "ts":  1790441387190
+    },
+    {
+        "client":  "godot",
+        "direction":  "client",
+        "kind":  "client_test",
+        "result":  "passed",
+        "step":  "client.finished",
+        "transport":  "runner",
+        "ts":  1790441387190
+    }
+]

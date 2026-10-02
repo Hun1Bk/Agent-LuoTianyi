@@ -9,6 +9,8 @@ func select_layout(_key: String, _size: Vector2i, _minimum: Vector2i) -> void:
 	pass
 func open_window() -> void:
 	pass
+func is_presentation_active() -> bool:
+	return true
 func tick(_delta: float) -> void:
 	pass
 func save() -> void:
