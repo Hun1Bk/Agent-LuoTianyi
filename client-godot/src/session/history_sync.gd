@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 signal page_received(messages: Array[Dictionary])
 signal boundary_ready
 signal state_changed(state: Dictionary)
@@ -9,17 +9,22 @@ var _generation := 0
 var _end := -1
 var _seen: Dictionary = {}
 var _state: Dictionary
+var _boundary_ready_emitted := false
+
 func _init(api: Node, logger: RefCounted = null) -> void:
 	_api = api
 	_logger = logger
 	add_child(api)
 	_state = _empty()
+	_boundary_ready_emitted = false
+
 func start(session: Dictionary) -> void:
 	stop()
 	_session = session.duplicate(true)
 	_state.phase = "first_loading"
 	_notify()
 	_load.call_deferred(_generation)
+
 func stop() -> void:
 	_generation += 1
 	_api.cancel()
@@ -28,8 +33,10 @@ func stop() -> void:
 	_end = -1
 	_state = _empty()
 	_notify()
+
 func get_state() -> Dictionary:
 	return _state.duplicate(true)
+
 func retry() -> void:
 	if _state.phase not in ["first_failed","failed"]:
 		return
@@ -37,6 +44,7 @@ func retry() -> void:
 	_state.code = ""
 	_notify()
 	_load.call_deferred(_generation)
+
 func skip() -> void:
 	if _state.phase != "first_failed":
 		return
@@ -45,6 +53,7 @@ func skip() -> void:
 	_state.code = ""
 	_notify()
 	boundary_ready.emit()
+
 func _load(generation: int) -> void:
 	while generation == _generation and _state.phase in ["first_loading","loading"]:
 		var response: Dictionary = await _api.fetch_page(_session,_end)
@@ -53,11 +62,13 @@ func _load(generation: int) -> void:
 		if not response.ok:
 			_fail(response.code)
 			return
+		
 		var start: Variant = response.data.get("start_index")
 		var rows: Array = response.data.get("history",[])
 		if not _valid_page_bounds(start, rows.size()):
 			_fail("HISTORY_INVALID")
 			return
+			
 		var messages := _page_messages(rows)
 		if messages.size() != rows.size():
 			_fail("HISTORY_INVALID")
@@ -75,16 +86,20 @@ func _load(generation: int) -> void:
 			boundary_ready.emit()
 		# Yield between pages so network/audio/UI all continue making progress.
 		await get_tree().process_frame
+
 func _fail(code: String) -> void:
 	_state.phase = "first_failed" if _end == -1 else "failed"
 	_state.code = code
 	_notify()
+
 func _notify() -> void:
 	if _logger != null:
 		_logger.record("history_state",{"phase":_state.phase,"code":_state.code,"count":_state.count,"index":_end})
 	state_changed.emit(get_state())
+
 func _empty() -> Dictionary:
 	return {"phase":"idle","code":"","count":0,"start_index":-1,"incomplete":false}
+
 func _exit_tree() -> void:
 	stop()
 
@@ -105,7 +120,7 @@ func _page_messages(rows: Array) -> Array[Dictionary]:
 	for row in rows:
 		if not _valid_history_row(row):
 			return []
-		messages.append({"id":row.uuid,"role":"assistant" if row.source == "agent" else row.source,"text":"[图片]" if row.type == "image" else row.content,"type":row.type,"timestamp":row.timestamp,"history":true,"status":"received","code":""})
+		messages.append({"id":row.uuid,"role":"assistant" if row.source == "agent" else row.source,"text":"" if row.type == "image" else row.content,"type":row.type,"timestamp":row.timestamp,"history":true,"status":"received","code":""})
 	return messages
 
 func _valid_history_row(row: Variant) -> bool:
