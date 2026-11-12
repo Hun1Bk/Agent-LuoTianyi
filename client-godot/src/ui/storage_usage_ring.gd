@@ -2,7 +2,7 @@ extends Control
 
 ## 圆环与图例共用同一组颜色，避免两处各写一份后逐渐漂移。
 const BACKDROP_COLOR := Color(0.921569, 0.956863, 0.984314, 1)
-const CLIENT_COLOR := Color(0, 0.780392, 0.941176, 1)
+const CLIENT_COLOR := Color(0.4, 0.8, 1, 1)
 const OTHER_COLOR := Color(0.784314, 0.823529, 0.862745, 1)
 const FREE_COLOR := Color(1, 1, 1, 1)
 const TRACK_COLOR := Color(1, 1, 1, 1)

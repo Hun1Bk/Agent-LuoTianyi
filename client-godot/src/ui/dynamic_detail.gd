@@ -1,8 +1,9 @@
 extends ScrollContainer
-const CommentRow = preload("res://scenes/ui/dynamic_comment_row.tscn")
+const CommentRow = preload("res://scenes/ui/dynamics/dynamic_comment_row.tscn")
 const TIANYI_ICON := preload("res://assets/ui/tianyi_icon.png")
 const USER_ICON := preload("res://assets/ui/user_icon.png")
 const ErrorDialog = preload("res://src/ui/error_dialog.gd")
+
 @onready var _column: VBoxContainer = %Column
 @onready var _avatar: TextureRect = %Avatar
 @onready var _author: Label = %Author

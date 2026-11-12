@@ -6,7 +6,7 @@ signal interacted
 signal audio_action(id: String, action: String)
 signal image_opened(texture: Texture2D)
 signal image_action(id: String, action: String)
-const Bubble = preload("res://scenes/ui/message_bubble.tscn")
+const Bubble = preload("res://scenes/ui/chat/message_bubble.tscn")
 const ChatTime = preload("res://src/ui/chat_time.gd")
 ## 送达结果不确定的消息按「没发生过」处理：不建气泡、不占高度、退出也不会因此拦人。
 const HIDDEN_STATUSES: Array[String] = ["uncertain", "superseded"]
@@ -55,6 +55,8 @@ func _ready() -> void:
 	get_v_scroll_bar().gui_input.connect(_user_input)
 	gui_input.connect(_user_input)
 	resized.connect(_resized)
+	if not _messages.is_empty():
+		_layout({}, _stable_follow)
 
 func set_messages(messages: Array[Dictionary]) -> void:
 	_capture_anchor_now()

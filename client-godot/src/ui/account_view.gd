@@ -2,8 +2,9 @@ extends PanelContainer
 signal log_requested
 signal feedback_requested
 const Session = preload("res://src/session/account_session.gd")
-const HistoryRow = preload("res://scenes/ui/login_account_row.tscn")
+const HistoryRow = preload("res://scenes/ui/components/login_account_row.tscn")
 const ErrorDialog = preload("res://src/ui/error_dialog.gd")
+const ModalStack = preload("res://src/ui/modal_stack.gd")
 const PASSWORD_HINT := "密码只允许英文字母、数字和英文符号，不接受中文或其他字符。"
 @export var input_service: Resource = preload("res://src/platform/input_service.gd").new()
 var _password_drafts := {"password":"", "confirm":""}
@@ -319,7 +320,9 @@ func _open_server() -> void:
 	%Server.text = _session.get_login_defaults().server
 	%ServerStatus.text = "验证连接成功后才使用新地址。"
 	var available := Vector2i(get_window().get_visible_rect().size)-Vector2i(24,24)
+	%ServerDialog.exclusive = false
 	%ServerDialog.popup_centered(Vector2i(mini(416,available.x),mini(280,available.y)))
+	ModalStack.activate(%ServerDialog)
 	%Server.grab_focus()
 
 func _save_server() -> void:

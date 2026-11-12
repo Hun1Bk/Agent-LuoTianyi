@@ -7,13 +7,14 @@ const Driver = preload("res://src/avatar/avatar_driver.gd")
 const Framing = preload("res://src/avatar/avatar_framing.gd")
 const ErrorDialog = preload("res://src/ui/error_dialog.gd")
 @export var settings: Resource = preload("res://src/storage/settings_store.gd").new()
-const Ripple := preload("res://scenes/avatar/touch_ripple.tscn")
+const Ripple := preload("res://src/avatar/touch_ripple.gd")
 @onready var avatar: Driver = %Driver
 @onready var _error_label: Label = %Error
 @onready var _reset_button: Button = %Reset
 var framing: RefCounted
 var _dragging := false
 var _ui_style: RefCounted
+var _heading_style: StyleBoxFlat
 var _reset_styles: Array[StyleBoxFlat] = []
 var _dynamic_post: Dictionary = {}
 var _dynamic_opening := false
@@ -38,9 +39,11 @@ func set_ui_style(style: RefCounted) -> void:
 
 func _apply_ui_style() -> void:
 	if _ui_style == null or not is_node_ready(): return
-	var heading := %Heading.get_theme_stylebox("panel") as StyleBoxFlat
-	_ui_style.apply_surface_style(heading)
-	heading.bg_color = Color(1, 1, 1, 0.82 if _ui_style.is_crystal() else 0.94)
+	if _heading_style == null:
+		_heading_style = %Heading.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+		%Heading.add_theme_stylebox_override("panel", _heading_style)
+	_ui_style.apply_surface_style(_heading_style)
+	_heading_style.bg_color = Color(1, 1, 1, 0.82 if _ui_style.is_crystal() else 0.94)
 	for reset_style in _reset_styles:
 		_ui_style.apply_surface_style(reset_style)
 	get_node("Stage/Background").material.set_shader_parameter("corner_radius", 12.0 if _ui_style.is_crystal() else 8.0)
@@ -153,7 +156,7 @@ func _handle_touch(event: InputEventMouseButton) -> void:
 	var local := avatar.to_local(get_global_transform() * event.position)
 	var areas: Array[String] = avatar.hit_test(local)
 	if not areas.is_empty():
-		var ripple := Ripple.instantiate() as Control
+		var ripple := Ripple.new() as Control
 		ripple.position = event.position - Vector2(60, 60)
 		add_child(ripple)
 		touched.emit(areas)

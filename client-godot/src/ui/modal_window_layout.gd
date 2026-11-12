@@ -7,7 +7,12 @@ const SAFE_MARGIN := 32
 const DIALOG_GUTTER := 24
 
 
-static func present(dialog: Window, panel: Control, _content: Control = null) -> void:
+static func present(
+	dialog: Window,
+	panel: Control,
+	_content: Control = null,
+	min_content_height: int = MINIMUM_SIZE.y
+) -> void:
 	if dialog == null or panel == null:
 		return
 	_inset_panel(panel)
@@ -15,7 +20,7 @@ static func present(dialog: Window, panel: Control, _content: Control = null) ->
 	var max_width := maxi(1, host_size.x - SAFE_MARGIN * 2)
 	var max_height := maxi(1, host_size.y - SAFE_MARGIN * 2)
 	var min_width := MINIMUM_SIZE.x + DIALOG_GUTTER * 2
-	var min_height := MINIMUM_SIZE.y + DIALOG_GUTTER * 2
+	var min_height := min_content_height + DIALOG_GUTTER * 2
 	dialog.min_size = Vector2i(mini(min_width, max_width), mini(min_height, max_height))
 	var width := clampi(PREFERRED_SIZE.x + DIALOG_GUTTER * 2, mini(min_width, max_width), max_width)
 	var height := clampi(PREFERRED_SIZE.y + DIALOG_GUTTER * 2, mini(min_height, max_height), max_height)
@@ -26,7 +31,12 @@ static func present(dialog: Window, panel: Control, _content: Control = null) ->
 	dialog.call_deferred("_refine_modal_height")
 
 
-static func refine_height(dialog: Window, panel: Control, content: Control = null) -> void:
+static func refine_height(
+	dialog: Window,
+	panel: Control,
+	content: Control = null,
+	min_content_height: int = MINIMUM_SIZE.y
+) -> void:
 	if dialog == null or panel == null or not dialog.visible:
 		return
 	_inset_panel(panel)
@@ -36,7 +46,7 @@ static func refine_height(dialog: Window, panel: Control, content: Control = nul
 	if content != null:
 		# ScrollContainer 的竖向最小尺寸不包含正文，正文高度必须单独加回来。
 		needed += ceili(content.get_combined_minimum_size().y)
-	var min_height := MINIMUM_SIZE.y + DIALOG_GUTTER * 2
+	var min_height := min_content_height + DIALOG_GUTTER * 2
 	var height := clampi(needed, mini(min_height, max_height), max_height)
 	if dialog.size.y == height:
 		return

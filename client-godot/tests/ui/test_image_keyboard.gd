@@ -1,7 +1,7 @@
 extends SceneTree
 ## #189：图片入口必须能用键盘到达并激活，预览关闭后焦点回到来源。
-const Bubble = preload("res://scenes/ui/message_bubble.tscn")
-const SourceScene = preload("res://scenes/ui/dynamics_window.tscn")
+const Bubble = preload("res://scenes/ui/chat/message_bubble.tscn")
+const SourceScene = preload("res://scenes/ui/windows/dynamics_window.tscn")
 var failures: Array[String] = []
 
 func check(ok: bool, label: String) -> void:

@@ -1,11 +1,16 @@
 extends Window
 ## 统一错误弹窗：按当前窗口懒加载，队列串行展示，重复文本短时间去重。
-const SCENE_PATH := "res://scenes/ui/error_dialog.tscn"
+const SCENE_PATH := "res://scenes/ui/components/error_dialog.tscn"
 const ModalStack = preload("res://src/ui/modal_stack.gd")
 const ModalWindowLayout = preload("res://src/ui/modal_window_layout.gd")
 const MAX_QUEUE := 8
 const DEDUPE_MS := 3000
+const COMPACT_MIN_HEIGHT := 128
 
+@onready var _panel: PanelContainer = %Panel
+@onready var _title_label: Label = %ErrorTitle
+@onready var _text_label: Label = %ErrorText
+@onready var _confirm_button: Button = %ErrorConfirm
 var _queue: Array[Dictionary] = []
 var _current_text := ""
 var _last_text := ""
@@ -24,7 +29,7 @@ static func present(source: Node, text: String, title: String = "提示") -> voi
 		return
 	var dialog := _find(window)
 	if dialog == null:
-		dialog = load(SCENE_PATH).instantiate()
+		dialog = (load(SCENE_PATH) as PackedScene).instantiate()
 		window.add_child(dialog)
 	dialog.show_error(clean, title)
 
@@ -42,7 +47,7 @@ static func _find(window: Window) -> Node:
 
 func _ready() -> void:
 	add_to_group("error_dialog")
-	%ErrorConfirm.pressed.connect(_dismiss)
+	_confirm_button.pressed.connect(_dismiss)
 	close_requested.connect(_dismiss)
 
 
@@ -76,18 +81,51 @@ func get_current_text() -> String:
 func _show_next() -> void:
 	if _queue.is_empty():
 		return
+	var blocker := _blocking_exclusive_window()
+	if blocker != null:
+		_defer_until_unblocked(blocker)
+		return
 	var item: Dictionary = _queue.pop_front()
 	_current_text = str(item.text)
 	_last_text = _current_text
 	_last_at = Time.get_ticks_msec()
-	%ErrorTitle.text = str(item.title)
-	%ErrorText.text = _current_text
+	_title_label.text = str(item.title)
+	_text_label.text = _current_text
 	var owner := get_parent().get_viewport().gui_get_focus_owner() if get_parent() != null else null
 	if owner != null and (_return_focus == null or _return_focus.get_ref() == null):
 		_return_focus = weakref(owner)
-	ModalWindowLayout.present(self, %Panel, %ErrorText)
+	ModalWindowLayout.present(self, _panel, _text_label, COMPACT_MIN_HEIGHT)
 	ModalStack.activate(self)
-	%ErrorConfirm.grab_focus.call_deferred()
+	_confirm_button.grab_focus.call_deferred()
+
+
+func _blocking_exclusive_window() -> Window:
+	var tree := get_tree()
+	if tree == null or tree.root == null:
+		return null
+	return _find_exclusive_window(tree.root)
+
+
+func _find_exclusive_window(node: Node) -> Window:
+	for child in node.get_children():
+		if child is Window and child != self and child.visible and child.exclusive:
+			return child
+		var nested := _find_exclusive_window(child)
+		if nested != null:
+			return nested
+	return null
+
+
+func _defer_until_unblocked(blocker: Window) -> void:
+	if not blocker.visibility_changed.is_connected(_retry_show_next):
+		blocker.visibility_changed.connect(_retry_show_next, CONNECT_ONE_SHOT)
+	if not blocker.tree_exited.is_connected(_retry_show_next):
+		blocker.tree_exited.connect(_retry_show_next, CONNECT_ONE_SHOT)
+
+
+func _retry_show_next() -> void:
+	if is_inside_tree() and not visible:
+		_show_next.call_deferred()
 
 
 func _refine_modal_height() -> void:
@@ -99,10 +137,10 @@ func _refine_modal_height() -> void:
 		if not visible:
 			_refining = false
 			return
-		if %ErrorText.size.x > 1.0:
+		if _text_label.size.x > 1.0:
 			break
 	if visible:
-		ModalWindowLayout.refine_height(self, %Panel, %ErrorText)
+		ModalWindowLayout.refine_height(self, _panel, _text_label, COMPACT_MIN_HEIGHT)
 	_refining = false
 
 

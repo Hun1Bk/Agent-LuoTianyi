@@ -18,8 +18,17 @@ const SPACE_XXL := 40.0
 const TOAST_COLORS := {
 	"success": {"bg": Color(0.94, 1.0, 0.96, 1), "border": Color(0.18, 0.64, 0.40, 0.9)},
 	"error": {"bg": Color(1.0, 0.95, 0.95, 1), "border": Color(0.78, 0.24, 0.24, 0.9)},
-	"progress": {"bg": Color(0.95, 0.98, 1.0, 1), "border": Color(0.20, 0.52, 0.86, 0.9)},
-	"info": {"bg": Color(1, 1, 1, 1), "border": Color(0.18, 0.48, 0.80, 0.9)},
+	"progress": {"bg": Color(0.94, 0.985, 1.0, 1), "border": Color(0.4, 0.8, 1.0, 0.95)},
+	"warning": {"bg": Color(1.0, 0.972, 0.92, 1), "border": Color(0.84, 0.56, 0.14, 0.9)},
+	"info": {"bg": Color(1, 1, 1, 1), "border": Color(0.259, 0.725, 0.929, 0.9)},
+}
+const STATUS_PALETTES := {
+	"muted": {"text": Color(0.42, 0.5, 0.56, 1), "bg": Color(0.968, 0.98, 0.988, 1), "border": Color(0.86, 0.905, 0.94, 1)},
+	"info": {"text": Color(0.117647, 0.407843, 0.6, 1), "bg": Color(0.945, 0.982, 1.0, 1), "border": Color(0.62, 0.86, 0.98, 0.95)},
+	"progress": {"text": Color(0.117647, 0.407843, 0.6, 1), "bg": Color(0.945, 0.982, 1.0, 1), "border": Color(0.4, 0.8, 1.0, 0.95)},
+	"success": {"text": Color(0.117647, 0.431373, 0.286275, 1), "bg": Color(0.94, 0.992, 0.96, 1), "border": Color(0.46, 0.79, 0.6, 0.9)},
+	"warning": {"text": Color(0.611765, 0.341176, 0, 1), "bg": Color(1.0, 0.972, 0.92, 1), "border": Color(0.88, 0.66, 0.32, 0.9)},
+	"error": {"text": Color(0.717647, 0.164706, 0.164706, 1), "bg": Color(1.0, 0.952, 0.952, 1), "border": Color(0.88, 0.48, 0.48, 0.9)},
 }
 var ui_style := "flat"
 var icon_style := "svg"
@@ -115,7 +124,27 @@ func _apply_icon(button: Button, name: String) -> void:
 	button.icon = load("res://assets/ui/icons/" + name + suffix)
 	button.expand_icon = false
 	button.add_theme_constant_override("icon_max_width", 20)
-	button.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.4))
+	button.add_theme_color_override("icon_disabled_color", Color(0.43, 0.51, 0.55, 0.68))
+
+
+static func status_palette(kind: String) -> Dictionary:
+	return STATUS_PALETTES.get(kind, STATUS_PALETTES.muted)
+
+
+static func apply_banner_box(stylebox: StyleBoxFlat, kind: String, crystal: bool = false) -> void:
+	if stylebox == null:
+		return
+	var palette := status_palette(kind)
+	var bg: Color = palette.bg
+	bg.a = 0.92 if crystal else 1.0
+	stylebox.bg_color = bg
+	stylebox.border_color = palette.border
+	stylebox.set_border_width_all(1)
+	stylebox.set_corner_radius_all(12 if crystal else 8)
+	stylebox.content_margin_left = SPACE_MD
+	stylebox.content_margin_right = SPACE_MD
+	stylebox.content_margin_top = SPACE_SM
+	stylebox.content_margin_bottom = SPACE_SM
 
 ## 气泡底色：扁平模式沿用主题语义色，清透模式换成半透明冰蓝。
 func bubble_color(own: bool, base: Color) -> Color:
@@ -217,15 +246,70 @@ func _apply_shadow(stylebox: StyleBoxFlat) -> void:
 		stylebox.shadow_offset = Vector2.ZERO
 
 func _apply_panel_themes() -> void:
-	_apply_surface_group("panel", ["AppSurface", "PanelContainer", "DialogSurface", "DropdownPopup",
-		"PopupPanel", "PopupMenu", "LoginSurface", "LoginDialog", "ModelCard", "SettingsCard"])
-	_apply_modal_surface()
+	_apply_surface_group("panel", ["AppSurface", "PanelContainer", "DropdownPopup",
+		"PopupPanel", "PopupMenu", "ModelCard", "SettingsCard"])
+	_apply_dialog_surfaces()
 	_apply_chat_surface()
 	_apply_surface_group("panel", ["DynamicsSurface", "DynamicsDetailSurface"])
+	_apply_window_shell_surface()
+	_apply_banner_surface()
 	_apply_toast_surface()
 	_apply_surface_padding()
-	_apply_surface_group("normal", ["TerminalSurface"])
+	_apply_terminal_surface()
 	_apply_post_group()
+
+
+func _apply_window_shell_surface() -> void:
+	if not _theme.has_stylebox("panel", "WindowShellSurface"):
+		return
+	var shell := _theme.get_stylebox("panel", "WindowShellSurface") as StyleBoxFlat
+	if shell == null:
+		return
+	shell.set_corner_radius_all(0)
+	shell.set_border_width_all(0)
+	shell.shadow_color = Color(0, 0, 0, 0)
+	shell.shadow_size = 0
+	shell.shadow_offset = Vector2.ZERO
+	shell.bg_color = Color(0.925, 0.962, 0.992, 1.0) if is_crystal() else Color(0.955, 0.978, 0.992, 1.0)
+
+
+func _apply_banner_surface() -> void:
+	if not _theme.has_stylebox("panel", "StatusBannerSurface"):
+		return
+	var banner := _theme.get_stylebox("panel", "StatusBannerSurface") as StyleBoxFlat
+	if banner != null:
+		apply_banner_box(banner, "muted", is_crystal())
+
+
+func _apply_terminal_surface() -> void:
+	if not _theme.has_stylebox("normal", "TerminalSurface"):
+		return
+	var terminal := _theme.get_stylebox("normal", "TerminalSurface") as StyleBoxFlat
+	if terminal == null:
+		return
+	terminal.set_corner_radius_all(12 if is_crystal() else 8)
+	terminal.set_border_width_all(1)
+	terminal.border_color = Color(0.145098, 0.215686, 0.27451, 1)
+	terminal.bg_color = Color(0.06666667, 0.09803922, 0.13725491, 1.0)
+	terminal.shadow_color = Color(0, 0, 0, 0)
+	terminal.shadow_size = 0
+	terminal.shadow_offset = Vector2.ZERO
+
+
+func _apply_dialog_surfaces() -> void:
+	for kind in ["DialogSurface", "LoginDialog"]:
+		if not _theme.has_stylebox("panel", kind):
+			continue
+		var panel := _theme.get_stylebox("panel", kind) as StyleBoxFlat
+		if panel == null:
+			continue
+		apply_surface_style(panel)
+		panel.bg_color = Color(1, 1, 1, 1)
+		if kind == "LoginDialog":
+			panel.shadow_color = Color(0, 0, 0, 0)
+			panel.shadow_size = 0
+			panel.shadow_offset = Vector2.ZERO
+	_apply_modal_surface()
 
 
 func _apply_toast_surface() -> void:
@@ -286,6 +370,7 @@ func _apply_dropdown_popup_style() -> void:
 	if _theme.has_stylebox("panel", "DropdownPopup"):
 		var popup := _theme.get_stylebox("panel", "DropdownPopup") as StyleBoxFlat
 		if popup != null:
+			popup.bg_color = Color(1, 1, 1, 1)
 			popup.set_corner_radius_all(12 if is_crystal() else 8)
 			popup.border_color = Color(0.72, 0.88, 1.0, 0.58) if is_crystal() else Color(0.776, 0.827, 0.867, 1)
 			popup.shadow_color = Color(0.06, 0.16, 0.23, 0.16)
@@ -311,6 +396,7 @@ func _apply_modal_surface() -> void:
 	if panel == null:
 		return
 	apply_surface_style(panel)
+	panel.bg_color = Color(1, 1, 1, 1)
 	panel.set_border_width_all(0)
 	panel.content_margin_left = SPACE_XL
 	panel.content_margin_right = SPACE_XL
@@ -323,13 +409,24 @@ func _apply_modal_surface() -> void:
 
 ## 主操作与设置操作使用独立 StyleBox，避免牵动全局 Button/Control 样式。
 func _apply_action_styles() -> void:
-	for variant in ["PrimaryButton", "SettingsButton", "SettingsPrimaryButton"]:
+	for variant in ["PrimaryButton", "SettingsButton", "SettingsPrimaryButton", "SettingsDangerButton", "ChatPillButton"]:
 		for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 			if not _theme.has_stylebox(state, variant):
 				continue
 			var style := _theme.get_stylebox(state, variant) as StyleBoxFlat
 			if style != null:
 				apply_action_style(style, state)
+	_apply_inline_link_styles()
+
+
+func _apply_inline_link_styles() -> void:
+	var radius := 8 if is_crystal() else 6
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		if not _theme.has_stylebox(state, "InlineLinkButton"):
+			continue
+		var link := _theme.get_stylebox(state, "InlineLinkButton") as StyleBoxFlat
+		if link != null:
+			link.set_corner_radius_all(radius)
 
 
 func apply_action_style(stylebox: StyleBoxFlat, state: String) -> void:
